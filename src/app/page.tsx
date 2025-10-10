@@ -16,12 +16,24 @@ export default function Home() {
     return (
         <div className='flex h-screen flex-col overflow-hidden bg-white'>
             {/* Header */}
-            <div className='mb-2 flex w-full flex-shrink-0 items-center justify-end p-3'>
-                <div className='text-right'>
-                    <div className='mb-1 text-xs font-medium text-gray-400'>
+            <div className='mb-2 flex w-full flex-shrink-0 items-center justify-between p-3'>
+                {/* Logo */}
+                <div className='flex items-center'>
+                    <Image
+                        src='/images/idolguessr-logo.png'
+                        alt='IdolGuessr Logo'
+                        width={150}
+                        height={50}
+                        className='h-12 w-auto'
+                    />
+                </div>
+
+                {/* Timer */}
+                <div className='flex flex-col items-end justify-end text-right'>
+                    <div className='mb-[-5px] text-sm font-medium text-gray-400'>
                         NEXT IDOL
                     </div>
-                    <div className='font-mono text-lg font-bold text-black'>
+                    <div className='font-mono text-2xl font-bold text-black'>
                         {timer}
                     </div>
                 </div>
@@ -31,7 +43,7 @@ export default function Home() {
             <div className='flex w-full flex-1 flex-col items-center justify-between px-4'>
                 <div className='flex w-full flex-col items-center'>
                     {/* Pixelated Image */}
-                    <div className='relative mb-3 w-full max-w-xs'>
+                    <div className='relative mb-3 w-full max-w-sm'>
                         <div className='flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-gray-200'>
                             <Image
                                 src={'/idols/d29ueW91bmc-001.png'}
@@ -45,23 +57,34 @@ export default function Home() {
                     </div>
 
                     {/* Guess Indicators */}
-                    <div className='mb-3 flex gap-2'>
-                        <div className='flex h-6 w-6 items-center justify-center bg-black'>
-                            <span className='text-sm font-bold text-white'>
+                    <div className='mb-3 grid w-full max-w-sm grid-cols-6 gap-2'>
+                        <div className='flex aspect-square items-center justify-center rounded-[5px] bg-black'>
+                            <span className='text-base font-bold text-white'>
                                 ✕
                             </span>
                         </div>
-                        <div className='flex h-6 w-6 items-center justify-center bg-black'>
-                            <span className='text-sm font-bold text-white'>
+                        <div className='flex aspect-square items-center justify-center rounded-[5px] bg-black'>
+                            <span className='text-base font-bold text-white'>
                                 ✕
                             </span>
                         </div>
-                        <div className='flex h-6 w-6 items-center justify-center bg-black'>
-                            <span className='text-sm font-bold text-white'>
+                        <div className='flex aspect-square items-center justify-center rounded-[5px] bg-black'>
+                            <span className='text-base font-bold text-white'>
                                 ✕
                             </span>
                         </div>
-                        <div className='h-6 w-6 bg-green-400'></div>
+                        <div
+                            className='aspect-square rounded-[5px]'
+                            style={{ backgroundColor: '#93DF84' }}
+                        ></div>
+                        <div
+                            className='aspect-square rounded-[5px]'
+                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
+                        ></div>
+                        <div
+                            className='aspect-square rounded-[5px]'
+                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
+                        ></div>
                     </div>
 
                     {/* Current Guess */}
