@@ -9,8 +9,9 @@ const inter = Inter_Tight({
 })
 
 export const metadata: Metadata = {
-    title: 'Next.js Starter',
-    description: 'Next.js template by Jarvin',
+    title: 'IdolGuessr - Guess the Idol',
+    description:
+        'Guess the Idol - A fun web game where K-pop fans test their knowledge by guessing idols from blurred photos.',
 }
 
 export default function RootLayout({
@@ -19,8 +20,13 @@ export default function RootLayout({
     children: React.ReactNode
 }>) {
     return (
-        <html lang='en'>
-            <body className={`${inter.variable} antialiased`}>{children}</body>
+        <html lang='en' suppressHydrationWarning>
+            <body
+                suppressHydrationWarning
+                className={`${inter.variable} antialiased`}
+            >
+                {children}
+            </body>
         </html>
     )
 }
