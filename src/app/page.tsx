@@ -4,6 +4,7 @@ import { DailyImage, getDailyImage } from '@/lib/supabase'
 import Image from 'next/image'
 import { useState, useEffect, useCallback } from 'react'
 import PixelatedImage from '@/components/PixelatedImage'
+import OnScreenKeyboard from '@/components/OnScreenKeyboard'
 
 export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
@@ -105,7 +106,7 @@ export default function Home() {
                                 </div>
                             ) : dailyImage ? (
                                 <PixelatedImage
-                                    src={'/idols/wonyoung.png'}
+                                    src={dailyImage.file_name}
                                     alt='Daily idol'
                                     width={350}
                                     height={350}
@@ -183,62 +184,10 @@ export default function Home() {
                 </div>
 
                 {/* Virtual Keyboard */}
-                <div className='w-full pb-4'>
-                    {/* Top Row */}
-                    <div className='mb-1 flex gap-1'>
-                        {['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'].map(
-                            (key) => (
-                                <button
-                                    key={key}
-                                    className='flex h-12 flex-1 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                                    onClick={() => handleKeyPress(key)}
-                                >
-                                    {key}
-                                </button>
-                            )
-                        )}
-                    </div>
-
-                    {/* Middle Row */}
-                    <div className='mb-1 flex justify-center gap-1'>
-                        {['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'].map(
-                            (key) => (
-                                <button
-                                    key={key}
-                                    className='flex h-12 w-8 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                                    onClick={() => handleKeyPress(key)}
-                                >
-                                    {key}
-                                </button>
-                            )
-                        )}
-                    </div>
-
-                    {/* Bottom Row */}
-                    <div className='flex gap-1'>
-                        <button
-                            className='flex h-12 flex-[1.5] items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                            onClick={() => handleKeyPress('ENTER')}
-                        >
-                            ENTER
-                        </button>
-                        {['Z', 'X', 'C', 'V', 'B', 'N', 'M'].map((key) => (
-                            <button
-                                key={key}
-                                className='flex h-12 flex-1 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                                onClick={() => handleKeyPress(key)}
-                            >
-                                {key}
-                            </button>
-                        ))}
-                        <button
-                            className='flex h-12 flex-[1.2] items-center justify-center rounded bg-gray-300 text-sm font-bold text-black transition-colors hover:bg-gray-400'
-                            onClick={() => handleKeyPress('✕')}
-                        >
-                            ✕
-                        </button>
-                    </div>
-                </div>
+                <OnScreenKeyboard 
+                    onKeyPress={handleKeyPress}
+                    className="pb-4"
+                />
             </div>
         </div>
     )
