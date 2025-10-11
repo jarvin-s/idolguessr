@@ -2,7 +2,7 @@
 
 import { DailyImage, getDailyImage } from '@/lib/supabase'
 import Image from 'next/image'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PixelatedImage from '@/components/PixelatedImage'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
 import Confetti from 'react-confetti'
@@ -19,14 +19,9 @@ export default function Home() {
     const [gameWon, setGameWon] = useState(false)
     const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 })
     
-    const remainingGuesses = useMemo(() => 
-        guesses.filter(guess => guess === 'empty').length, 
-        [guesses]
-    )
-    const pixelationLevel = useMemo(() => 
-        gameWon ? 1 : Math.max(2, remainingGuesses), 
-        [gameWon, remainingGuesses]
-    )
+    // Direct calculations without memoization for instant updates
+    const remainingGuesses = guesses.filter(guess => guess === 'empty').length
+    const pixelationLevel = gameWon ? 1 : remainingGuesses
     const timer = '18:36:05'
 
     const handleKeyPress = useCallback(
@@ -57,17 +52,18 @@ export default function Home() {
                             }, 300)
                         }, 500)
                     } else {
+                        // INSTANT WIN - batch all state updates together
                         const emptyIndex = guesses.findIndex(guess => guess === 'empty')
+                        
+                        // Use React 18's automatic batching by calling all setStates synchronously
+                        setGameWon(true)
+                        setShowConfetti(true)
+                        setIsAnimating(false)
                         setGuesses(prev => {
                             const newGuesses = [...prev]
                             newGuesses[emptyIndex] = 'correct'
                             return newGuesses
                         })
-                        
-                        setShowConfetti(true)
-                        setGameWon(true)
-                        
-                        setIsAnimating(false)
                     }
                     
                     console.log('Guess submitted:', normalizedGuess, 'Correct:', isCorrect)
@@ -174,7 +170,7 @@ export default function Home() {
 
                 <div className='flex w-full flex-1 flex-col px-4'>
                 <div className='flex w-full flex-col items-center'>
-                    <div className='relative mb-3 w-full max-w-sm'>
+                    <div className='relative mb-3 w-full sm:max-w-md sm:mx-auto'>
                         <div className='aspect-square w-full overflow-hidden rounded-lg'>
                             {isLoading ? (
                                 <div className='flex h-full w-full items-center justify-center'>
@@ -186,8 +182,8 @@ export default function Home() {
                                 <PixelatedImage
                                     src={dailyImage.file_name}
                                     alt='Daily idol'
-                                    width={400}
-                                    height={400}
+                                    width={500}
+                                    height={500}
                                     pixelationLevel={pixelationLevel}
                                 />
                             ) : (
@@ -202,11 +198,11 @@ export default function Home() {
 
 
                     {/* Guess Indicators */}
-                    <div className='grid w-full max-w-sm grid-cols-6 gap-2'>
+                    <div className='grid w-full sm:max-w-md sm:mx-auto grid-cols-6 gap-2'>
                         {guesses.map((guess, index) => (
                             <div
-                                key={index}
-                                className={`flex aspect-square items-center justify-center rounded-[5px] transition-all duration-300 ${
+                                key={`${index}-${guess}`}
+                                className={`flex aspect-square items-center justify-center rounded-[5px] ${
                                     guess === 'correct'
                                         ? 'bg-green-400 square-pop-animation' // Green for correct
                                         : guess === 'incorrect'

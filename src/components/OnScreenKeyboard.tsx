@@ -15,7 +15,7 @@ export default function OnScreenKeyboard({
 
     return (
         <div className={`w-full ${className}`}>
-            {/* Top Row */}
+            {/* Top Row - 10 keys */}
             <div className='mb-1 flex gap-1'>
                 {topRowKeys.map((key) => (
                     <button
@@ -28,20 +28,22 @@ export default function OnScreenKeyboard({
                 ))}
             </div>
 
-            {/* Middle Row */}
-            <div className='mb-1 flex justify-center gap-1'>
+            {/* Middle Row - 9 keys with 0.5 key offset on each side */}
+            <div className='mb-1 flex gap-1'>
+                <div className='flex-[0.5]'></div>
                 {middleRowKeys.map((key) => (
                     <button
                         key={key}
-                        className='flex h-12 w-8 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
+                        className='flex h-12 flex-1 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
                         onClick={() => onKeyPress(key)}
                     >
                         {key}
                     </button>
                 ))}
+                <div className='flex-[0.5]'></div>
             </div>
 
-            {/* Bottom Row */}
+            {/* Bottom Row - ENTER + 7 keys + Backspace */}
             <div className='flex gap-1'>
                 <button
                     className='flex h-12 flex-[1.5] items-center justify-center rounded bg-gray-300 text-sm font-bold text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
@@ -59,7 +61,7 @@ export default function OnScreenKeyboard({
                     </button>
                 ))}
                 <button
-                    className='flex h-12 flex-[1.2] items-center justify-center rounded bg-gray-300 text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
+                    className='flex h-12 flex-[1.5] items-center justify-center rounded bg-gray-300 text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
                     onClick={() => onKeyPress('✕')}
                 >
                     <BackspaceIcon />

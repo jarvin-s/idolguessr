@@ -1,7 +1,6 @@
 'use client'
 
-import Image from 'next/image'
-import { useState, useRef, useMemo } from 'react'
+import { ImagePixelated } from 'react-pixelate'
 
 interface PixelatedImageProps {
     src: string
@@ -12,159 +11,47 @@ interface PixelatedImageProps {
     pixelationLevel: number
 }
 
-interface ColorBlock {
-    id: string
-    left: number
-    top: number
-    width: number
-    height: number
-    color: string
-}
-
 export default function PixelatedImage({
     src,
-    alt,
     width,
     height,
     pixelationLevel,
 }: PixelatedImageProps) {
-    const [imageLoaded, setImageLoaded] = useState(false)
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-    const imgRef = useRef<HTMLImageElement>(null)
-
-    // Calculate block size based on pixelation level
-    const getBlockSize = (level: number) => {
-        if (level === 1) return 0
-        return Math.floor(level * 4) // 8, 16, 24, 32, 40, 48 pixels
+    // Convert pixelation level to specific pixel sizes
+    // Game start: 50, then 40→30→20→10→5, then 1 when won
+    const getPixelSize = (level: number) => {
+        if (level === 1) return 1 // Almost clear when won
+        
+        // Map remaining guesses to specific pixel sizes
+        switch (level) {
+            case 6: return 50 // Game start (6 guesses left)
+            case 5: return 40 // 1 wrong guess (5 guesses left)
+            case 4: return 30 // 2 wrong guesses (4 guesses left)
+            case 3: return 20 // 3 wrong guesses (3 guesses left)
+            case 2: return 10 // 4 wrong guesses (2 guesses left)
+            default: return 5  // 5 wrong guesses (1 guess left)
+        }
     }
 
-    const blockSize = getBlockSize(pixelationLevel)
-
-    // Memoize color blocks calculation to prevent unnecessary recalculations
-    const colorBlocks = useMemo(() => {
-        if (!imageLoaded || blockSize === 0) {
-            return []
-        }
-
-        const canvas = canvasRef.current
-        const img = imgRef.current
-        if (!canvas || !img) {
-            return []
-        }
-
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-            return []
-        }
-
-        // Always ensure canvas is properly set up
-        canvas.width = width
-        canvas.height = height
-        ctx.drawImage(img, 0, 0, width, height)
-
-        const sampleImageColor = (x: number, y: number): string => {
-            const centerX = Math.min(x + blockSize / 2, width - 1)
-            const centerY = Math.min(y + blockSize / 2, height - 1)
-
-            try {
-                const imageData = ctx.getImageData(centerX, centerY, 1, 1)
-                const [r, g, b] = imageData.data
-                return `rgb(${r}, ${g}, ${b})`
-            } catch (error) {
-                console.error('Error sampling color:', error)
-                return 'rgb(128, 128, 128)'
-            }
-        }
-
-        const blocks: ColorBlock[] = []
-        const blocksX = Math.ceil(width / blockSize)
-        const blocksY = Math.ceil(height / blockSize)
-
-        for (let y = 0; y < blocksY; y++) {
-            for (let x = 0; x < blocksX; x++) {
-                const left = x * blockSize
-                const top = y * blockSize
-                const blockWidth = Math.min(blockSize, width - left)
-                const blockHeight = Math.min(blockSize, height - top)
-
-                const color = sampleImageColor(left, top)
-
-                blocks.push({
-                    id: `${x}-${y}`,
-                    left,
-                    top,
-                    width: blockWidth,
-                    height: blockHeight,
-                    color,
-                })
-            }
-        }
-
-        return blocks
-    }, [imageLoaded, width, height, blockSize])
-
-    const handleImageLoad = () => {
-        setImageLoaded(true)
-    }
+    const pixelSize = getPixelSize(pixelationLevel)
 
     return (
-        <div className='relative h-full w-full'>
-            {/* Hidden canvas for color sampling */}
-            <canvas
-                ref={canvasRef}
-                className='hidden'
-                width={width}
-                height={height}
-            />
-
-            {/* Conditional rendering based on pixelation level */}
-            {pixelationLevel === 1 ? (
-                /* Show original image when no pixelation */
-                <Image
-                    ref={imgRef}
+        <div className='h-full w-full overflow-hidden flex items-center justify-center'>
+            <div style={{ 
+                transform: 'translate(-50%, -50%)',
+                position: 'relative',
+                left: '50%',
+                top: '50%'
+            }}>
+                <ImagePixelated
                     src={src}
-                    alt={alt}
                     width={width}
                     height={height}
-                    className='h-full w-full object-cover'
-                    onLoad={handleImageLoad}
-                    crossOrigin='anonymous'
+                    pixelSize={pixelSize}
+                    centered={true}
+                    fillTransparencyColor="white"
                 />
-            ) : (
-                /* Show pixelated version */
-                <>
-                    {/* Hidden base image for color sampling */}
-                    <Image
-                        ref={imgRef}
-                        src={src}
-                        alt={alt}
-                        width={width}
-                        height={height}
-                        className='h-full w-full object-cover opacity-0'
-                        onLoad={handleImageLoad}
-                        crossOrigin='anonymous'
-                    />
-
-                    {/* Pixelated blocks covering the entire area */}
-                    {imageLoaded && (
-                        <div className='pointer-events-none absolute inset-0'>
-                            {colorBlocks.map((block) => (
-                                <div
-                                    key={block.id}
-                                    className='absolute'
-                                    style={{
-                                        left: block.left,
-                                        top: block.top,
-                                        width: block.width,
-                                        height: block.height,
-                                        backgroundColor: block.color,
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </>
-            )}
+            </div>
         </div>
     )
 }
