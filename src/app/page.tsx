@@ -1,38 +1,35 @@
 'use client'
 
+import { DailyImage, getDailyImage } from '@/lib/supabase'
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import PixelatedImage from '@/components/PixelatedImage'
+import OnScreenKeyboard from '@/components/OnScreenKeyboard'
 
 export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
+    const [dailyImage, setDailyImage] = useState<DailyImage | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [pixelationLevel, setPixelationLevel] = useState(6) // Start with heavy pixelation
     const timer = '18:36:05'
 
-    const blurImageStyle = {
-        filter: 'blur(20px) contrast(200%) brightness(1.2)',
-        imageRendering: 'pixelated' as const,
-        transform: 'scale(0.5)',
-        transformOrigin: 'center',
-    }
+    const handleKeyPress = useCallback(
+        (key: string) => {
+            if (key === 'ENTER') {
+                console.log('Enter pressed, current guess:', currentGuess)
+            } else if (key === '✕') {
+                setCurrentGuess((prev) => prev.slice(0, -1))
+            } else {
+                setCurrentGuess((prev) => prev + key)
+            }
+        },
+        [currentGuess]
+    )
 
-    const handleKeyPress = (key: string) => {
-        if (key === 'ENTER') {
-            // Handle enter logic here
-            console.log('Enter pressed, current guess:', currentGuess)
-        } else if (key === '✕') {
-            // Handle backspace
-            setCurrentGuess((prev) => prev.slice(0, -1))
-        } else {
-            // Handle letter input
-            setCurrentGuess((prev) => prev + key)
-        }
-    }
-
-    // Physical keyboard support
     useEffect(() => {
         const handlePhysicalKeyPress = (event: KeyboardEvent) => {
             const key = event.key.toUpperCase()
 
-            // Prevent default behavior for keys we handle
             if (key === 'ENTER' || key === 'BACKSPACE' || /^[A-Z]$/.test(key)) {
                 event.preventDefault()
             }
@@ -46,19 +43,33 @@ export default function Home() {
             }
         }
 
-        // Add event listener
         window.addEventListener('keydown', handlePhysicalKeyPress)
 
-        // Cleanup
         return () => {
             window.removeEventListener('keydown', handlePhysicalKeyPress)
         }
-    }, [currentGuess])
+    }, [handleKeyPress])
+
+    useEffect(() => {
+        const fetchDailyImage = async () => {
+            setIsLoading(true)
+            try {
+                const image = await getDailyImage()
+                setDailyImage(image)
+            } catch (error) {
+                console.error('Failed to fetch daily image:', error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchDailyImage()
+    }, [])
 
     return (
         <div className='flex h-screen flex-col overflow-hidden bg-white'>
             {/* Header */}
-            <div className='mb-2 flex w-full flex-shrink-0 items-center justify-between p-3'>
+            <div className='mb-2 flex w-full flex-shrink-0 items-center justify-between p-4'>
                 {/* Logo */}
                 <div className='flex items-center'>
                     <Image
@@ -86,15 +97,50 @@ export default function Home() {
                 <div className='flex w-full flex-col items-center'>
                     {/* Pixelated Image */}
                     <div className='relative mb-3 w-full max-w-sm'>
-                        <div className='flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-gray-200'>
-                            <Image
-                                src={'/idols/d29ueW91bmc-001.png'}
-                                alt='Blurred idol'
-                                width={400}
-                                height={400}
-                                className='h-full w-full object-cover'
-                                style={blurImageStyle}
-                            />
+                        <div className='flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg'>
+                            {isLoading ? (
+                                <div className='flex h-full w-full items-center justify-center'>
+                                    <div className='text-gray-400'>
+                                        Loading...
+                                    </div>
+                                </div>
+                            ) : dailyImage ? (
+                                <PixelatedImage
+                                    src={dailyImage.file_name}
+                                    alt='Daily idol'
+                                    width={350}
+                                    height={350}
+                                    pixelationLevel={pixelationLevel}
+                                />
+                            ) : (
+                                <div className='flex h-full w-full items-center justify-center'>
+                                    <div className='text-gray-400'>
+                                        No image available
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Pixelation Level Controls */}
+                    <div className='mb-3 flex w-full max-w-sm items-center justify-center gap-2'>
+                        <span className='text-sm font-medium text-gray-600'>
+                            Pixelation:
+                        </span>
+                        <div className='flex gap-1'>
+                            {[1, 2, 3, 4, 5, 6].map((level) => (
+                                <button
+                                    key={level}
+                                    className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
+                                        pixelationLevel === level
+                                            ? 'bg-black text-white'
+                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                    }`}
+                                    onClick={() => setPixelationLevel(level)}
+                                >
+                                    {level}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -138,62 +184,10 @@ export default function Home() {
                 </div>
 
                 {/* Virtual Keyboard */}
-                <div className='w-full pb-4'>
-                    {/* Top Row */}
-                    <div className='mb-1 flex gap-1'>
-                        {['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'].map(
-                            (key) => (
-                                <button
-                                    key={key}
-                                    className='flex h-12 flex-1 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                                    onClick={() => handleKeyPress(key)}
-                                >
-                                    {key}
-                                </button>
-                            )
-                        )}
-                    </div>
-
-                    {/* Middle Row */}
-                    <div className='mb-1 flex justify-center gap-1'>
-                        {['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'].map(
-                            (key) => (
-                                <button
-                                    key={key}
-                                    className='flex h-12 w-8 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                                    onClick={() => handleKeyPress(key)}
-                                >
-                                    {key}
-                                </button>
-                            )
-                        )}
-                    </div>
-
-                    {/* Bottom Row */}
-                    <div className='flex gap-1'>
-                        <button
-                            className='flex h-12 flex-[1.5] items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                            onClick={() => handleKeyPress('ENTER')}
-                        >
-                            ENTER
-                        </button>
-                        {['Z', 'X', 'C', 'V', 'B', 'N', 'M'].map((key) => (
-                            <button
-                                key={key}
-                                className='flex h-12 flex-1 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400'
-                                onClick={() => handleKeyPress(key)}
-                            >
-                                {key}
-                            </button>
-                        ))}
-                        <button
-                            className='flex h-12 flex-[1.2] items-center justify-center rounded bg-gray-300 text-sm font-bold text-black transition-colors hover:bg-gray-400'
-                            onClick={() => handleKeyPress('✕')}
-                        >
-                            ✕
-                        </button>
-                    </div>
-                </div>
+                <OnScreenKeyboard
+                    onKeyPress={handleKeyPress}
+                    className='pb-4'
+                />
             </div>
         </div>
     )
