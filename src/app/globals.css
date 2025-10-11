@@ -1,1 +1,61 @@
 @import 'tailwindcss';
+
+/* Prevent scrolling on mobile */
+html,
+body {
+    overflow: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#__next {
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Ensure proper responsive behavior */
+@media (min-width: 640px) {
+    body {
+        background-color: #f3f4f6; /* Light gray background for larger screens */
+    }
+}
+
+/* Game animations */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes squarePop {
+    0% { 
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.shake-animation {
+    animation: shake 0.5s ease-in-out;
+    color: #ef4444 !important; /* Red color during shake */
+}
+
+.fade-out-animation {
+    animation: fadeOut 0.3s ease-in-out forwards;
+}
+
+.square-pop-animation {
+    animation: squarePop 0.4s ease-out;
+}
