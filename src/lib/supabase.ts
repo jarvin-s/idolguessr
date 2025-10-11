@@ -8,6 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export interface DailyImage {
   id: number
   file_name: string
+  name: string
   created_at?: string
   updated_at?: string
 }

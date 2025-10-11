@@ -2,38 +2,46 @@
 
 import { DailyImage, getDailyImage } from '@/lib/supabase'
 import Image from 'next/image'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import PixelatedImage from '@/components/PixelatedImage'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
+import Confetti from 'react-confetti'
 
 export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
     const [dailyImage, setDailyImage] = useState<DailyImage | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [pixelationLevel, setPixelationLevel] = useState(6) // Start with heavy pixelation
     const [guesses, setGuesses] = useState<Array<'correct' | 'incorrect' | 'empty'>>(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
     const [isAnimating, setIsAnimating] = useState(false)
     const [showGuessText, setShowGuessText] = useState(true)
+    const [correctAnswer, setCorrectAnswer] = useState('')
+    const [showConfetti, setShowConfetti] = useState(false)
+    const [gameWon, setGameWon] = useState(false)
+    const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 })
+    
+    const remainingGuesses = useMemo(() => 
+        guesses.filter(guess => guess === 'empty').length, 
+        [guesses]
+    )
+    const pixelationLevel = useMemo(() => 
+        gameWon ? 1 : Math.max(2, remainingGuesses), 
+        [gameWon, remainingGuesses]
+    )
     const timer = '18:36:05'
-    const correctAnswer = 'WONYOUNG'
 
     const handleKeyPress = useCallback(
         (key: string) => {
             if (key === 'ENTER') {
-                // Only process guess if we have a current guess and haven't used all attempts
                 if (currentGuess.trim() && guesses.some(guess => guess === 'empty') && !isAnimating) {
                     const normalizedGuess = currentGuess.toUpperCase().trim()
                     const isCorrect = normalizedGuess === correctAnswer
                     
-                    // Start animation
                     setIsAnimating(true)
                     
                     if (!isCorrect) {
-                        // Wrong guess - let shake animation play first
                         
-                        // After shake animation completes, start fade out and update square
                         setTimeout(() => {
-                            setShowGuessText(false) // Start fade out
+                            setShowGuessText(false)
                             
                             const emptyIndex = guesses.findIndex(guess => guess === 'empty')
                             setGuesses(prev => {
@@ -42,15 +50,13 @@ export default function Home() {
                                 return newGuesses
                             })
                             
-                            // Reset states after fade out completes
                             setTimeout(() => {
                                 setCurrentGuess('')
                                 setShowGuessText(true)
                                 setIsAnimating(false)
-                            }, 300) // Match fadeOut duration
-                        }, 500) // Let shake animation complete first
+                            }, 300)
+                        }, 500)
                     } else {
-                        // Correct guess - just update the square
                         const emptyIndex = guesses.findIndex(guess => guess === 'empty')
                         setGuesses(prev => {
                             const newGuesses = [...prev]
@@ -58,24 +64,25 @@ export default function Home() {
                             return newGuesses
                         })
                         
-                        // Clear guess and reset animation state
-                        setTimeout(() => {
-                            setCurrentGuess('')
-                            setIsAnimating(false)
-                        }, 100)
+                        setShowConfetti(true)
+                        setGameWon(true)
+                        
+                        setIsAnimating(false)
                     }
                     
                     console.log('Guess submitted:', normalizedGuess, 'Correct:', isCorrect)
                 }
             } else if (key === '✕') {
-                setCurrentGuess((prev) => prev.slice(0, -1))
+                if (!gameWon) {
+                    setCurrentGuess((prev) => prev.slice(0, -1))
+                }
             } else {
-                if (guesses.some(guess => guess === 'empty') && !isAnimating) {
+                if (guesses.some(guess => guess === 'empty') && !isAnimating && !gameWon) {
                     setCurrentGuess((prev) => prev + key)
                 }
             }
         },
-        [currentGuess, guesses, correctAnswer, isAnimating]
+        [currentGuess, guesses, correctAnswer, isAnimating, gameWon]
     )
 
     useEffect(() => {
@@ -108,6 +115,11 @@ export default function Home() {
             try {
                 const image = await getDailyImage()
                 setDailyImage(image)
+                if (image?.name) {
+                    const normalizedName = image.name.toUpperCase()
+                    setCorrectAnswer(normalizedName)
+                    console.log('Daily idol name:', normalizedName)
+                }
             } catch (error) {
                 console.error('Failed to fetch daily image:', error)
             } finally {
@@ -116,6 +128,20 @@ export default function Home() {
         }
 
         fetchDailyImage()
+    }, [])
+
+    useEffect(() => {
+        const updateDimensions = () => {
+            setWindowDimensions({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            })
+        }
+
+        updateDimensions()
+        window.addEventListener('resize', updateDimensions)
+
+        return () => window.removeEventListener('resize', updateDimensions)
     }, [])
 
     return (
@@ -146,10 +172,8 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* Main Game Area */}
                 <div className='flex w-full flex-1 flex-col px-4'>
                 <div className='flex w-full flex-col items-center'>
-                    {/* Pixelated Image */}
                     <div className='relative mb-3 w-full max-w-sm'>
                         <div className='aspect-square w-full overflow-hidden rounded-lg'>
                             {isLoading ? (
@@ -176,27 +200,6 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {/* Pixelation Level Controls */}
-                    <div className='mb-3 flex w-full max-w-sm items-center justify-center gap-2'>
-                        <span className='text-sm font-medium text-gray-600'>
-                            Pixelation:
-                        </span>
-                        <div className='flex gap-1'>
-                            {[1, 2, 3, 4, 5, 6].map((level) => (
-                                <button
-                                    key={level}
-                                    className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
-                                        pixelationLevel === level
-                                            ? 'bg-black text-white'
-                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                                    }`}
-                                    onClick={() => setPixelationLevel(level)}
-                                >
-                                    {level}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
 
                     {/* Guess Indicators */}
                     <div className='grid w-full max-w-sm grid-cols-6 gap-2'>
@@ -224,9 +227,9 @@ export default function Home() {
                 {/* Current Guess - Takes remaining space */}
                 <div className='flex flex-1 items-center justify-center'>
                     {showGuessText && (
-                        <div className={`text-4xl font-bold tracking-wider text-black ${
-                            isAnimating ? 'shake-animation fade-out-animation' : ''
-                        }`}>
+                        <div className={`text-4xl font-bold tracking-wider ${
+                            gameWon ? 'text-green-500' : 'text-black'
+                        } ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}>
                             {currentGuess}
                         </div>
                     )}
@@ -239,6 +242,17 @@ export default function Home() {
                 />
                 </div>
             </div>
+            
+            {/* Confetti for win celebration */}
+            {showConfetti && windowDimensions.width > 0 && (
+                <Confetti
+                    width={windowDimensions.width}
+                    height={windowDimensions.height}
+                    recycle={false}
+                    numberOfPieces={200}
+                    gravity={0.3}
+                />
+            )}
         </div>
     )
 }

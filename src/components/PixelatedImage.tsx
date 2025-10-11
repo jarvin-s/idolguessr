@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useMemo } from 'react'
 
 interface PixelatedImageProps {
     src: string
@@ -29,7 +29,6 @@ export default function PixelatedImage({
     pixelationLevel,
 }: PixelatedImageProps) {
     const [imageLoaded, setImageLoaded] = useState(false)
-    const [colorBlocks, setColorBlocks] = useState<ColorBlock[]>([])
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const imgRef = useRef<HTMLImageElement>(null)
 
@@ -41,22 +40,29 @@ export default function PixelatedImage({
 
     const blockSize = getBlockSize(pixelationLevel)
 
-    useEffect(() => {
-        if (!imageLoaded || blockSize === 0) return
+    // Memoize color blocks calculation to prevent unnecessary recalculations
+    const colorBlocks = useMemo(() => {
+        if (!imageLoaded || blockSize === 0) {
+            return []
+        }
+
+        const canvas = canvasRef.current
+        const img = imgRef.current
+        if (!canvas || !img) {
+            return []
+        }
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+            return []
+        }
+
+        // Always ensure canvas is properly set up
+        canvas.width = width
+        canvas.height = height
+        ctx.drawImage(img, 0, 0, width, height)
 
         const sampleImageColor = (x: number, y: number): string => {
-            const canvas = canvasRef.current
-            const img = imgRef.current
-            if (!canvas || !img) return 'rgb(128, 128, 128)'
-
-            const ctx = canvas.getContext('2d')
-            if (!ctx) return 'rgb(128, 128, 128)'
-
-            canvas.width = width
-            canvas.height = height
-
-            ctx.drawImage(img, 0, 0, width, height)
-
             const centerX = Math.min(x + blockSize / 2, width - 1)
             const centerY = Math.min(y + blockSize / 2, height - 1)
 
@@ -94,8 +100,8 @@ export default function PixelatedImage({
             }
         }
 
-        setColorBlocks(blocks)
-    }, [imageLoaded, pixelationLevel, width, height, blockSize])
+        return blocks
+    }, [imageLoaded, width, height, blockSize])
 
     const handleImageLoad = () => {
         setImageLoaded(true)
