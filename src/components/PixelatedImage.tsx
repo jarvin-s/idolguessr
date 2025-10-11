@@ -102,7 +102,7 @@ export default function PixelatedImage({
     }
 
     return (
-        <div className={`relative`} style={{ width, height }}>
+        <div className='relative h-full w-full'>
             {/* Hidden canvas for color sampling */}
             <canvas
                 ref={canvasRef}
@@ -120,7 +120,7 @@ export default function PixelatedImage({
                     alt={alt}
                     width={width}
                     height={height}
-                    className='h-full w-full'
+                    className='h-full w-full object-cover'
                     onLoad={handleImageLoad}
                     crossOrigin='anonymous'
                 />
@@ -134,7 +134,7 @@ export default function PixelatedImage({
                         alt={alt}
                         width={width}
                         height={height}
-                        className='h-full w-full opacity-0'
+                        className='h-full w-full object-cover opacity-0'
                         onLoad={handleImageLoad}
                         crossOrigin='anonymous'
                     />
