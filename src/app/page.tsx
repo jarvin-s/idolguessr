@@ -184,9 +184,9 @@ export default function Home() {
                 </div>
 
                 {/* Virtual Keyboard */}
-                <OnScreenKeyboard 
+                <OnScreenKeyboard
                     onKeyPress={handleKeyPress}
-                    className="pb-4"
+                    className='pb-4'
                 />
             </div>
         </div>
