@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useState, useEffect, useCallback } from 'react'
 import PixelatedImage from '@/components/PixelatedImage'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
+import Confetti from 'react-confetti'
 
 export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
@@ -14,8 +15,11 @@ export default function Home() {
     const [guesses, setGuesses] = useState<Array<'correct' | 'incorrect' | 'empty'>>(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
     const [isAnimating, setIsAnimating] = useState(false)
     const [showGuessText, setShowGuessText] = useState(true)
+    const [correctAnswer, setCorrectAnswer] = useState('')
+    const [showConfetti, setShowConfetti] = useState(false)
+    const [gameWon, setGameWon] = useState(false)
+    const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 })
     const timer = '18:36:05'
-    const correctAnswer = 'WONYOUNG'
 
     const handleKeyPress = useCallback(
         (key: string) => {
@@ -50,7 +54,7 @@ export default function Home() {
                             }, 300) // Match fadeOut duration
                         }, 500) // Let shake animation complete first
                     } else {
-                        // Correct guess - just update the square
+                        // Correct guess - show confetti and update square
                         const emptyIndex = guesses.findIndex(guess => guess === 'empty')
                         setGuesses(prev => {
                             const newGuesses = [...prev]
@@ -58,24 +62,29 @@ export default function Home() {
                             return newGuesses
                         })
                         
-                        // Clear guess and reset animation state
-                        setTimeout(() => {
-                            setCurrentGuess('')
-                            setIsAnimating(false)
-                        }, 100)
+                        // Show confetti and mark game as won
+                        setShowConfetti(true)
+                        setGameWon(true)
+                        
+                        // Don't clear the guess - keep it visible as the winning answer
+                        setIsAnimating(false)
                     }
                     
                     console.log('Guess submitted:', normalizedGuess, 'Correct:', isCorrect)
                 }
             } else if (key === '✕') {
-                setCurrentGuess((prev) => prev.slice(0, -1))
+                // Only allow backspace if game not won
+                if (!gameWon) {
+                    setCurrentGuess((prev) => prev.slice(0, -1))
+                }
             } else {
-                if (guesses.some(guess => guess === 'empty') && !isAnimating) {
+                // Only allow typing if we haven't used all guesses, not animating, and game not won
+                if (guesses.some(guess => guess === 'empty') && !isAnimating && !gameWon) {
                     setCurrentGuess((prev) => prev + key)
                 }
             }
         },
-        [currentGuess, guesses, correctAnswer, isAnimating]
+        [currentGuess, guesses, correctAnswer, isAnimating, gameWon]
     )
 
     useEffect(() => {
@@ -108,6 +117,11 @@ export default function Home() {
             try {
                 const image = await getDailyImage()
                 setDailyImage(image)
+                if (image?.name) {
+                    const normalizedName = image.name.toUpperCase()
+                    setCorrectAnswer(normalizedName)
+                    console.log('Daily idol name:', normalizedName)
+                }
             } catch (error) {
                 console.error('Failed to fetch daily image:', error)
             } finally {
@@ -116,6 +130,20 @@ export default function Home() {
         }
 
         fetchDailyImage()
+    }, [])
+
+    useEffect(() => {
+        const updateDimensions = () => {
+            setWindowDimensions({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            })
+        }
+
+        updateDimensions()
+        window.addEventListener('resize', updateDimensions)
+
+        return () => window.removeEventListener('resize', updateDimensions)
     }, [])
 
     return (
@@ -224,9 +252,9 @@ export default function Home() {
                 {/* Current Guess - Takes remaining space */}
                 <div className='flex flex-1 items-center justify-center'>
                     {showGuessText && (
-                        <div className={`text-4xl font-bold tracking-wider text-black ${
-                            isAnimating ? 'shake-animation fade-out-animation' : ''
-                        }`}>
+                        <div className={`text-4xl font-bold tracking-wider ${
+                            gameWon ? 'text-green-500' : 'text-black'
+                        } ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}>
                             {currentGuess}
                         </div>
                     )}
@@ -239,6 +267,17 @@ export default function Home() {
                 />
                 </div>
             </div>
+            
+            {/* Confetti for win celebration */}
+            {showConfetti && windowDimensions.width > 0 && (
+                <Confetti
+                    width={windowDimensions.width}
+                    height={windowDimensions.height}
+                    recycle={false}
+                    numberOfPieces={200}
+                    gravity={0.3}
+                />
+            )}
         </div>
     )
 }
