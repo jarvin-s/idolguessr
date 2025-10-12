@@ -21,7 +21,8 @@ export default function Home() {
     
     // Direct calculations without memoization for instant updates
     const remainingGuesses = guesses.filter(guess => guess === 'empty').length
-    const pixelationLevel = gameWon ? 1 : remainingGuesses
+    const gameOver = remainingGuesses === 0 && !gameWon
+    const pixelationLevel = gameWon || gameOver ? 0 : remainingGuesses
     const timer = '18:36:05'
 
     const handleKeyPress = useCallback(
