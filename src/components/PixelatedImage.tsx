@@ -1,6 +1,7 @@
 'use client'
 
 import { ImagePixelated } from 'react-pixelate'
+import Image from 'next/image'
 
 interface PixelatedImageProps {
     src: string
@@ -17,40 +18,68 @@ export default function PixelatedImage({
     height,
     pixelationLevel,
 }: PixelatedImageProps) {
-    // Convert pixelation level to specific pixel sizes
-    // Game start: 50, then 40→30→20→10→5, then 1 when won
     const getPixelSize = (level: number) => {
-        if (level === 1) return 1 // Almost clear when won
+        // Handle game end states (won or lost) - crystal clear
+        if (level <= 0) return 1
         
-        // Map remaining guesses to specific pixel sizes
         switch (level) {
-            case 6: return 50 // Game start (6 guesses left)
-            case 5: return 40 // 1 wrong guess (5 guesses left)
-            case 4: return 30 // 2 wrong guesses (4 guesses left)
-            case 3: return 20 // 3 wrong guesses (3 guesses left)
-            case 2: return 10 // 4 wrong guesses (2 guesses left)
-            default: return 5  // 5 wrong guesses (1 guess left)
+            case 6: return 60 // Game start (6 guesses left)
+            case 5: return 50 // 1 wrong guess (5 guesses left)
+            case 4: return 40 // 2 wrong guesses (4 guesses left)
+            case 3: return 30 // 3 wrong guesses (3 guesses left)
+            case 2: return 20 // 4 wrong guesses (2 guesses left)
+            case 1: return 10 // 5 wrong guesses (1 guess left) - still pixelated!
+            default: return 1 // Fallback - crystal clear
         }
     }
 
     const pixelSize = getPixelSize(pixelationLevel)
 
+    // When game ends (won or lost), show regular image immediately for instant clarity
+    if (pixelationLevel <= 0) {
+        return (
+            <div className='h-full w-full overflow-hidden flex items-center justify-center'>
+                <Image
+                    src={src}
+                    alt="Clear idol"
+                    width={width}
+                    height={height}
+                    className='object-cover'
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                    }}
+                />
+            </div>
+        )
+    }
+
+    // During game, show pixelated version
     return (
         <div className='h-full w-full overflow-hidden flex items-center justify-center'>
             <div style={{ 
-                transform: 'translate(-50%, -50%)',
+                width: `${width}px`,
+                height: `${height}px`,
                 position: 'relative',
-                left: '50%',
-                top: '50%'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
             }}>
-                <ImagePixelated
-                    src={src}
-                    width={width}
-                    height={height}
-                    pixelSize={pixelSize}
-                    centered={true}
-                    fillTransparencyColor="white"
-                />
+                <div style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)'
+                }}>
+                    <ImagePixelated
+                        src={src}
+                        width={width}
+                        height={height}
+                        pixelSize={pixelSize}
+                        centered={true}
+                        fillTransparencyColor="white"
+                    />
+                </div>
             </div>
         </div>
     )
