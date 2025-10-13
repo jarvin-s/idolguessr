@@ -11,16 +11,21 @@ export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
     const [dailyImage, setDailyImage] = useState<DailyImage | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [guesses, setGuesses] = useState<Array<'correct' | 'incorrect' | 'empty'>>(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+    const [guesses, setGuesses] = useState<
+        Array<'correct' | 'incorrect' | 'empty'>
+    >(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
     const [isAnimating, setIsAnimating] = useState(false)
     const [showGuessText, setShowGuessText] = useState(true)
     const [correctAnswer, setCorrectAnswer] = useState('')
     const [showConfetti, setShowConfetti] = useState(false)
     const [gameWon, setGameWon] = useState(false)
-    const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 })
-    
+    const [windowDimensions, setWindowDimensions] = useState({
+        width: 0,
+        height: 0,
+    })
+
     // Direct calculations without memoization for instant updates
-    const remainingGuesses = guesses.filter(guess => guess === 'empty').length
+    const remainingGuesses = guesses.filter((guess) => guess === 'empty').length
     const gameOver = remainingGuesses === 0 && !gameWon
     const pixelationLevel = gameWon || gameOver ? 0 : remainingGuesses
     const timer = '18:36:05'
@@ -28,24 +33,29 @@ export default function Home() {
     const handleKeyPress = useCallback(
         (key: string) => {
             if (key === 'ENTER') {
-                if (currentGuess.trim() && guesses.some(guess => guess === 'empty') && !isAnimating) {
+                if (
+                    currentGuess.trim() &&
+                    guesses.some((guess) => guess === 'empty') &&
+                    !isAnimating
+                ) {
                     const normalizedGuess = currentGuess.toUpperCase().trim()
                     const isCorrect = normalizedGuess === correctAnswer
-                    
+
                     setIsAnimating(true)
-                    
+
                     if (!isCorrect) {
-                        
                         setTimeout(() => {
                             setShowGuessText(false)
-                            
-                            const emptyIndex = guesses.findIndex(guess => guess === 'empty')
-                            setGuesses(prev => {
+
+                            const emptyIndex = guesses.findIndex(
+                                (guess) => guess === 'empty'
+                            )
+                            setGuesses((prev) => {
                                 const newGuesses = [...prev]
                                 newGuesses[emptyIndex] = 'incorrect'
                                 return newGuesses
                             })
-                            
+
                             setTimeout(() => {
                                 setCurrentGuess('')
                                 setShowGuessText(true)
@@ -54,27 +64,38 @@ export default function Home() {
                         }, 500)
                     } else {
                         // INSTANT WIN - batch all state updates together
-                        const emptyIndex = guesses.findIndex(guess => guess === 'empty')
-                        
+                        const emptyIndex = guesses.findIndex(
+                            (guess) => guess === 'empty'
+                        )
+
                         // Use React 18's automatic batching by calling all setStates synchronously
                         setGameWon(true)
                         setShowConfetti(true)
                         setIsAnimating(false)
-                        setGuesses(prev => {
+                        setGuesses((prev) => {
                             const newGuesses = [...prev]
                             newGuesses[emptyIndex] = 'correct'
                             return newGuesses
                         })
                     }
-                    
-                    console.log('Guess submitted:', normalizedGuess, 'Correct:', isCorrect)
+
+                    console.log(
+                        'Guess submitted:',
+                        normalizedGuess,
+                        'Correct:',
+                        isCorrect
+                    )
                 }
             } else if (key === '✕') {
                 if (!gameWon) {
                     setCurrentGuess((prev) => prev.slice(0, -1))
                 }
             } else {
-                if (guesses.some(guess => guess === 'empty') && !isAnimating && !gameWon) {
+                if (
+                    guesses.some((guess) => guess === 'empty') &&
+                    !isAnimating &&
+                    !gameWon
+                ) {
                     setCurrentGuess((prev) => prev + key)
                 }
             }
@@ -167,79 +188,100 @@ export default function Home() {
                             {timer}
                         </div>
                     </div>
+
+                    {/* Stats Button */}
+                    <button
+                        className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+                        aria-label='View Statistics'
+                    >
+                        <svg
+                            className='h-5 w-5 text-gray-600'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                        >
+                            <path
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                                strokeWidth={2}
+                                d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+                            />
+                        </svg>
+                    </button>
                 </div>
 
                 <div className='flex w-full flex-1 flex-col px-4'>
-                <div className='flex w-full flex-col items-center'>
-                    <div className='relative mb-3 w-full sm:max-w-md sm:mx-auto'>
-                        <div className='aspect-square w-full overflow-hidden rounded-lg'>
-                            {isLoading ? (
-                                <div className='flex h-full w-full items-center justify-center'>
-                                    <div className='text-gray-400'>
-                                        Loading...
+                    <div className='flex w-full flex-col items-center'>
+                        <div className='relative mb-3 w-full sm:mx-auto sm:max-w-md'>
+                            <div className='aspect-square w-full overflow-hidden rounded-lg'>
+                                {isLoading ? (
+                                    <div className='flex h-full w-full items-center justify-center'>
+                                        <div className='text-gray-400'>
+                                            Loading...
+                                        </div>
                                     </div>
-                                </div>
-                            ) : dailyImage ? (
-                                <PixelatedImage
-                                    src={dailyImage.file_name}
-                                    alt='Daily idol'
-                                    width={500}
-                                    height={500}
-                                    pixelationLevel={pixelationLevel}
-                                />
-                            ) : (
-                                <div className='flex h-full w-full items-center justify-center'>
-                                    <div className='text-gray-400'>
-                                        No image available
+                                ) : dailyImage ? (
+                                    <PixelatedImage
+                                        src={dailyImage.file_name}
+                                        alt='Daily idol'
+                                        width={500}
+                                        height={500}
+                                        pixelationLevel={pixelationLevel}
+                                    />
+                                ) : (
+                                    <div className='flex h-full w-full items-center justify-center'>
+                                        <div className='text-gray-400'>
+                                            No image available
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-
-                    {/* Guess Indicators */}
-                    <div className='grid w-full sm:max-w-md sm:mx-auto grid-cols-6 gap-2'>
-                        {guesses.map((guess, index) => (
-                            <div
-                                key={`${index}-${guess}`}
-                                className={`flex aspect-square items-center justify-center rounded-[5px] ${
-                                    guess === 'correct'
-                                        ? 'bg-green-400 square-pop-animation' // Green for correct
-                                        : guess === 'incorrect'
-                                        ? 'bg-black square-pop-animation' // Black for incorrect
-                                        : 'bg-gray-200' // Gray for empty
-                                }`}
-                            >
-                                {guess === 'incorrect' && (
-                                    <span className='text-base font-bold text-white'>
-                                        ✕
-                                    </span>
                                 )}
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Current Guess - Takes remaining space */}
-                <div className='flex flex-1 items-center justify-center'>
-                    {showGuessText && (
-                        <div className={`text-4xl font-bold tracking-wider ${
-                            gameWon ? 'text-green-500' : 'text-black'
-                        } ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}>
-                            {currentGuess}
                         </div>
-                    )}
-                </div>
 
-                {/* Virtual Keyboard */}
-                <OnScreenKeyboard
-                    onKeyPress={handleKeyPress}
-                    className='pb-4'
-                />
+                        {/* Guess Indicators */}
+                        <div className='grid w-full grid-cols-6 gap-2 sm:mx-auto sm:max-w-md'>
+                            {guesses.map((guess, index) => (
+                                <div
+                                    key={`${index}-${guess}`}
+                                    className={`flex aspect-square items-center justify-center rounded-[5px] ${
+                                        guess === 'correct'
+                                            ? 'square-pop-animation bg-green-400' // Green for correct
+                                            : guess === 'incorrect'
+                                              ? 'square-pop-animation bg-black' // Black for incorrect
+                                              : 'bg-gray-200' // Gray for empty
+                                    }`}
+                                >
+                                    {guess === 'incorrect' && (
+                                        <span className='text-base font-bold text-white'>
+                                            ✕
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Current Guess - Takes remaining space */}
+                    <div className='flex flex-1 items-center justify-center'>
+                        {showGuessText && (
+                            <div
+                                className={`text-4xl font-bold tracking-wider ${
+                                    gameWon ? 'text-green-500' : 'text-black'
+                                } ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
+                            >
+                                {currentGuess}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Virtual Keyboard */}
+                    <OnScreenKeyboard
+                        onKeyPress={handleKeyPress}
+                        className='pb-4'
+                    />
                 </div>
             </div>
-            
+
             {/* Confetti for win celebration */}
             {showConfetti && windowDimensions.width > 0 && (
                 <Confetti
