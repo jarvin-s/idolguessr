@@ -160,10 +160,10 @@ export default function Home() {
 
                     {/* Timer */}
                     <div className='flex flex-col items-end justify-end text-right'>
-                        <div className='mb-[-5px] text-sm font-medium text-gray-400'>
+                        <div className='mb-[-5px] text-sm font-medium text-gray-300'>
                             NEXT IDOL
                         </div>
-                        <div className='font-mono text-2xl font-bold text-black'>
+                        <div className='font-mono text-2xl font-bold text-black mb-[-15px]'>
                             {timer}
                         </div>
                     </div>
