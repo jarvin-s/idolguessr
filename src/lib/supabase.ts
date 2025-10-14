@@ -13,25 +13,21 @@ export interface DailyImage {
   updated_at?: string
 }
 
-export async function getDailyImage(): Promise<DailyImage | null> {
-  try {
-    const { data, error } = await supabase
-      .from('dailies')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (error) {
-      console.error('Error fetching daily image:', error)
-      return null
-    }
-
-    return data
-  } catch (error) {
-    console.error('Error fetching daily image:', error)
-    return null
-  }
+export interface CurrentDaily {
+  id: number;
+  file_name: string;
+  name: string;
+  play_date: string;
+  end_at: string;
+  server_now: string;
 }
 
+export async function getDailyImage(): Promise<CurrentDaily | null> {
+  const { data, error } = await supabase.rpc('get_current_daily');
+  if (error || !data?.length) {
+    console.error('get_current_daily error:', error);
+    return null;
+  }
+  return data[0] as CurrentDaily;
+}
 

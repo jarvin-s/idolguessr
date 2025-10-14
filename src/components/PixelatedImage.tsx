@@ -23,13 +23,13 @@ export default function PixelatedImage({
         if (level <= 0) return 1
         
         switch (level) {
-            case 6: return 60 // Game start (6 guesses left)
-            case 5: return 50 // 1 wrong guess (5 guesses left)
-            case 4: return 40 // 2 wrong guesses (4 guesses left)
-            case 3: return 30 // 3 wrong guesses (3 guesses left)
-            case 2: return 20 // 4 wrong guesses (2 guesses left)
-            case 1: return 10 // 5 wrong guesses (1 guess left) - still pixelated!
-            default: return 1 // Fallback - crystal clear
+            case 6: return 12
+            case 5: return 10 
+            case 4: return 8 
+            case 3: return 6
+            case 2: return 4
+            case 1: return 10 
+            default: return 1
         }
     }
 
