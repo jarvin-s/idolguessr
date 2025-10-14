@@ -3,28 +3,41 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import Confetti from 'react-confetti'
-
 import PixelatedImage from '@/components/PixelatedImage'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
+import UserStats from '@/components/UserStats'
 import { getDailyImage, type DailyImage as DailyRow } from '@/lib/supabase'
+import { useGameProgress } from '@/hooks/useGameProgress'
 
 export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
-    const [guesses, setGuesses] = useState<
-        Array<'correct' | 'incorrect' | 'empty'>
-    >(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+    const [dailyImage, setDailyImage] = useState<DailyRow | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
     const [isAnimating, setIsAnimating] = useState(false)
     const [showGuessText, setShowGuessText] = useState(true)
     const [correctAnswer, setCorrectAnswer] = useState('')
     const [showConfetti, setShowConfetti] = useState(false)
-    const [gameWon, setGameWon] = useState(false)
-
-    const [isLoading, setIsLoading] = useState(true)
-    const [dailyImage, setDailyImage] = useState<DailyRow | null>(null)
+    const [showStats, setShowStats] = useState(false)
     const [windowDimensions, setWindowDimensions] = useState({
         width: 0,
         height: 0,
     })
+
+    const {
+        guesses,
+        setGuesses,
+        gameWon,
+        setGameWon,
+        gameLost,
+        setGameLost,
+        todayCompleted,
+        todayCompletionData,
+        stats,
+        statsLoaded,
+        handleGameWin,
+        handleGameLoss,
+        saveProgress,
+    } = useGameProgress(dailyImage, correctAnswer)
 
     const [timer, setTimer] = useState('00:00:00')
     const serverOffsetRef = useRef<number>(0)
@@ -44,7 +57,7 @@ export default function Home() {
         return `${hh}:${mm}:${ss}`
     }
 
-    function clearTimers() {
+    const clearTimers = useCallback(() => {
         if (tickIntervalRef.current) {
             clearInterval(tickIntervalRef.current)
             tickIntervalRef.current = null
@@ -53,47 +66,34 @@ export default function Home() {
             clearTimeout(flipTimeoutRef.current)
             flipTimeoutRef.current = null
         }
-    }
+    }, [])
 
-    async function loadCurrent() {
-        setIsLoading(true)
-        const row = await getDailyImage()
-        setIsLoading(false)
+    const scheduleCountdownAndFlip = useCallback(
+        (endAtISO: string) => {
+            clearTimers()
+            const endAtMs = new Date(endAtISO).getTime()
 
-        if (!row) return
+            tickIntervalRef.current = window.setInterval(() => {
+                const approxServerNow = Date.now() + serverOffsetRef.current
+                const remaining = endAtMs - approxServerNow
+                setTimer(formatMs(remaining))
+                if (remaining <= 0) {
+                    void flipNow()
+                }
+            }, 1000)
 
-        setDailyImage(row)
-        if (row.name) setCorrectAnswer(row.name.toUpperCase())
-
-        const serverNowMs = new Date(row.server_now).getTime()
-        serverOffsetRef.current = serverNowMs - Date.now()
-
-        scheduleCountdownAndFlip(row.end_at)
-    }
-
-    function scheduleCountdownAndFlip(endAtISO: string) {
-        clearTimers()
-        const endAtMs = new Date(endAtISO).getTime()
-
-        tickIntervalRef.current = window.setInterval(() => {
-            const approxServerNow = Date.now() + serverOffsetRef.current
-            const remaining = endAtMs - approxServerNow
-            setTimer(formatMs(remaining))
-            if (remaining <= 0) {
+            const delayMs = Math.max(
+                0,
+                endAtMs - (Date.now() + serverOffsetRef.current)
+            )
+            flipTimeoutRef.current = window.setTimeout(() => {
                 void flipNow()
-            }
-        }, 1000)
+            }, delayMs)
+        },
+        [clearTimers]
+    )
 
-        const delayMs = Math.max(
-            0,
-            endAtMs - (Date.now() + serverOffsetRef.current)
-        )
-        flipTimeoutRef.current = window.setTimeout(() => {
-            void flipNow()
-        }, delayMs)
-    }
-
-    async function flipNow() {
+    const flipNow = useCallback(async () => {
         clearTimers()
 
         setCurrentGuess('')
@@ -110,10 +110,28 @@ export default function Home() {
         if (next.name) setCorrectAnswer(next.name.toUpperCase())
 
         scheduleCountdownAndFlip(next.end_at)
-    }
+    }, [clearTimers, scheduleCountdownAndFlip, setGuesses, setGameWon])
+
+    const loadCurrent = useCallback(async () => {
+        setIsLoading(true)
+        const row = await getDailyImage()
+        setIsLoading(false)
+
+        if (!row) return
+
+        setDailyImage(row)
+        if (row.name) setCorrectAnswer(row.name.toUpperCase())
+
+        const serverNowMs = new Date(row.server_now).getTime()
+        serverOffsetRef.current = serverNowMs - Date.now()
+
+        scheduleCountdownAndFlip(row.end_at)
+    }, [scheduleCountdownAndFlip])
 
     const handleKeyPress = useCallback(
         (key: string) => {
+            if (todayCompleted) return
+
             if (key === 'ENTER') {
                 if (
                     currentGuess.trim() &&
@@ -128,14 +146,29 @@ export default function Home() {
                     if (!isCorrect) {
                         setTimeout(() => {
                             setShowGuessText(false)
+
                             const emptyIndex = guesses.findIndex(
                                 (g) => g === 'empty'
                             )
                             setGuesses((prev) => {
-                                const next = [...prev]
-                                next[emptyIndex] = 'incorrect'
-                                return next
+                                const newGuesses = [...prev]
+                                newGuesses[emptyIndex] = 'incorrect'
+
+                                const remainingAfterThis = newGuesses.filter(
+                                    (g) => g === 'empty'
+                                ).length
+                                if (remainingAfterThis === 0) {
+                                    setTimeout(() => {
+                                        setGameLost(true)
+                                        handleGameLoss()
+                                    }, 300)
+                                } else {
+                                    saveProgress(newGuesses)
+                                }
+
+                                return newGuesses
                             })
+
                             setTimeout(() => {
                                 setCurrentGuess('')
                                 setShowGuessText(true)
@@ -146,29 +179,51 @@ export default function Home() {
                         const emptyIndex = guesses.findIndex(
                             (g) => g === 'empty'
                         )
+                        const guessNumber = 6 - remainingGuesses + 1
+
                         setGameWon(true)
                         setShowConfetti(true)
                         setIsAnimating(false)
                         setGuesses((prev) => {
-                            const next = [...prev]
-                            next[emptyIndex] = 'correct'
-                            return next
+                            const newGuesses = [...prev]
+                            newGuesses[emptyIndex] = 'correct'
+                            return newGuesses
                         })
+
+                        handleGameWin(guessNumber)
                     }
                 }
             } else if (key === '✕') {
-                if (!gameWon) setCurrentGuess((prev) => prev.slice(0, -1))
+                if (!gameWon && !gameLost) {
+                    setCurrentGuess((prev) => prev.slice(0, -1))
+                }
             } else {
                 if (
                     guesses.some((g) => g === 'empty') &&
                     !isAnimating &&
-                    !gameWon
+                    !gameWon &&
+                    !gameLost
                 ) {
                     setCurrentGuess((prev) => prev + key)
                 }
             }
         },
-        [currentGuess, guesses, correctAnswer, isAnimating, gameWon]
+        [
+            currentGuess,
+            guesses,
+            correctAnswer,
+            isAnimating,
+            gameWon,
+            gameLost,
+            remainingGuesses,
+            todayCompleted,
+            handleGameWin,
+            handleGameLoss,
+            saveProgress,
+            setGameLost,
+            setGameWon,
+            setGuesses,
+        ]
     )
 
     useEffect(() => {
@@ -250,6 +305,7 @@ export default function Home() {
 
                         {/* Stats Button */}
                         <button
+                            onClick={() => setShowStats(true)}
                             className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
                             aria-label='View Statistics'
                         >
@@ -324,14 +380,24 @@ export default function Home() {
 
                     {/* Current Guess */}
                     <div className='flex flex-1 items-center justify-center'>
-                        {showGuessText && (
-                            <div
-                                className={`text-4xl font-bold tracking-wider ${
-                                    gameWon ? 'text-green-500' : 'text-black'
-                                } ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
-                            >
-                                {currentGuess}
-                            </div>
+                        {todayCompleted && todayCompletionData ? (
+                            <h1 className='text-4xl font-bold tracking-wider text-green-400'>
+                                {correctAnswer}
+                            </h1>
+                        ) : (
+                            showGuessText && (
+                                <div
+                                    className={`text-4xl font-bold tracking-wider ${
+                                        gameWon
+                                            ? 'text-green-500'
+                                            : 'text-black'
+                                    } ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
+                                >
+                                    {gameWon && !todayCompleted
+                                        ? correctAnswer
+                                        : currentGuess}
+                                </div>
+                            )
                         )}
                     </div>
 
@@ -342,6 +408,41 @@ export default function Home() {
                     />
                 </div>
             </div>
+
+            {/* Stats Modal */}
+            {showStats && (
+                <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
+                    <div className='relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white'>
+                        {/* Close button */}
+                        <button
+                            onClick={() => setShowStats(false)}
+                            className='absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
+                            aria-label='Close Statistics'
+                        >
+                            <svg
+                                className='h-4 w-4 text-gray-600'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 24 24'
+                            >
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M6 18L18 6M6 6l12 12'
+                                />
+                            </svg>
+                        </button>
+
+                        {/* Stats Component */}
+                        <UserStats
+                            stats={stats}
+                            isLoaded={statsLoaded}
+                            className='border-0 shadow-none'
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Confetti */}
             {showConfetti && windowDimensions.width > 0 && (
