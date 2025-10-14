@@ -1,11 +1,9 @@
 import type { Metadata } from 'next'
-import { Inter_Tight } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 
-const inter = Inter_Tight({
-    weight: ['400', '500', '600', '700'],
-    subsets: ['latin'],
-    variable: '--font-inter',
+const proximaNovaRegular = localFont({
+    src: '../../public/fonts/proximanova_regular.ttf',
 })
 
 export const metadata: Metadata = {
@@ -23,7 +21,7 @@ export default function RootLayout({
         <html lang='en' suppressHydrationWarning>
             <body
                 suppressHydrationWarning
-                className={`${inter.variable} antialiased`}
+                className={`${proximaNovaRegular.className} antialiased`}
             >
                 {children}
             </body>
