@@ -205,31 +205,33 @@ export default function Home() {
   return (
     <div className='flex h-screen flex-col overflow-hidden bg-white'>
       <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:shadow-lg'>
-        {/* Header */}
-        <div className='mb-2 flex w-full flex-shrink-0 items-center p-4'>
-          <div className='flex w-1/3 items-center justify-start'>
-            <Image src='/images/idolguessr-logo.png' alt='IdolGuessr Logo' width={150} height={50} className='h-10 w-auto' />
-          </div>
-          <div className='flex w-1/3 flex-col items-center justify-center text-center'>
-            <div className='mb-[-10px]'>
-              <div className='text-xs font-bold text-gray-300'>NEXT IDOL</div>
-              <div className='font-mono text-xl font-bold text-black'>
-                {timer}
-              </div>
-            </div>
-          </div>
-          <div className='flex w-1/3 items-center justify-end'>
-            <button
-              className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
-              aria-label='View Statistics'
-            >
-              <svg className='h-5 w-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2}
-                  d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' />
-              </svg>
-            </button>
-          </div>
-        </div>
+         {/* Header - Two 50% sections */}
+         <div className='mb-2 flex w-full flex-shrink-0 items-center p-4'>
+           {/* Left Section - Logo (50%) */}
+           <div className='flex w-1/2 items-center justify-start'>
+             <Image src='/images/idolguessr-logo.png' alt='IdolGuessr Logo' width={150} height={50} className='h-10 w-auto' />
+           </div>
+
+           {/* Right Section - Timer + Stats (50%) */}
+           <div className='flex w-1/2 items-center justify-end gap-3'>
+             {/* Timer */}
+             <div className='flex flex-col items-end text-right'>
+               <div className='text-xs font-medium text-gray-400'>NEXT IDOL</div>
+               <div className='font-mono text-lg font-bold text-black leading-none'>{timer}</div>
+             </div>
+
+             {/* Stats Button */}
+             <button
+               className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+               aria-label='View Statistics'
+             >
+               <svg className='h-5 w-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2}
+                   d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' />
+               </svg>
+             </button>
+           </div>
+         </div>
 
         {/* Body */}
         <div className='flex w-full flex-1 flex-col px-4'>
