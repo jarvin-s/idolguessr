@@ -22,6 +22,13 @@ export interface CurrentDaily {
   server_now: string;
 }
 
+export interface Feedback {
+  id: number;
+  message: string;
+  category: string;
+  created_at?: string;
+}
+
 export async function getDailyImage(): Promise<CurrentDaily | null> {
   const { data, error } = await supabase.rpc('get_current_daily');
   if (error || !data?.length) {
@@ -31,3 +38,13 @@ export async function getDailyImage(): Promise<CurrentDaily | null> {
   return data[0] as CurrentDaily;
 }
 
+export async function insertNewFeedback(feedback: Feedback): Promise<void> {
+  const { error } = await supabase.from('feedback').insert({
+    message: feedback.message,
+    category: feedback.category,
+  });
+  if (error) {
+    console.log('insert_new_feedback error:', error.message);
+    return;
+  }
+}
