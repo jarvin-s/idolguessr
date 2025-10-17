@@ -8,6 +8,11 @@ import OnScreenKeyboard from '@/components/OnScreenKeyboard'
 import UserStats from '@/components/UserStats'
 import { getDailyImage, type DailyImage as DailyRow } from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
+import localFont from 'next/font/local'
+
+const proximaNovaBold = localFont({
+    src: '../../public/fonts/proximanova_bold.otf',
+})
 
 export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
@@ -18,6 +23,7 @@ export default function Home() {
     const [correctAnswer, setCorrectAnswer] = useState('')
     const [showConfetti, setShowConfetti] = useState(false)
     const [showStats, setShowStats] = useState(false)
+    const [showHelp, setShowHelp] = useState(false)
     const [windowDimensions, setWindowDimensions] = useState({
         width: 0,
         height: 0,
@@ -309,19 +315,16 @@ export default function Home() {
                             className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
                             aria-label='View Statistics'
                         >
-                            <svg
-                                className='h-5 w-5 text-gray-600'
-                                fill='none'
-                                stroke='currentColor'
-                                viewBox='0 0 24 24'
-                            >
-                                <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
-                                />
-                            </svg>
+                            <StatsIcon />
+                        </button>
+
+                        {/* Help Button */}
+                        <button
+                            onClick={() => setShowHelp(true)}
+                            className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+                            aria-label='View Help'
+                        >
+                            <HelpIcon />
                         </button>
                     </div>
                 </div>
@@ -444,6 +447,42 @@ export default function Home() {
                 </div>
             )}
 
+            {/* Help Modal */}
+            {showHelp && (
+                <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-20'>
+                    <div className='relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white'>
+                        <h1
+                            className={`${proximaNovaBold.className} text-2xl uppercase`}
+                        >
+                            How to play
+                        </h1>
+                        <p className='text-xl'>
+                            Guess the Idol in 6 tries!
+                        </p>
+                        {/* Close button */}
+                        <button
+                            onClick={() => setShowHelp(false)}
+                            className='absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
+                            aria-label='Close Statistics'
+                        >
+                            <svg
+                                className='h-4 w-4 text-gray-600'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 24 24'
+                            >
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M6 18L18 6M6 6l12 12'
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Confetti */}
             {showConfetti && windowDimensions.width > 0 && (
                 <Confetti
@@ -455,5 +494,40 @@ export default function Home() {
                 />
             )}
         </div>
+    )
+}
+
+export function StatsIcon() {
+    return (
+        <svg
+            className='h-5 w-5 text-gray-800'
+            fill='none'
+            stroke='currentColor'
+            viewBox='0 0 24 24'
+        >
+            <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+            />
+        </svg>
+    )
+}
+
+export function HelpIcon() {
+    return (
+        <svg
+            xmlns='http://www.w3.org/2000/svg'
+            className='h-5 w-5 text-gray-800'
+            viewBox='0 0 15 15'
+        >
+            <path
+                fill='currentColor'
+                fillRule='evenodd'
+                d='M.877 7.5a6.623 6.623 0 1 1 13.246 0a6.623 6.623 0 0 1-13.246 0M7.5 1.827a5.673 5.673 0 1 0 0 11.346a5.673 5.673 0 0 0 0-11.346m.75 8.673a.75.75 0 1 1-1.5 0a.75.75 0 0 1 1.5 0m-2.2-4.25c0-.678.585-1.325 1.45-1.325s1.45.647 1.45 1.325c0 .491-.27.742-.736 1.025l-.176.104a5 5 0 0 0-.564.36c-.242.188-.524.493-.524.961a.55.55 0 0 0 1.1.004a.4.4 0 0 1 .1-.098c.102-.079.215-.144.366-.232q.116-.067.27-.159c.534-.325 1.264-.861 1.264-1.965c0-1.322-1.115-2.425-2.55-2.425S4.95 4.928 4.95 6.25a.55.55 0 0 0 1.1 0'
+                clipRule='evenodd'
+            />
+        </svg>
     )
 }

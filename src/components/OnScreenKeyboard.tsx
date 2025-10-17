@@ -54,7 +54,7 @@ export default function OnScreenKeyboard({
                 {bottomRowKeys.map((key) => (
                     <button
                         key={key}
-                        className='flex h-12 flex-1 items-center justify-center rounded bg-gray-300 text-sm text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
+                        className='flex h-12 flex-1 items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
                         onClick={() => onKeyPress(key)}
                     >
                         {key}

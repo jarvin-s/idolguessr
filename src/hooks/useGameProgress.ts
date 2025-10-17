@@ -54,48 +54,44 @@ export function useGameProgress(
             const completed = isTodayCompleted()
             const completionData = getTodayCompletion()
 
-            if (completed && completionData) {
-                if (completionData.imageId === dailyImage.id) {
-                    setTodayCompleted(true)
-                    setTodayCompletionData(completionData)
+            if (completed && completionData && completionData.imageId === dailyImage.id) {
+                setTodayCompleted(true)
+                setTodayCompletionData(completionData)
 
-                    if (completionData.won) {
-                        setGameWon(true)
-                        const newGuesses: Array<
-                            'correct' | 'incorrect' | 'empty'
-                        > = [
-                            'empty',
-                            'empty',
-                            'empty',
-                            'empty',
-                            'empty',
-                            'empty',
-                        ]
-                        for (
-                            let i = 0;
-                            i < completionData.guessCount - 1;
-                            i++
-                        ) {
-                            newGuesses[i] = 'incorrect'
-                        }
-                        newGuesses[completionData.guessCount - 1] = 'correct'
-                        setGuesses(newGuesses)
-                    } else {
-                        setGameLost(true)
-                        setGuesses([
-                            'incorrect',
-                            'incorrect',
-                            'incorrect',
-                            'incorrect',
-                            'incorrect',
-                            'incorrect',
-                        ])
+                if (completionData.won) {
+                    setGameWon(true)
+                    const newGuesses: Array<
+                        'correct' | 'incorrect' | 'empty'
+                    > = [
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                    ]
+                    for (
+                        let i = 0;
+                        i < completionData.guessCount - 1;
+                        i++
+                    ) {
+                        newGuesses[i] = 'incorrect'
                     }
+                    newGuesses[completionData.guessCount - 1] = 'correct'
+                    setGuesses(newGuesses)
                 } else {
-                    setTodayCompleted(false)
-                    setTodayCompletionData(null)
+                    setGameLost(true)
+                    setGuesses([
+                        'incorrect',
+                        'incorrect',
+                        'incorrect',
+                        'incorrect',
+                        'incorrect',
+                        'incorrect',
+                    ])
                 }
             } else {
+                // Game not completed, try to load progress
                 const progress = loadDailyProgress()
                 if (progress && progress.imageId === dailyImage.id) {
                     setGuesses(progress.guesses)
