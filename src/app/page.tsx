@@ -418,14 +418,11 @@ export default function Home() {
                                         </h1>
                                     </div>
                                 ) : (
-                                    showGuessText && (
-                                        <div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                                    showGuessText &&
+                                    currentGuess && (
+                                        <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
                                             <div
-                                                className={`text-4xl font-bold tracking-wider ${
-                                                    gameWon
-                                                        ? 'text-green-500'
-                                                        : 'text-white'
-                                                } drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
+                                                className={`rounded-full bg-black px-4 py-2 text-lg font-bold tracking-wider text-white ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
                                             >
                                                 {gameWon && !todayCompleted
                                                     ? correctAnswer
