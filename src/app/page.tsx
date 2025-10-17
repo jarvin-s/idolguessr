@@ -6,6 +6,7 @@ import Confetti from 'react-confetti'
 import PixelatedImage from '@/components/PixelatedImage'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
 import UserStats from '@/components/UserStats'
+import ShareButton from '@/components/ShareButton'
 import { getDailyImage, type DailyImage as DailyRow } from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
 import localFont from 'next/font/local'
@@ -382,15 +383,41 @@ export default function Home() {
                     </div>
 
                     {/* Current Guess */}
-                    <div className='flex flex-1 items-center justify-center'>
+                    <div className='flex flex-1 flex-col items-center justify-center gap-6'>
                         {todayCompleted && todayCompletionData ? (
-                            <h1 className='text-4xl font-bold tracking-wider text-green-400'>
-                                {correctAnswer}
-                            </h1>
+                            <>
+                                <h1
+                                    className={`${proximaNovaBold.className} text-4xl font-bold tracking-wider text-green-400`}
+                                >
+                                    {correctAnswer}
+                                </h1>
+                                <ShareButton
+                                    correctAnswer={correctAnswer}
+                                    guessCount={todayCompletionData.guessCount}
+                                    pixelatedImageSrc={
+                                        dailyImage?.file_name || ''
+                                    }
+                                />
+                            </>
+                        ) : gameWon ? (
+                            <>
+                                <h1
+                                    className={`${proximaNovaBold.className} text-4xl font-bold tracking-wider text-green-500`}
+                                >
+                                    {correctAnswer}
+                                </h1>
+                                <ShareButton
+                                    correctAnswer={correctAnswer}
+                                    guessCount={6 - remainingGuesses}
+                                    pixelatedImageSrc={
+                                        dailyImage?.file_name || ''
+                                    }
+                                />
+                            </>
                         ) : (
                             showGuessText && (
                                 <div
-                                    className={`text-4xl font-bold tracking-wider ${
+                                    className={`${proximaNovaBold.className} text-4xl font-bold tracking-wider ${
                                         gameWon
                                             ? 'text-green-500'
                                             : 'text-black'
@@ -456,9 +483,7 @@ export default function Home() {
                         >
                             How to play
                         </h1>
-                        <p className='text-xl'>
-                            Guess the Idol in 6 tries!
-                        </p>
+                        <p className='text-xl'>Guess the Idol in 6 tries!</p>
                         {/* Close button */}
                         <button
                             onClick={() => setShowHelp(false)}
