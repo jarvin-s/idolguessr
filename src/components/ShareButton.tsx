@@ -103,7 +103,6 @@ export default function ShareButton({
             ctx.restore()
 
             // Draw progress blocks (full width, same as image, square aspect ratio)
-            const blockSize = 60
             const blockSpacing = 15
             const totalBlocksWidth = imageSize
             const blocksStartX = imageX
@@ -198,7 +197,7 @@ export default function ShareButton({
                     logoWidth,
                     logoHeight
                 )
-            } catch (error) {
+            } catch {
                 // Fallback to text if logo fails to load
                 ctx.font = 'bold 64px Arial, sans-serif'
                 ctx.fillStyle = '#000000'
@@ -219,13 +218,38 @@ export default function ShareButton({
                 brandingY + 50
             )
 
-            // Convert to blob and download
-            canvas.toBlob((blob) => {
+            // Convert to blob and share/download
+            canvas.toBlob(async (blob) => {
                 if (blob) {
+                    const fileName = `idolguessr-${correctAnswer}-${guessCount}turns.png`
+                    
+                    // Try to use Web Share API if available (mainly on mobile)
+                    if (navigator.share && navigator.canShare) {
+                        try {
+                            const file = new File([blob], fileName, {
+                                type: 'image/png',
+                            })
+                            
+                            // Check if we can share files
+                            if (navigator.canShare({ files: [file] })) {
+                                await navigator.share({
+                                    files: [file],
+                                    title: 'IdolGuessr Result',
+                                    text: `I guessed today's idol in ${guessCount} turn(s)!`,
+                                })
+                                return // Exit if share was successful
+                            }
+                        } catch (error) {
+                            // If share fails or is cancelled, fall through to download
+                            console.log('Share cancelled or failed:', error)
+                        }
+                    }
+                    
+                    // Fallback to download if share is not available or failed
                     const url = URL.createObjectURL(blob)
                     const link = document.createElement('a')
                     link.href = url
-                    link.download = `idolguessr-${correctAnswer}-${guessCount}turns.png`
+                    link.download = fileName
                     document.body.appendChild(link)
                     link.click()
                     document.body.removeChild(link)
@@ -244,7 +268,7 @@ export default function ShareButton({
         <button
             onClick={generateShareImage}
             disabled={isGenerating}
-            className={`flex items-center gap-2 rounded-lg bg-green-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+            className={`flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 font-semibold text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
         >
             {isGenerating ? (
                 <>
@@ -266,7 +290,7 @@ export default function ShareButton({
                             d='M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z'
                         />
                     </svg>
-                    Share Result
+                    Share
                 </>
             )}
         </button>

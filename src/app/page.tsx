@@ -9,6 +9,7 @@ import GuessIndicators from '@/components/GuessIndicators'
 import StatsModal from '@/components/StatsModal'
 import HelpModal from '@/components/HelpModal'
 import FeedbackModal from '@/components/FeedbackModal'
+import WinModal from '@/components/WinModal'
 import { getDailyImage, type DailyImage as DailyRow } from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
 
@@ -23,6 +24,7 @@ export default function Home() {
     const [showStats, setShowStats] = useState(false)
     const [showHelp, setShowHelp] = useState(false)
     const [showFeedback, setShowFeedback] = useState(false)
+    const [showWinModal, setShowWinModal] = useState(false)
     const [windowDimensions, setWindowDimensions] = useState({
         width: 0,
         height: 0,
@@ -137,7 +139,7 @@ export default function Home() {
         (key: string) => {
             if (todayCompleted) return
 
-            if (key === 'ENTER') {
+        if (key === 'ENTER') {
                 if (
                     currentGuess.trim() &&
                     guesses.some((g) => g === 'empty') &&
@@ -166,6 +168,11 @@ export default function Home() {
                                     setTimeout(() => {
                                         setGameLost(true)
                                         handleGameLoss()
+                                        
+                                        // Show modal after a short delay
+                                        setTimeout(() => {
+                                            setShowWinModal(true)
+                                        }, 1500)
                                     }, 300)
                                 } else {
                                     saveProgress(newGuesses)
@@ -196,22 +203,27 @@ export default function Home() {
                         })
 
                         handleGameWin(guessNumber)
+
+                        // Show win modal after a short delay
+                        setTimeout(() => {
+                            setShowWinModal(true)
+                        }, 1500)
                     }
                 }
-            } else if (key === '✕') {
+        } else if (key === '✕') {
                 if (!gameWon && !gameLost) {
-                    setCurrentGuess((prev) => prev.slice(0, -1))
+            setCurrentGuess((prev) => prev.slice(0, -1))
                 }
-            } else {
+        } else {
                 if (
                     guesses.some((g) => g === 'empty') &&
                     !isAnimating &&
                     !gameWon &&
                     !gameLost
                 ) {
-                    setCurrentGuess((prev) => prev + key)
-                }
-            }
+            setCurrentGuess((prev) => prev + key)
+        }
+    }
         },
         [
             currentGuess,
@@ -290,6 +302,13 @@ export default function Home() {
         return () => window.removeEventListener('resize', update)
     }, [])
 
+    // Auto-open win modal if game was already completed today (win or loss)
+    useEffect(() => {
+        if (todayCompleted && todayCompletionData && statsLoaded) {
+            setShowWinModal(true)
+        }
+    }, [todayCompleted, todayCompletionData, statsLoaded])
+
     return (
         <div className='fixed inset-0 flex flex-col overflow-hidden bg-white'>
             <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:shadow-lg'>
@@ -308,6 +327,7 @@ export default function Home() {
                             currentGuess={currentGuess}
                             correctAnswer={correctAnswer}
                             gameWon={gameWon}
+                            gameLost={gameLost}
                             todayCompleted={todayCompleted}
                             todayCompletionData={todayCompletionData}
                             showGuessText={showGuessText}
@@ -315,14 +335,14 @@ export default function Home() {
                         />
 
                         <GuessIndicators guesses={guesses} />
-                    </div>
+            </div>
 
                     <OnScreenKeyboard
                         onKeyPress={handleKeyPress}
                         className='flex-shrink-0 pb-4'
-                    />
-                </div>
-            </div>
+                            />
+                        </div>
+                    </div>
 
             <StatsModal
                 isOpen={showStats}
@@ -347,6 +367,34 @@ export default function Home() {
                     setShowFeedback(false)
                     setShowHelp(true)
                 }}
+            />
+
+            <WinModal
+                isOpen={showWinModal}
+                onClose={() => setShowWinModal(false)}
+                idolName={correctAnswer}
+                imageUrl={dailyImage?.file_name || ''}
+                guessCount={
+                    todayCompletionData?.guessCount ||
+                    6 - guesses.filter((g) => g === 'empty').length
+                }
+                isWin={todayCompletionData ? todayCompletionData.won : gameWon}
+                stats={{
+                    gamesPlayed: stats.totalGames,
+                    winPercentage: stats.totalGames > 0 
+                        ? Math.round((stats.totalWins / stats.totalGames) * 100)
+                        : 0,
+                    currentStreak: stats.currentStreak,
+                    maxStreak: stats.maxStreak,
+                }}
+                guessDistribution={[
+                    stats.guessDistribution[1] || 0,
+                    stats.guessDistribution[2] || 0,
+                    stats.guessDistribution[3] || 0,
+                    stats.guessDistribution[4] || 0,
+                    stats.guessDistribution[5] || 0,
+                    stats.guessDistribution[6] || 0,
+                ]}
             />
 
             {showConfetti && windowDimensions.width > 0 && (

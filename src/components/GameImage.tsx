@@ -8,6 +8,7 @@ interface GameImageProps {
     currentGuess: string
     correctAnswer: string
     gameWon: boolean
+    gameLost: boolean
     todayCompleted: boolean
     todayCompletionData: DailyCompletion | null
     showGuessText: boolean
@@ -21,11 +22,17 @@ export default function GameImage({
     currentGuess,
     correctAnswer,
     gameWon,
+    gameLost,
     todayCompleted,
     todayCompletionData,
     showGuessText,
     isAnimating,
 }: GameImageProps) {
+    // Truncate text to 20 characters
+    const truncateText = (text: string, maxLength: number = 20) => {
+        return text.length > maxLength ? text.slice(0, maxLength) : text
+    }
+
     return (
         <div className='relative mb-3 min-h-0 w-full flex-1 sm:mx-auto sm:max-w-md'>
             <div className='relative h-full w-full overflow-hidden rounded-lg'>
@@ -47,11 +54,17 @@ export default function GameImage({
                     </div>
                 )}
 
-                {todayCompleted && todayCompletionData ? (
-                    <div className='absolute inset-0 flex items-center justify-center'>
-                        <h1 className='text-4xl font-bold tracking-wider text-green-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'>
-                            {correctAnswer}
-                        </h1>
+                {(todayCompleted && todayCompletionData && todayCompletionData.won) || gameWon ? (
+                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                        <div className='rounded-full bg-green-500 px-4 py-2 text-lg font-bold tracking-wider text-white'>
+                            {truncateText(correctAnswer)}
+                        </div>
+                    </div>
+                ) : (todayCompleted && todayCompletionData && !todayCompletionData.won) || gameLost ? (
+                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                        <div className='rounded-full bg-red-500 px-4 py-2 text-lg font-bold tracking-wider text-white'>
+                            {truncateText(correctAnswer)}
+                        </div>
                     </div>
                 ) : (
                     showGuessText && currentGuess && (
@@ -59,9 +72,7 @@ export default function GameImage({
                             <div
                                 className={`rounded-full bg-black px-4 py-2 text-lg font-bold tracking-wider text-white ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
                             >
-                                {gameWon && !todayCompleted
-                                    ? correctAnswer
-                                    : currentGuess}
+                                {truncateText(currentGuess)}
                             </div>
                         </div>
                     )

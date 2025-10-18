@@ -43,7 +43,7 @@ export default function PixelatedImage({
 
     if (pixelationLevel <= 0) {
         return (
-            <div className='flex h-full w-full items-center justify-center overflow-hidden'>
+            <div className='flex h-full w-full items-center justify-center overflow-hidden rounded-lg'>
                 <Image
                     src={src}
                     alt='Clear idol'
@@ -60,7 +60,7 @@ export default function PixelatedImage({
     }
 
     return (
-        <div className='flex h-full w-full items-center justify-center overflow-hidden'>
+        <div className='flex h-full w-full items-center justify-center overflow-hidden rounded-lg'>
             <div
                 style={{
                     width: `${width}px`,

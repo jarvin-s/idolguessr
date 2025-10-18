@@ -75,3 +75,23 @@ body {
     animation: shake 0.5s ease-in-out infinite;
     color: #ef4444 !important;
 }
+
+/* Win Modal Slide Animation */
+@keyframes slideInFromTop {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.win-modal-slide {
+    animation: slideInFromTop 0.5s ease-out;
+}
+
+.win-modal-slide-in {
+    animation: slideInFromTop 0.5s ease-out;
+}
