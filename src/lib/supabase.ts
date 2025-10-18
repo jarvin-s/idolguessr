@@ -42,9 +42,10 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
   const { error } = await supabase.from('feedback').insert({
     message: feedback.message,
     category: feedback.category,
-  });
+    created_at: new Date().toISOString(),
+  })
   if (error) {
-    console.log('insert_new_feedback error:', error.message);
-    return;
+    console.log('insert_new_feedback error:', error.message)
+    return
   }
 }
