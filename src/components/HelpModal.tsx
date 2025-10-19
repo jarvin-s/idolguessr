@@ -50,10 +50,14 @@ export default function HelpModal({
                                 backgroundPosition: 'center',
                             }}
                         />
-                        <div className='flex h-6 w-6 items-center justify-center rounded bg-black'>
-                            <span className='text-[10px] font-bold text-white'>
-                                ✕
-                            </span>
+                        <div className='flex gap-1'>
+                            <div className='flex h-6 w-6 items-center justify-center rounded bg-black'>
+                                <span className='text-[10px] font-bold text-white'>
+                                    ✕
+                                </span>
+                            </div>
+                            <div className='h-6 w-6 rounded bg-gray-200' />
+                            <div className='h-6 w-6 rounded bg-gray-200' />
                         </div>
                     </div>
                     <div className='flex flex-col gap-2'>
@@ -76,11 +80,7 @@ export default function HelpModal({
                                     ✕
                                 </span>
                             </div>
-                            <div className='flex h-6 w-6 items-center justify-center rounded bg-black'>
-                                <span className='text-[10px] font-bold text-white'>
-                                    ✕
-                                </span>
-                            </div>
+                            <div className='h-6 w-6 rounded bg-gray-200' />
                         </div>
                     </div>
                     <div className='flex flex-col gap-2'>
@@ -92,12 +92,24 @@ export default function HelpModal({
                                 backgroundPosition: 'center',
                             }}
                         />
-                        <div className='h-6 w-6 rounded bg-green-400' />
+                        <div className='flex gap-1'>
+                            <div className='flex h-6 w-6 items-center justify-center rounded bg-black'>
+                                <span className='text-[10px] font-bold text-white'>
+                                    ✕
+                                </span>
+                            </div>
+                            <div className='flex h-6 w-6 items-center justify-center rounded bg-black'>
+                                <span className='text-[10px] font-bold text-white'>
+                                    ✕
+                                </span>
+                            </div>
+                            <div className='h-6 w-6 rounded bg-green-400' />
+                        </div>
                     </div>
                 </div>
 
-                <p className='mt-6 text-[16px]'>
-                    Every day at midnight a new idol appears.
+                <p className='mt-6 text-center text-lg'>
+                    Every day a new idol appears!
                 </p>
 
                 <button
