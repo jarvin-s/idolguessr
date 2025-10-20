@@ -309,7 +309,7 @@ export default function UserStats({
                                         key={guesses}
                                         className='flex items-center'
                                     >
-                                        <div className='w-4 text-sm font-medium text-gray-600'>
+                                        <div className='w-4 text-sm font-medium text-black'>
                                             {guesses}
                                         </div>
                                         <div className='relative mx-2 h-6 flex-1 rounded-full bg-gray-200'>

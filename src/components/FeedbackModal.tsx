@@ -85,13 +85,12 @@ export default function FeedbackModal({
 
                 {submitted ? (
                     <div className='text-center'>
-                        <div className='mb-4 text-6xl'>✅</div>
                         <h1
                             className={`${proximaNovaBold.className} text-2xl text-green-600 uppercase`}
                         >
                             Thank you!
                         </h1>
-                        <p className='mt-2 text-gray-600'>
+                        <p className='mt-2 text-black'>
                             Your feedback has been submitted successfully.
                         </p>
                     </div>

@@ -56,7 +56,7 @@ export default function GameImage({
 
                 {(todayCompleted && todayCompletionData && todayCompletionData.won) || gameWon ? (
                     <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
-                        <div className='rounded-full bg-green-500 px-4 py-2 text-lg font-bold tracking-wider text-white'>
+                        <div className='rounded-full bg-green-400 px-4 py-2 text-lg font-bold tracking-wider text-white'>
                             {truncateText(correctAnswer)}
                         </div>
                     </div>

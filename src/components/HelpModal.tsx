@@ -30,7 +30,7 @@ export default function HelpModal({
                 <ul className='mt-4 space-y-2 font-bold'>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>
-                        <span>Each guess must be a valid K-pop idol name</span>
+                        <span>Each guess must be a valid K-pop idol first name</span>
                     </li>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>
@@ -108,9 +108,7 @@ export default function HelpModal({
                     </div>
                 </div>
 
-                <p className='mt-6 text-center text-lg'>
-                    Every day a new idol appears!
-                </p>
+                <p className='mt-6 text-lg'>Every day a new idol appears!</p>
 
                 <button
                     onClick={onShowFeedback}

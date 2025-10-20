@@ -63,7 +63,7 @@ export default function WinModal({
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className='absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
+                    className='absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
                     aria-label='Close'
                 >
                     <svg
@@ -84,17 +84,20 @@ export default function WinModal({
                 {/* Content Container */}
                 <div className='flex flex-col items-center p-6'>
                     {/* Message */}
-                    <h1 className={`${proximaNovaBold.className} mt-8 mb-1 text-3xl font-extrabold text-black`}>
+                    <h1
+                        className={`${proximaNovaBold.className} mt-8 mb-1 text-3xl font-extrabold text-black`}
+                    >
                         {isWin ? 'GOOD JOB!' : 'NICE TRY!'}
                     </h1>
                     <p className='mb-6 text-base text-gray-700'>
                         {isWin ? (
                             <>
                                 You guessed{' '}
-                                <span className='font-bold text-green-500'>
+                                <span className='stroke-black stroke-1 font-bold text-green-400'>
                                     {idolName}
                                 </span>{' '}
-                                in {guessCount} {guessCount === 1 ? 'guess' : 'guesses'}!
+                                in {guessCount}{' '}
+                                {guessCount === 1 ? 'guess' : 'guesses'}!
                             </>
                         ) : (
                             <>
@@ -132,41 +135,43 @@ export default function WinModal({
 
                     {/* Statistics Section */}
                     <div className='mb-3 w-full'>
-                        <h2 className='mb-4 text-center text-xl font-bold text-black'>
+                        <h2
+                            className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
+                        >
                             STATISTICS
                         </h2>
 
                         {/* Stats Grid */}
                         <div className='mb-3 grid grid-cols-4 gap-4 text-center'>
                             <div>
-                                <div className='text-3xl font-bold text-gray-800'>
+                                <div className='text-3xl font-bold text-black'>
                                     {stats.gamesPlayed}
                                 </div>
-                                <div className='text-xs text-gray-500'>
+                                <div className='text-sm text-gray-500'>
                                     Played
                                 </div>
                             </div>
                             <div>
-                                <div className='text-3xl font-bold text-gray-800'>
+                                <div className='text-3xl font-bold text-black'>
                                     {stats.winPercentage}%
                                 </div>
-                                <div className='text-xs text-gray-500'>
+                                <div className='text-sm text-gray-500'>
                                     Win %
                                 </div>
                             </div>
                             <div>
-                                <div className='text-3xl font-bold text-gray-800'>
+                                <div className='text-3xl font-bold text-black'>
                                     {stats.currentStreak}
                                 </div>
-                                <div className='text-xs text-gray-500'>
+                                <div className='text-sm text-gray-500'>
                                     Current streak
                                 </div>
                             </div>
                             <div>
-                                <div className='text-3xl font-bold text-gray-800'>
+                                <div className='text-3xl font-bold text-black'>
                                     {stats.maxStreak}
                                 </div>
-                                <div className='text-xs text-gray-500'>
+                                <div className='text-sm text-gray-500'>
                                     Max streak
                                 </div>
                             </div>
@@ -175,7 +180,9 @@ export default function WinModal({
 
                     {/* Guess Distribution */}
                     <div className='w-full'>
-                        <h2 className='mb-4 text-center text-xl font-bold text-black'>
+                        <h2
+                            className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
+                        >
                             GUESS DISTRIBUTION
                         </h2>
 
@@ -185,23 +192,18 @@ export default function WinModal({
                                     maxGuessCount > 0
                                         ? (count / maxGuessCount) * 100
                                         : 0
-                                const isCurrentGuess = isWin && index + 1 === guessCount
 
                                 return (
                                     <div
                                         key={index}
                                         className='flex items-center gap-2'
                                     >
-                                        <div className='w-4 text-sm font-medium text-gray-600'>
+                                        <div className='w-4 text-sm font-medium text-black'>
                                             {index + 1}
                                         </div>
-                                        <div className='relative h-8 flex-1 overflow-hidden rounded-md bg-gray-200'>
+                                        <div className='relative h-8 flex-1 overflow-hidden rounded-full bg-gray-200'>
                                             <div
-                                                className={`flex h-full items-center justify-end px-2 text-sm font-bold text-white transition-all duration-500 ${
-                                                    isCurrentGuess
-                                                        ? 'bg-green-500'
-                                                        : 'bg-green-400'
-                                                }`}
+                                                className='flex h-full items-center justify-end bg-green-400 px-2 text-sm font-bold text-white transition-all duration-500'
                                                 style={{
                                                     width: `${Math.max(percentage, count > 0 ? 15 : 0)}%`,
                                                 }}
@@ -219,4 +221,3 @@ export default function WinModal({
         </div>
     )
 }
-
