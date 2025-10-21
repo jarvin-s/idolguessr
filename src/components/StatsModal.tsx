@@ -3,11 +3,17 @@ import UserStats from './UserStats'
 interface StatsModalProps {
     isOpen: boolean
     onClose: () => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     stats: any
     statsLoaded: boolean
 }
 
-export default function StatsModal({ isOpen, onClose, stats, statsLoaded }: StatsModalProps) {
+export default function StatsModal({
+    isOpen,
+    onClose,
+    stats,
+    statsLoaded,
+}: StatsModalProps) {
     if (!isOpen) return null
 
     return (
@@ -42,4 +48,3 @@ export default function StatsModal({ isOpen, onClose, stats, statsLoaded }: Stat
         </div>
     )
 }
-
