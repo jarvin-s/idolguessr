@@ -2,6 +2,7 @@
 
 import { ImagePixelated } from 'react-pixelate'
 import Image from 'next/image'
+import { memo, useState, useEffect } from 'react'
 
 interface PixelatedImageProps {
     src: string
@@ -12,12 +13,22 @@ interface PixelatedImageProps {
     pixelationLevel: number
 }
 
-export default function PixelatedImage({
+function PixelatedImage({
     src,
     width,
     height,
     pixelationLevel,
 }: PixelatedImageProps) {
+    const [isTransitioning, setIsTransitioning] = useState(false)
+
+    useEffect(() => {
+        // Show loading state during pixelation changes
+        setIsTransitioning(true)
+        const timer = setTimeout(() => {
+            setIsTransitioning(false)
+        }, 100)
+        return () => clearTimeout(timer)
+    }, [pixelationLevel])
     const getPixelSize = (level: number) => {
         if (level <= 0) return 1
 
@@ -69,6 +80,8 @@ export default function PixelatedImage({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    opacity: isTransitioning ? 0.7 : 1,
+                    transition: 'opacity 0.1s ease',
                 }}
             >
                 <div
@@ -81,8 +94,8 @@ export default function PixelatedImage({
                 >
                     <ImagePixelated
                         src={src}
-                        width={width}
-                        height={height}
+                        width={400}
+                        height={400}
                         pixelSize={pixelSize}
                         centered={true}
                         fillTransparencyColor='white'
@@ -92,3 +105,12 @@ export default function PixelatedImage({
         </div>
     )
 }
+
+// Memoize to prevent unnecessary re-renders
+export default memo(PixelatedImage, (prevProps, nextProps) => {
+    // Only re-render if these specific props change
+    return (
+        prevProps.src === nextProps.src &&
+        prevProps.pixelationLevel === nextProps.pixelationLevel
+    )
+})
