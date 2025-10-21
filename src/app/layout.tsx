@@ -10,7 +10,7 @@ const proximaNovaRegular = localFont({
 export const metadata: Metadata = {
     title: 'IdolGuessr - Guess the Idol',
     description:
-        'Guess the Idol - A fun web game where K-pop fans test their knowledge by guessing idols from blurred photos.',
+        'Guess the Idol - A fun web game where K-pop fans test their knowledge by guessing idols from pixelated photos.',
 }
 
 export default function RootLayout({
