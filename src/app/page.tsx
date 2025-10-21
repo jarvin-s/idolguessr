@@ -10,7 +10,7 @@ import StatsModal from '@/components/StatsModal'
 import HelpModal from '@/components/HelpModal'
 import FeedbackModal from '@/components/FeedbackModal'
 import WinModal from '@/components/WinModal'
-import { getDailyImage, type DailyImage as DailyRow } from '@/lib/supabase'
+import { getDailyImage, type DailyImage as DailyRow, getImageUrl } from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
 
 export default function Home() {
@@ -52,8 +52,6 @@ export default function Home() {
     const flipTimeoutRef = useRef<number | null>(null)
 
     const remainingGuesses = guesses.filter((g) => g === 'empty').length
-    const gameOver = remainingGuesses === 0 && !gameWon
-    const pixelationLevel = gameWon || gameOver ? 0 : remainingGuesses
 
     function formatMs(ms: number) {
         const clamped = Math.max(0, ms)
@@ -74,6 +72,26 @@ export default function Home() {
             flipTimeoutRef.current = null
         }
     }, [])
+
+    const flipNow = useCallback(async () => {
+        clearTimers()
+
+        setCurrentGuess('')
+        setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+        setIsAnimating(false)
+        setShowGuessText(true)
+        setShowConfetti(false)
+        setGameWon(false)
+
+        const next = await getDailyImage()
+        if (!next) return
+
+        setDailyImage(next)
+        if (next.name) setCorrectAnswer(next.name.toUpperCase())
+
+        scheduleCountdownAndFlip(next.end_at)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [clearTimers, setGuesses, setGameWon])
 
     const scheduleCountdownAndFlip = useCallback(
         (endAtISO: string) => {
@@ -97,27 +115,8 @@ export default function Home() {
                 void flipNow()
             }, delayMs)
         },
-        [clearTimers]
+        [clearTimers, flipNow]
     )
-
-    const flipNow = useCallback(async () => {
-        clearTimers()
-
-        setCurrentGuess('')
-        setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
-        setIsAnimating(false)
-        setShowGuessText(true)
-        setShowConfetti(false)
-        setGameWon(false)
-
-        const next = await getDailyImage()
-        if (!next) return
-
-        setDailyImage(next)
-        if (next.name) setCorrectAnswer(next.name.toUpperCase())
-
-        scheduleCountdownAndFlip(next.end_at)
-    }, [clearTimers, setGuesses, setGameWon, scheduleCountdownAndFlip])
 
     const loadCurrent = useCallback(async () => {
         setIsLoading(true)
@@ -323,7 +322,7 @@ export default function Home() {
                         <GameImage
                             isLoading={isLoading}
                             dailyImage={dailyImage}
-                            pixelationLevel={pixelationLevel}
+                            remainingGuesses={remainingGuesses}
                             currentGuess={currentGuess}
                             correctAnswer={correctAnswer}
                             gameWon={gameWon}
@@ -373,7 +372,16 @@ export default function Home() {
                 isOpen={showWinModal}
                 onClose={() => setShowWinModal(false)}
                 idolName={correctAnswer}
-                imageUrl={dailyImage?.file_name || ''}
+                imageUrl={
+                    dailyImage
+                        ? getImageUrl(dailyImage.group_type, dailyImage.play_date, 'clear')
+                        : ''
+                }
+                pixelatedImageUrl={
+                    dailyImage
+                        ? getImageUrl(dailyImage.group_type, dailyImage.play_date, 1)
+                        : ''
+                }
                 guessCount={
                     todayCompletionData?.guessCount ||
                     6 - guesses.filter((g) => g === 'empty').length

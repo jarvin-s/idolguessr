@@ -16,8 +16,7 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "react": "^19.0.0",
     "react-confetti": "^6.4.0",
-    "react-dom": "^19.0.0",
-    "react-pixelate": "^0.0.1"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

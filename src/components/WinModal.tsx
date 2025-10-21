@@ -14,6 +14,7 @@ interface WinModalProps {
     onClose: () => void
     idolName: string
     imageUrl: string
+    pixelatedImageUrl: string
     guessCount: number
     isWin: boolean
     stats: {
@@ -30,6 +31,7 @@ export default function WinModal({
     onClose,
     idolName,
     imageUrl,
+    pixelatedImageUrl,
     guessCount,
     isWin,
     stats,
@@ -126,7 +128,7 @@ export default function WinModal({
                     <ShareButton
                         correctAnswer={idolName}
                         guessCount={guessCount}
-                        pixelatedImageSrc={imageUrl}
+                        pixelatedImageSrc={pixelatedImageUrl}
                         className='mb-4'
                     />
 
