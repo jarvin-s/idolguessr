@@ -55,27 +55,8 @@ export function useShareImage({
             ctx.roundRect(imageX, imageY, imageSize, imageSize, cornerRadius)
             ctx.clip()
 
-            const pixelSize = 24
-            const tempCanvas = document.createElement('canvas')
-            const tempCtx = tempCanvas.getContext('2d')
-            if (tempCtx) {
-                tempCanvas.width = imageSize / pixelSize
-                tempCanvas.height = imageSize / pixelSize
-
-                tempCtx.imageSmoothingEnabled = false
-                tempCtx.drawImage(
-                    img,
-                    0,
-                    0,
-                    tempCanvas.width,
-                    tempCanvas.height
-                )
-
-                ctx.imageSmoothingEnabled = false
-                ctx.drawImage(tempCanvas, imageX, imageY, imageSize, imageSize)
-            } else {
-                ctx.drawImage(img, imageX, imageY, imageSize, imageSize)
-            }
+            // Draw the pre-pixelated image directly (no additional pixelation needed)
+            ctx.drawImage(img, imageX, imageY, imageSize, imageSize)
 
             ctx.restore()
 

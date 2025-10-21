@@ -1,10 +1,11 @@
-import PixelatedImage from './PixelatedImage'
+import PrePixelatedImage from './PrePixelatedImage'
 import { DailyCompletion } from './UserStats'
+import { getImageUrl } from '@/lib/supabase'
 
 interface GameImageProps {
     isLoading: boolean
-    dailyImage: { file_name: string } | null
-    pixelationLevel: number
+    dailyImage: { group_type: string; play_date: string } | null
+    remainingGuesses: number
     currentGuess: string
     correctAnswer: string
     gameWon: boolean
@@ -18,7 +19,7 @@ interface GameImageProps {
 export default function GameImage({
     isLoading,
     dailyImage,
-    pixelationLevel,
+    remainingGuesses,
     currentGuess,
     correctAnswer,
     gameWon,
@@ -33,6 +34,26 @@ export default function GameImage({
         return text.length > maxLength ? text.slice(0, maxLength) : text
     }
 
+    const getImageNumber = (): number | 'clear' => {
+        if (gameWon || gameLost || remainingGuesses === 0 || remainingGuesses === 1) {
+            return 'clear'
+        }
+        
+        // Map remaining guesses to image numbers
+        if (remainingGuesses === 6) return 1
+        if (remainingGuesses === 5) return 2
+        if (remainingGuesses === 4) return 3
+        if (remainingGuesses === 3) return 4
+        if (remainingGuesses === 2) return 5
+        
+        return 1 // Default
+    }
+
+    const imageNumber = getImageNumber()
+    const imageUrl = dailyImage 
+        ? getImageUrl(dailyImage.group_type, dailyImage.play_date, imageNumber)
+        : ''
+
     return (
         <div className='relative mb-3 min-h-0 w-full flex-1 sm:mx-auto sm:max-w-md'>
             <div className='relative h-full w-full overflow-hidden rounded-lg'>
@@ -41,12 +62,9 @@ export default function GameImage({
                         <div className='text-gray-400'>Loading...</div>
                     </div>
                 ) : dailyImage ? (
-                    <PixelatedImage
-                        src={dailyImage.file_name}
+                    <PrePixelatedImage
+                        src={imageUrl}
                         alt='Daily idol'
-                        width={600}
-                        height={600}
-                        pixelationLevel={pixelationLevel}
                     />
                 ) : (
                     <div className='flex h-full w-full items-center justify-center'>
