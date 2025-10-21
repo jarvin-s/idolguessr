@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Image from 'next/image'
 import Confetti from 'react-confetti'
-import PixelatedImage from '@/components/PixelatedImage'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
-import UserStats from '@/components/UserStats'
+import GameHeader from '@/components/GameHeader'
+import GameImage from '@/components/GameImage'
+import GuessIndicators from '@/components/GuessIndicators'
+import StatsModal from '@/components/StatsModal'
+import HelpModal from '@/components/HelpModal'
+import FeedbackModal from '@/components/FeedbackModal'
+import WinModal from '@/components/WinModal'
 import { getDailyImage, type DailyImage as DailyRow } from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
 
@@ -18,6 +22,9 @@ export default function Home() {
     const [correctAnswer, setCorrectAnswer] = useState('')
     const [showConfetti, setShowConfetti] = useState(false)
     const [showStats, setShowStats] = useState(false)
+    const [showHelp, setShowHelp] = useState(false)
+    const [showFeedback, setShowFeedback] = useState(false)
+    const [showWinModal, setShowWinModal] = useState(false)
     const [windowDimensions, setWindowDimensions] = useState({
         width: 0,
         height: 0,
@@ -110,7 +117,7 @@ export default function Home() {
         if (next.name) setCorrectAnswer(next.name.toUpperCase())
 
         scheduleCountdownAndFlip(next.end_at)
-    }, [clearTimers, scheduleCountdownAndFlip, setGuesses, setGameWon])
+    }, [clearTimers, setGuesses, setGameWon, scheduleCountdownAndFlip])
 
     const loadCurrent = useCallback(async () => {
         setIsLoading(true)
@@ -132,7 +139,7 @@ export default function Home() {
         (key: string) => {
             if (todayCompleted) return
 
-            if (key === 'ENTER') {
+        if (key === 'ENTER') {
                 if (
                     currentGuess.trim() &&
                     guesses.some((g) => g === 'empty') &&
@@ -161,6 +168,11 @@ export default function Home() {
                                     setTimeout(() => {
                                         setGameLost(true)
                                         handleGameLoss()
+                                        
+                                        // Show modal after a short delay
+                                        setTimeout(() => {
+                                            setShowWinModal(true)
+                                        }, 1500)
                                     }, 300)
                                 } else {
                                     saveProgress(newGuesses)
@@ -191,22 +203,27 @@ export default function Home() {
                         })
 
                         handleGameWin(guessNumber)
+
+                        // Show win modal after a short delay
+                        setTimeout(() => {
+                            setShowWinModal(true)
+                        }, 1500)
                     }
                 }
-            } else if (key === '✕') {
+        } else if (key === '✕') {
                 if (!gameWon && !gameLost) {
-                    setCurrentGuess((prev) => prev.slice(0, -1))
+            setCurrentGuess((prev) => prev.slice(0, -1))
                 }
-            } else {
+        } else {
                 if (
                     guesses.some((g) => g === 'empty') &&
                     !isAnimating &&
                     !gameWon &&
                     !gameLost
                 ) {
-                    setCurrentGuess((prev) => prev + key)
-                }
-            }
+            setCurrentGuess((prev) => prev + key)
+        }
+    }
         },
         [
             currentGuess,
@@ -228,6 +245,16 @@ export default function Home() {
 
     useEffect(() => {
         const handlePhysicalKeyPress = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement
+            if (
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.tagName === 'SELECT' ||
+                target.isContentEditable
+            ) {
+                return
+            }
+
             const key = event.key.toUpperCase()
 
             if (key === 'ENTER' || key === 'BACKSPACE' || /^[A-Z]$/.test(key)) {
@@ -262,7 +289,7 @@ export default function Home() {
             window.removeEventListener('focus', onFocus)
             document.removeEventListener('visibilitychange', onFocus)
         }
-    }, [])
+    }, [loadCurrent, clearTimers])
 
     useEffect(() => {
         const update = () =>
@@ -275,176 +302,101 @@ export default function Home() {
         return () => window.removeEventListener('resize', update)
     }, [])
 
+    // Auto-open win modal if game was already completed today (win or loss)
+    useEffect(() => {
+        if (todayCompleted && todayCompletionData && statsLoaded) {
+            setShowWinModal(true)
+        }
+    }, [todayCompleted, todayCompletionData, statsLoaded])
+
     return (
-        <div className='flex h-screen flex-col overflow-hidden bg-white'>
+        <div className='fixed inset-0 flex flex-col overflow-hidden bg-white'>
             <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:shadow-lg'>
-                {/* Header - Two 50% sections */}
-                <div className='mb-2 flex w-full flex-shrink-0 items-center p-4'>
-                    {/* Left Section - Logo (50%) */}
-                    <div className='flex w-1/2 items-center justify-start'>
-                        <Image
-                            src='/images/idolguessr-logo.png'
-                            alt='IdolGuessr Logo'
-                            width={150}
-                            height={50}
-                            className='h-10 w-auto'
+                <GameHeader
+                    timer={timer}
+                    onShowStats={() => setShowStats(true)}
+                    onShowHelp={() => setShowHelp(true)}
+                />
+
+                <div className='flex w-full flex-1 flex-col px-4 min-h-0'>
+                    <div className='flex w-full flex-1 flex-col items-center min-h-0'>
+                        <GameImage
+                            isLoading={isLoading}
+                            dailyImage={dailyImage}
+                            pixelationLevel={pixelationLevel}
+                            currentGuess={currentGuess}
+                            correctAnswer={correctAnswer}
+                            gameWon={gameWon}
+                            gameLost={gameLost}
+                            todayCompleted={todayCompleted}
+                            todayCompletionData={todayCompletionData}
+                            showGuessText={showGuessText}
+                            isAnimating={isAnimating}
                         />
-                    </div>
 
-                    {/* Right Section - Timer + Stats (50%) */}
-                    <div className='flex w-1/2 items-center justify-end gap-3'>
-                        {/* Timer */}
-                        <div className='flex flex-col items-end text-right'>
-                            <div className='text-xs font-medium text-gray-400'>
-                                NEXT IDOL
-                            </div>
-                            <div className='font-mono text-lg leading-none font-bold text-black'>
-                                {timer}
-                            </div>
-                        </div>
-
-                        {/* Stats Button */}
-                        <button
-                            onClick={() => setShowStats(true)}
-                            className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
-                            aria-label='View Statistics'
-                        >
-                            <svg
-                                className='h-5 w-5 text-gray-600'
-                                fill='none'
-                                stroke='currentColor'
-                                viewBox='0 0 24 24'
-                            >
-                                <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Body */}
-                <div className='flex w-full flex-1 flex-col px-4'>
-                    <div className='flex w-full flex-col items-center'>
-                        <div className='relative mb-3 w-full sm:mx-auto sm:max-w-md'>
-                            <div className='aspect-square w-full overflow-hidden rounded-lg'>
-                                {isLoading ? (
-                                    <div className='flex h-full w-full items-center justify-center'>
-                                        <div className='text-gray-400'>
-                                            Loading...
-                                        </div>
-                                    </div>
-                                ) : dailyImage ? (
-                                    <PixelatedImage
-                                        src={dailyImage.file_name}
-                                        alt='Daily idol'
-                                        width={500}
-                                        height={500}
-                                        pixelationLevel={pixelationLevel}
-                                    />
-                                ) : (
-                                    <div className='flex h-full w-full items-center justify-center'>
-                                        <div className='text-gray-400'>
-                                            No image available
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Guess Indicators */}
-                        <div className='grid w-full grid-cols-6 gap-2 sm:mx-auto sm:max-w-md'>
-                            {guesses.map((guess, index) => (
-                                <div
-                                    key={`${index}-${guess}`}
-                                    className={`flex aspect-square items-center justify-center rounded-[5px] ${
-                                        guess === 'correct'
-                                            ? 'square-pop-animation bg-green-400'
-                                            : guess === 'incorrect'
-                                              ? 'square-pop-animation bg-black'
-                                              : 'bg-gray-200'
-                                    }`}
-                                >
-                                    {guess === 'incorrect' && (
-                                        <span className='text-base font-bold text-white'>
-                                            ✕
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Current Guess */}
-                    <div className='flex flex-1 items-center justify-center'>
-                        {todayCompleted && todayCompletionData ? (
-                            <h1 className='text-4xl font-bold tracking-wider text-green-400'>
-                                {correctAnswer}
-                            </h1>
-                        ) : (
-                            showGuessText && (
-                                <div
-                                    className={`text-4xl font-bold tracking-wider ${
-                                        gameWon
-                                            ? 'text-green-500'
-                                            : 'text-black'
-                                    } ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
-                                >
-                                    {gameWon && !todayCompleted
-                                        ? correctAnswer
-                                        : currentGuess}
-                                </div>
-                            )
-                        )}
-                    </div>
-
-                    {/* Virtual Keyboard */}
-                    <OnScreenKeyboard
-                        onKeyPress={handleKeyPress}
-                        className='pb-4'
-                    />
-                </div>
+                        <GuessIndicators guesses={guesses} />
             </div>
 
-            {/* Stats Modal */}
-            {showStats && (
-                <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-                    <div className='relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white'>
-                        {/* Close button */}
-                        <button
-                            onClick={() => setShowStats(false)}
-                            className='absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
-                            aria-label='Close Statistics'
-                        >
-                            <svg
-                                className='h-4 w-4 text-gray-600'
-                                fill='none'
-                                stroke='currentColor'
-                                viewBox='0 0 24 24'
-                            >
-                                <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M6 18L18 6M6 6l12 12'
-                                />
-                            </svg>
-                        </button>
-
-                        {/* Stats Component */}
-                        <UserStats
-                            stats={stats}
-                            isLoaded={statsLoaded}
-                            className='border-0 shadow-none'
-                        />
+                    <OnScreenKeyboard
+                        onKeyPress={handleKeyPress}
+                        className='flex-shrink-0 pb-4'
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
 
-            {/* Confetti */}
+            <StatsModal
+                isOpen={showStats}
+                onClose={() => setShowStats(false)}
+                stats={stats}
+                statsLoaded={statsLoaded}
+            />
+
+            <HelpModal
+                isOpen={showHelp}
+                onClose={() => setShowHelp(false)}
+                onShowFeedback={() => {
+                    setShowFeedback(true)
+                    setShowHelp(false)
+                }}
+            />
+
+            <FeedbackModal
+                isOpen={showFeedback}
+                onClose={() => setShowFeedback(false)}
+                onBack={() => {
+                    setShowFeedback(false)
+                    setShowHelp(true)
+                }}
+            />
+
+            <WinModal
+                isOpen={showWinModal}
+                onClose={() => setShowWinModal(false)}
+                idolName={correctAnswer}
+                imageUrl={dailyImage?.file_name || ''}
+                guessCount={
+                    todayCompletionData?.guessCount ||
+                    6 - guesses.filter((g) => g === 'empty').length
+                }
+                isWin={todayCompletionData ? todayCompletionData.won : gameWon}
+                stats={{
+                    gamesPlayed: stats.totalGames,
+                    winPercentage: stats.totalGames > 0 
+                        ? Math.round((stats.totalWins / stats.totalGames) * 100)
+                        : 0,
+                    currentStreak: stats.currentStreak,
+                    maxStreak: stats.maxStreak,
+                }}
+                guessDistribution={[
+                    stats.guessDistribution[1] || 0,
+                    stats.guessDistribution[2] || 0,
+                    stats.guessDistribution[3] || 0,
+                    stats.guessDistribution[4] || 0,
+                    stats.guessDistribution[5] || 0,
+                    stats.guessDistribution[6] || 0,
+                ]}
+            />
+
             {showConfetti && windowDimensions.width > 0 && (
                 <Confetti
                     width={windowDimensions.width}

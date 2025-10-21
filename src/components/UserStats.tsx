@@ -94,7 +94,16 @@ export function useUserStats() {
         const today = new Date().toDateString()
 
         setStats((prevStats) => {
-            const newStats = { ...prevStats }
+            // Check if today's game was already completed - prevent double counting
+            if (prevStats.dailyCompletions[today]?.completed) {
+                return prevStats
+            }
+
+            const newStats = {
+                ...prevStats,
+                guessDistribution: { ...prevStats.guessDistribution },
+                dailyCompletions: { ...prevStats.dailyCompletions },
+            }
 
             newStats.totalGames += 1
             newStats.lastPlayedDate = today
@@ -113,7 +122,7 @@ export function useUserStats() {
 
             if (won) {
                 newStats.totalWins += 1
-                newStats.guessDistribution[guessCount] += 1 / 2
+                newStats.guessDistribution[guessCount] += 1
 
                 if (
                     prevStats.lastPlayedDate === today ||
@@ -300,7 +309,7 @@ export default function UserStats({
                                         key={guesses}
                                         className='flex items-center'
                                     >
-                                        <div className='w-4 text-sm font-medium text-gray-600'>
+                                        <div className='w-4 text-sm font-medium text-black'>
                                             {guesses}
                                         </div>
                                         <div className='relative mx-2 h-6 flex-1 rounded-full bg-gray-200'>

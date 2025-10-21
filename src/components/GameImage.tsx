@@ -1,0 +1,83 @@
+import PixelatedImage from './PixelatedImage'
+import { DailyCompletion } from './UserStats'
+
+interface GameImageProps {
+    isLoading: boolean
+    dailyImage: { file_name: string } | null
+    pixelationLevel: number
+    currentGuess: string
+    correctAnswer: string
+    gameWon: boolean
+    gameLost: boolean
+    todayCompleted: boolean
+    todayCompletionData: DailyCompletion | null
+    showGuessText: boolean
+    isAnimating: boolean
+}
+
+export default function GameImage({
+    isLoading,
+    dailyImage,
+    pixelationLevel,
+    currentGuess,
+    correctAnswer,
+    gameWon,
+    gameLost,
+    todayCompleted,
+    todayCompletionData,
+    showGuessText,
+    isAnimating,
+}: GameImageProps) {
+    // Truncate text to 20 characters
+    const truncateText = (text: string, maxLength: number = 20) => {
+        return text.length > maxLength ? text.slice(0, maxLength) : text
+    }
+
+    return (
+        <div className='relative mb-3 min-h-0 w-full flex-1 sm:mx-auto sm:max-w-md'>
+            <div className='relative h-full w-full overflow-hidden rounded-lg'>
+                {isLoading ? (
+                    <div className='flex h-full w-full items-center justify-center'>
+                        <div className='text-gray-400'>Loading...</div>
+                    </div>
+                ) : dailyImage ? (
+                    <PixelatedImage
+                        src={dailyImage.file_name}
+                        alt='Daily idol'
+                        width={600}
+                        height={600}
+                        pixelationLevel={pixelationLevel}
+                    />
+                ) : (
+                    <div className='flex h-full w-full items-center justify-center'>
+                        <div className='text-gray-400'>No image available</div>
+                    </div>
+                )}
+
+                {(todayCompleted && todayCompletionData && todayCompletionData.won) || gameWon ? (
+                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                        <div className='rounded-full bg-green-400 px-4 py-2 text-lg font-bold tracking-wider text-white'>
+                            {truncateText(correctAnswer)}
+                        </div>
+                    </div>
+                ) : (todayCompleted && todayCompletionData && !todayCompletionData.won) || gameLost ? (
+                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                        <div className='rounded-full bg-red-500 px-4 py-2 text-lg font-bold tracking-wider text-white'>
+                            {truncateText(correctAnswer)}
+                        </div>
+                    </div>
+                ) : (
+                    showGuessText && currentGuess && (
+                        <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                            <div
+                                className={`rounded-full bg-black px-4 py-2 text-lg font-bold tracking-wider text-white ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
+                            >
+                                {truncateText(currentGuess)}
+                            </div>
+                        </div>
+                    )
+                )}
+            </div>
+        </div>
+    )
+}
