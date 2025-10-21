@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/next'
 
 const proximaNovaRegular = localFont({
     src: '../../public/fonts/proximanova_regular.ttf',
@@ -24,6 +25,7 @@ export default function RootLayout({
                 className={`${proximaNovaRegular.className} antialiased`}
             >
                 {children}
+                <Analytics />
             </body>
         </html>
     )
