@@ -60,7 +60,7 @@ export function getImageUrl(groupType: string, playDate: string, guessNumber: nu
   const year = String(date.getFullYear()).slice(-2) // Last 2 digits of year
   const folderDate = `${day}${month}${year}`
   
-  const fileName = guessNumber === 'clear' ? 'clear.jpg' : `00${guessNumber}.webp`
+  const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
   
   return `${supabaseUrl}/storage/v1/object/public/images/${groupType}/${folderDate}/${fileName}`
 }
