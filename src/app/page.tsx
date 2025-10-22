@@ -10,7 +10,7 @@ import StatsModal from '@/components/StatsModal'
 import HelpModal from '@/components/HelpModal'
 import FeedbackModal from '@/components/FeedbackModal'
 import WinModal from '@/components/WinModal'
-import { getDailyImage, type DailyImage as DailyRow, getImageUrl } from '@/lib/supabase'
+import { getDailyImage, type DailyImage as DailyRow, getImageUrl, trackGuess, resetGuessTimer } from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
 
 export default function Home() {
@@ -82,6 +82,7 @@ export default function Home() {
         setShowGuessText(true)
         setShowConfetti(false)
         setGameWon(false)
+        resetGuessTimer()
 
         const next = await getDailyImage()
         if (!next) return
@@ -146,6 +147,16 @@ export default function Home() {
                 ) {
                     const normalizedGuess = currentGuess.toUpperCase().trim()
                     const isCorrect = normalizedGuess === correctAnswer
+                    const guessNumber = 6 - remainingGuesses + 1
+
+                    if (dailyImage?.id) {
+                        void trackGuess(
+                            dailyImage.id,
+                            normalizedGuess,
+                            isCorrect,
+                            guessNumber
+                        )
+                    }
 
                     setIsAnimating(true)
 
@@ -168,7 +179,6 @@ export default function Home() {
                                         setGameLost(true)
                                         handleGameLoss()
                                         
-                                        // Show modal after a short delay
                                         setTimeout(() => {
                                             setShowWinModal(true)
                                         }, 1500)
@@ -190,7 +200,6 @@ export default function Home() {
                         const emptyIndex = guesses.findIndex(
                             (g) => g === 'empty'
                         )
-                        const guessNumber = 6 - remainingGuesses + 1
 
                         setGameWon(true)
                         setShowConfetti(true)
@@ -203,7 +212,6 @@ export default function Home() {
 
                         handleGameWin(guessNumber)
 
-                        // Show win modal after a short delay
                         setTimeout(() => {
                             setShowWinModal(true)
                         }, 1500)
@@ -239,6 +247,7 @@ export default function Home() {
             setGameLost,
             setGameWon,
             setGuesses,
+            dailyImage,
         ]
     )
 
@@ -282,6 +291,7 @@ export default function Home() {
         }
         window.addEventListener('focus', onFocus)
         document.addEventListener('visibilitychange', onFocus)
+        resetGuessTimer()
         return () => {
             mounted = false
             clearTimers()
