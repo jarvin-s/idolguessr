@@ -10,6 +10,7 @@ export interface DailyImage {
   name: string
   group_type: string
   play_date: string
+  img_bucket: string
   created_at?: string
   updated_at?: string
 }
@@ -19,6 +20,7 @@ export interface CurrentDaily {
   name: string;
   group_type: string;
   play_date: string;
+  img_bucket: string;
   end_at: string;
   server_now: string;
 }
@@ -51,15 +53,11 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
   }
 }
 
-// Construct bucket URL for images based on date, group type, and guess number
-export function getImageUrl(groupType: string, playDate: string, guessNumber: number | 'clear'): string {
-  // Parse the date string (YYYY-MM-DD) manually to avoid timezone issues
-  const [year, month, day] = playDate.split('-')
-  const folderDate = `${day}${month}${year.slice(-2)}`
-  
+// Construct bucket URL for images based on group type, img_bucket folder, and guess number
+export function getImageUrl(groupType: string, imgBucket: string, guessNumber: number | 'clear'): string {
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
   
-  return `${supabaseUrl}/storage/v1/object/public/images/${groupType}/${folderDate}/${fileName}`
+  return `${supabaseUrl}/storage/v1/object/public/images/${groupType}/${imgBucket}/${fileName}`
 }
 
 export interface GuessTrackingData {

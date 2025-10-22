@@ -4,7 +4,7 @@ import { getImageUrl } from '@/lib/supabase'
 
 interface GameImageProps {
     isLoading: boolean
-    dailyImage: { group_type: string; play_date: string } | null
+    dailyImage: { group_type: string; img_bucket: string } | null
     remainingGuesses: number
     currentGuess: string
     correctAnswer: string
@@ -51,7 +51,7 @@ export default function GameImage({
 
     const imageNumber = getImageNumber()
     const imageUrl = dailyImage 
-        ? getImageUrl(dailyImage.group_type, dailyImage.play_date, imageNumber)
+        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, imageNumber)
         : ''
 
     return (

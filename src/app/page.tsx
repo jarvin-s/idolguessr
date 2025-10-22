@@ -384,12 +384,12 @@ export default function Home() {
                 idolName={correctAnswer}
                 imageUrl={
                     dailyImage
-                        ? getImageUrl(dailyImage.group_type, dailyImage.play_date, 'clear')
+                        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, 'clear')
                         : ''
                 }
                 pixelatedImageUrl={
                     dailyImage
-                        ? getImageUrl(dailyImage.group_type, dailyImage.play_date, 1)
+                        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, 1)
                         : ''
                 }
                 guessCount={
