@@ -53,11 +53,9 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
 
 // Construct bucket URL for images based on date, group type, and guess number
 export function getImageUrl(groupType: string, playDate: string, guessNumber: number | 'clear'): string {
-  const date = new Date(playDate)
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const year = String(date.getFullYear()).slice(-2)
-  const folderDate = `${day}${month}${year}`
+  // Parse the date string (YYYY-MM-DD) manually to avoid timezone issues
+  const [year, month, day] = playDate.split('-')
+  const folderDate = `${day}${month}${year.slice(-2)}`
   
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
   
