@@ -53,14 +53,89 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
 
 // Construct bucket URL for images based on date, group type, and guess number
 export function getImageUrl(groupType: string, playDate: string, guessNumber: number | 'clear'): string {
-  // Convert play_date (2025-10-22) to folder format (211025)
   const date = new Date(playDate)
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
-  const year = String(date.getFullYear()).slice(-2) // Last 2 digits of year
+  const year = String(date.getFullYear()).slice(-2)
   const folderDate = `${day}${month}${year}`
   
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
   
   return `${supabaseUrl}/storage/v1/object/public/images/${groupType}/${folderDate}/${fileName}`
+}
+
+export interface GuessTrackingData {
+  session_id: string
+  image_id: number
+  guess_text: string
+  is_correct: boolean
+  guess_number: number
+  guess_time: string
+  time_since_previous_guess: number | null
+  user_agent: string | null
+  device_type: string | null
+  browser: string | null
+}
+
+function getDeviceType(userAgent: string): string {
+  if (/mobile/i.test(userAgent)) return 'mobile'
+  if (/tablet|ipad/i.test(userAgent)) return 'tablet'
+  return 'desktop'
+}
+
+function getBrowser(userAgent: string): string {
+  if (/edg/i.test(userAgent)) return 'edge'
+  if (/chrome/i.test(userAgent)) return 'chrome'
+  if (/firefox/i.test(userAgent)) return 'firefox'
+  if (/safari/i.test(userAgent)) return 'safari'
+  return 'other'
+}
+
+export function getOrCreateSessionId(): string {
+  if (typeof window === 'undefined') return ''
+  
+  let sessionId = sessionStorage.getItem('idol-guessr-session-id')
+  if (!sessionId) {
+    sessionId = crypto.randomUUID()
+    sessionStorage.setItem('idol-guessr-session-id', sessionId)
+  }
+  return sessionId
+}
+
+let lastGuessTime: number | null = null
+
+export async function trackGuess(
+  imageId: number,
+  guessText: string,
+  isCorrect: boolean,
+  guessNumber: number
+): Promise<void> {
+  try {
+    const now = Date.now()
+    const timeSincePrevious = lastGuessTime ? now - lastGuessTime : null
+    lastGuessTime = now
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null
+    
+    const guessData: GuessTrackingData = {
+      session_id: getOrCreateSessionId(),
+      image_id: imageId,
+      guess_text: guessText,
+      is_correct: isCorrect,
+      guess_number: guessNumber,
+      guess_time: new Date().toISOString(),
+      time_since_previous_guess: timeSincePrevious,
+      user_agent: userAgent,
+      device_type: userAgent ? getDeviceType(userAgent) : null,
+      browser: userAgent ? getBrowser(userAgent) : null,
+    }
+
+    await supabase.from('guess_tracking').insert(guessData)
+  } catch (error) {
+    console.error('Error tracking guess:', error)
+  }
+}
+
+export function resetGuessTimer(): void {
+  lastGuessTime = null
 }
