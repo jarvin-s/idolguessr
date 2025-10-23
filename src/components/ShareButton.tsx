@@ -9,6 +9,7 @@ interface ShareButtonProps {
     correctAnswer: string
     guessCount: number
     pixelatedImageSrc: string
+    isWin: boolean
     className?: string
 }
 
@@ -16,6 +17,7 @@ export default function ShareButton({
     correctAnswer,
     guessCount,
     pixelatedImageSrc,
+    isWin,
     className = '',
 }: ShareButtonProps) {
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -74,7 +76,7 @@ export default function ShareButton({
     }
 
     const handleCopyText = async () => {
-        const textResult = generateShareText({ guessCount })
+        const textResult = generateShareText({ guessCount, isWin })
 
         try {
             await navigator.clipboard.writeText(textResult)

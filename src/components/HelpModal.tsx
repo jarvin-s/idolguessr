@@ -19,7 +19,7 @@ export default function HelpModal({
 
     return (
         <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-            <div className='relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-10'>
+            <div className='modal-fade-in relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-10'>
                 <h1
                     className={`${proximaNovaBold.className} text-3xl uppercase`}
                 >
@@ -30,7 +30,7 @@ export default function HelpModal({
                 <ul className='mt-4 space-y-2 font-bold'>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>
-                        <span>Each guess must be a valid K-pop idol first name</span>
+                        <span>Each guess must be a valid K-pop idol stage name</span>
                     </li>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>

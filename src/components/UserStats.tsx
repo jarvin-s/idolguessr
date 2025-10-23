@@ -266,28 +266,28 @@ export default function UserStats({
             {/* Main Stats Grid */}
             <div className='mb-6 flex flex-row justify-center gap-4'>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900'>
+                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
                         {stats.totalGames}
                     </div>
-                    <div className='text-sm text-gray-600'>Played</div>
+                    <div className='text-sm text-gray-600 leading-none'>Played</div>
                 </div>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900'>
+                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
                         {winPercentage}%
                     </div>
-                    <div className='text-sm text-gray-600'>Win %</div>
+                    <div className='text-sm text-gray-600 leading-none'>Win %</div>
                 </div>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900'>
+                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
                         {stats.currentStreak}
                     </div>
-                    <div className='text-sm text-gray-600'>Current streak</div>
+                    <div className='text-sm text-gray-600 leading-none'>Current streak</div>
                 </div>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900'>
+                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
                         {stats.maxStreak}
                     </div>
-                    <div className='text-sm text-gray-600'>Max streak</div>
+                    <div className='text-sm text-gray-600 leading-none'>Max streak</div>
                 </div>
             </div>
 

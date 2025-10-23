@@ -88,10 +88,25 @@ body {
     }
 }
 
+@keyframes fadeInScale {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 .win-modal-slide {
     animation: slideInFromTop 0.5s ease-out;
 }
 
 .win-modal-slide-in {
     animation: slideInFromTop 0.5s ease-out;
+}
+
+.modal-fade-in {
+    animation: fadeInScale 0.3s ease-out;
 }
