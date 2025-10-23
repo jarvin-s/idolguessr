@@ -181,7 +181,7 @@ export default function Home() {
                                         
                                         setTimeout(() => {
                                             setShowWinModal(true)
-                                        }, 1500)
+                                        }, 2000)
                                     }, 300)
                                 } else {
                                     saveProgress(newGuesses)
@@ -214,7 +214,7 @@ export default function Home() {
 
                         setTimeout(() => {
                             setShowWinModal(true)
-                        }, 1500)
+                        }, 2000)
                     }
                 }
         } else if (key === '✕') {
@@ -311,10 +311,25 @@ export default function Home() {
         return () => window.removeEventListener('resize', update)
     }, [])
 
+    // Auto-open help modal for first-time visitors
+    useEffect(() => {
+        try {
+            const hasVisited = localStorage.getItem('idol-guessr-has-visited')
+            if (!hasVisited) {
+                setShowHelp(true)
+                localStorage.setItem('idol-guessr-has-visited', 'true')
+            }
+        } catch (error) {
+            console.error('Error checking first visit:', error)
+        }
+    }, [])
+
     // Auto-open win modal if game was already completed today (win or loss)
     useEffect(() => {
         if (todayCompleted && todayCompletionData && statsLoaded) {
-            setShowWinModal(true)
+            setTimeout(() => {
+                setShowWinModal(true)
+            }, 2000)
         }
     }, [todayCompleted, todayCompletionData, statsLoaded])
 

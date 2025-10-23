@@ -12,7 +12,7 @@ export default function GameHeader({
     onShowHelp,
 }: GameHeaderProps) {
     return (
-        <div className='mb-2 flex w-full flex-shrink-0 items-center p-4'>
+        <div className='flex w-full flex-shrink-0 items-center p-4'>
             <div className='flex w-1/2 items-center justify-start'>
                 <Image
                     src='/images/idolguessr-logo.png'

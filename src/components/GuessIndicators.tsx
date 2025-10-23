@@ -19,6 +19,9 @@ export default function GuessIndicators({ guesses }: GuessIndicatorsProps) {
                     {guess === 'incorrect' && (
                         <span className='text-base font-bold text-white'>✕</span>
                     )}
+                    {guess === 'empty' && (
+                        <span className='text-base font-bold text-gray-300'>✕</span>
+                    )}
                 </div>
             ))}
         </div>
