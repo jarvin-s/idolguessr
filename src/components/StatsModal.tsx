@@ -18,7 +18,7 @@ export default function StatsModal({
 
     return (
         <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-            <div className='relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white'>
+            <div className='modal-fade-in relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white'>
                 <button
                     onClick={onClose}
                     className='absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'

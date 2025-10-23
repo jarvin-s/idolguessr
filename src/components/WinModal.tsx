@@ -129,6 +129,7 @@ export default function WinModal({
                         correctAnswer={idolName}
                         guessCount={guessCount}
                         pixelatedImageSrc={pixelatedImageUrl}
+                        isWin={isWin}
                         className='mb-4'
                     />
 
@@ -146,34 +147,34 @@ export default function WinModal({
                         {/* Stats Grid */}
                         <div className='mb-3 grid grid-cols-4 gap-4 text-center'>
                             <div>
-                                <div className='text-3xl font-bold text-black'>
+                                <div className='text-3xl font-bold text-black mb-2.5'>
                                     {stats.gamesPlayed}
                                 </div>
-                                <div className='text-sm text-gray-500'>
+                                <div className='text-sm text-gray-500 leading-none'>
                                     Played
                                 </div>
                             </div>
                             <div>
-                                <div className='text-3xl font-bold text-black'>
+                                <div className='text-3xl font-bold text-black mb-2.5'>
                                     {stats.winPercentage}%
                                 </div>
-                                <div className='text-sm text-gray-500'>
+                                <div className='text-sm text-gray-500 leading-none'>
                                     Win %
                                 </div>
                             </div>
                             <div>
-                                <div className='text-3xl font-bold text-black'>
+                                <div className='text-3xl font-bold text-black mb-2.5'>
                                     {stats.currentStreak}
                                 </div>
-                                <div className='text-sm text-gray-500'>
+                                <div className='text-sm text-gray-500 leading-none'>
                                     Current streak
                                 </div>
                             </div>
                             <div>
-                                <div className='text-3xl font-bold text-black'>
+                                <div className='text-3xl font-bold text-black mb-2.5'>
                                     {stats.maxStreak}
                                 </div>
-                                <div className='text-sm text-gray-500'>
+                                <div className='text-sm text-gray-500 leading-none'>
                                     Max streak
                                 </div>
                             </div>
