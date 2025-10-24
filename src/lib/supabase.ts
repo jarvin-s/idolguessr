@@ -53,11 +53,10 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
   }
 }
 
-// Construct bucket URL for images based on group type, img_bucket folder, and guess number
 export function getImageUrl(groupType: string, imgBucket: string, guessNumber: number | 'clear'): string {
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
   
-  return `${supabaseUrl}/storage/v1/object/public/images/${groupType}/${imgBucket}/${fileName}`
+  return `${supabaseUrl}/storage/v1/object/public/images/daily/${groupType}/${imgBucket}/${fileName}`
 }
 
 export interface GuessTrackingData {
