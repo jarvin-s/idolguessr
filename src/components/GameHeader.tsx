@@ -35,7 +35,7 @@ export default function GameHeader({
 
                 <button
                     onClick={onShowStats}
-                    className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
                     aria-label='View Statistics'
                 >
                     <StatsIcon />
@@ -43,7 +43,7 @@ export default function GameHeader({
 
                 <button
                     onClick={onShowHelp}
-                    className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+                    className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
                     aria-label='View Help'
                 >
                     <HelpIcon />
