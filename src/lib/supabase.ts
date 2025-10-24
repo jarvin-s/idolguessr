@@ -55,7 +55,7 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
 
 export function getImageUrl(groupType: string, imgBucket: string, guessNumber: number | 'clear'): string {
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
-  
+
   return `${supabaseUrl}/storage/v1/object/public/images/daily/${groupType}/${imgBucket}/${fileName}`
 }
 
@@ -88,7 +88,7 @@ function getBrowser(userAgent: string): string {
 
 export function getOrCreateSessionId(): string {
   if (typeof window === 'undefined') return ''
-  
+
   let sessionId = sessionStorage.getItem('idol-guessr-session-id')
   if (!sessionId) {
     sessionId = crypto.randomUUID()
@@ -107,11 +107,13 @@ export async function trackGuess(
 ): Promise<void> {
   try {
     const now = Date.now()
-    const timeSincePrevious = lastGuessTime ? now - lastGuessTime : null
+    const timeSincePrevious = lastGuessTime
+      ? Number(((now - lastGuessTime) / 1000).toFixed(1))
+      : null
     lastGuessTime = now
 
     const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null
-    
+
     const guessData: GuessTrackingData = {
       session_id: getOrCreateSessionId(),
       image_id: imageId,
