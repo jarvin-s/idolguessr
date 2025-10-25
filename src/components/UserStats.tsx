@@ -257,8 +257,8 @@ export default function UserStats({
                     className='h-20 w-auto'
                 />
             </div>
-            <div className='mb-4 flex items-center justify-between'>
-                <h2 className='text-xl font-bold text-gray-900 uppercase'>
+            <div className='mb-4 flex items-center justify-center'>
+                <h2 className='text-2xl font-bold text-gray-900 uppercase'>
                     Statistics
                 </h2>
             </div>
