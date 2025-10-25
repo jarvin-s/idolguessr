@@ -15,10 +15,10 @@ import { useGameProgress } from '@/hooks/useGameProgress'
 
 export default function Home() {
     const [currentGuess, setCurrentGuess] = useState('')
+    const [lastIncorrectGuess, setLastIncorrectGuess] = useState('')
     const [dailyImage, setDailyImage] = useState<DailyRow | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isAnimating, setIsAnimating] = useState(false)
-    const [showGuessText, setShowGuessText] = useState(true)
     const [correctAnswer, setCorrectAnswer] = useState('')
     const [showConfetti, setShowConfetti] = useState(false)
     const [showStats, setShowStats] = useState(false)
@@ -44,6 +44,8 @@ export default function Home() {
         handleGameWin,
         handleGameLoss,
         saveProgress,
+        saveGuessAttempt,
+        loadGuessAttempts,
     } = useGameProgress(dailyImage, correctAnswer)
 
     const [timer, setTimer] = useState('00:00:00')
@@ -77,9 +79,9 @@ export default function Home() {
         clearTimers()
 
         setCurrentGuess('')
+        setLastIncorrectGuess('')
         setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
         setIsAnimating(false)
-        setShowGuessText(true)
         setShowConfetti(false)
         setGameWon(false)
         resetGuessTimer()
@@ -149,6 +151,9 @@ export default function Home() {
                     const isCorrect = normalizedGuess === correctAnswer
                     const guessNumber = 6 - remainingGuesses + 1
 
+                    // Save the guess attempt to localStorage
+                    saveGuessAttempt(normalizedGuess)
+
                     if (dailyImage?.id) {
                         void trackGuess(
                             dailyImage.id,
@@ -161,8 +166,15 @@ export default function Home() {
                     setIsAnimating(true)
 
                     if (!isCorrect) {
+                        // Save the incorrect guess to display it
+                        setLastIncorrectGuess(normalizedGuess)
+                        
+                        // Clear current guess immediately so lastIncorrectGuess shows
+                        setCurrentGuess('')
+                        
+                        // Wait for shake animation to complete (500ms)
                         setTimeout(() => {
-                            setShowGuessText(false)
+                            setIsAnimating(false)
 
                             const emptyIndex = guesses.findIndex(
                                 (g) => g === 'empty'
@@ -189,12 +201,6 @@ export default function Home() {
 
                                 return newGuesses
                             })
-
-                            setTimeout(() => {
-                                setCurrentGuess('')
-                                setShowGuessText(true)
-                                setIsAnimating(false)
-                            }, 300)
                         }, 500)
                     } else {
                         const emptyIndex = guesses.findIndex(
@@ -228,6 +234,10 @@ export default function Home() {
                     !gameWon &&
                     !gameLost
                 ) {
+            // Clear the last incorrect guess when starting to type a new guess
+            if (lastIncorrectGuess) {
+                setLastIncorrectGuess('')
+            }
             setCurrentGuess((prev) => prev + key)
         }
     }
@@ -248,6 +258,8 @@ export default function Home() {
             setGameWon,
             setGuesses,
             dailyImage,
+            saveGuessAttempt,
+            lastIncorrectGuess,
         ]
     )
 
@@ -349,12 +361,12 @@ export default function Home() {
                             dailyImage={dailyImage}
                             remainingGuesses={remainingGuesses}
                             currentGuess={currentGuess}
+                            lastIncorrectGuess={lastIncorrectGuess}
                             correctAnswer={correctAnswer}
                             gameWon={gameWon}
                             gameLost={gameLost}
                             todayCompleted={todayCompleted}
                             todayCompletionData={todayCompletionData}
-                            showGuessText={showGuessText}
                             isAnimating={isAnimating}
                         />
 
@@ -412,6 +424,9 @@ export default function Home() {
                     6 - guesses.filter((g) => g === 'empty').length
                 }
                 isWin={todayCompletionData ? todayCompletionData.won : gameWon}
+                guessAttempts={
+                    todayCompletionData?.guessAttempts || loadGuessAttempts()
+                }
                 stats={{
                     gamesPlayed: stats.totalGames,
                     winPercentage: stats.totalGames > 0 

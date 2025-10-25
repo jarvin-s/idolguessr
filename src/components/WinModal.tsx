@@ -17,6 +17,7 @@ interface WinModalProps {
     pixelatedImageUrl: string
     guessCount: number
     isWin: boolean
+    guessAttempts: string[]
     stats: {
         gamesPlayed: number
         winPercentage: number
@@ -34,6 +35,7 @@ export default function WinModal({
     pixelatedImageUrl,
     guessCount,
     isWin,
+    guessAttempts,
     stats,
     guessDistribution,
 }: WinModalProps) {
@@ -133,11 +135,58 @@ export default function WinModal({
                         className='mb-4'
                     />
 
+                    {/* Guess Attempts Recap */}
+                    {guessAttempts.length > 0 && (
+                        <div className='mb-4 w-full'>
+                            <div className='space-y-2'>
+                                {guessAttempts.map((attempt, index) => {
+                                    const isCorrectGuess =
+                                        attempt.toUpperCase() ===
+                                        idolName.toUpperCase()
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`flex items-center justify-between rounded-lg px-4 py-3 ${
+                                                isCorrectGuess
+                                                    ? 'bg-green-50 border border-green-200'
+                                                    : 'bg-gray-50 border border-gray-200'
+                                            }`}
+                                        >
+                                            <div className='flex items-center gap-3'>
+                                                <span className='text-sm font-bold text-gray-500'>
+                                                    {index + 1}
+                                                </span>
+                                                <span
+                                                    className={`${proximaNovaBold.className} font-bold ${
+                                                        isCorrectGuess
+                                                            ? 'text-green-600'
+                                                            : 'text-gray-400'
+                                                    }`}
+                                                >
+                                                    {attempt}
+                                                </span>
+                                            </div>
+                                            {isCorrectGuess ? (
+                                                <span className='text-green-500'>
+                                                    ✓
+                                                </span>
+                                            ) : (
+                                                <span className='text-gray-400'>
+                                                    ✕
+                                                </span>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Divider */}
                     <div className='mb-8 w-full border-t border-gray-200' />
 
                     {/* Statistics Section */}
-                    <div className='mb-3 w-full'>
+                    <div className='mb-8 w-full'>
                         <h2
                             className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
                         >

@@ -7,12 +7,12 @@ interface GameImageProps {
     dailyImage: { group_type: string; img_bucket: string } | null
     remainingGuesses: number
     currentGuess: string
+    lastIncorrectGuess: string
     correctAnswer: string
     gameWon: boolean
     gameLost: boolean
     todayCompleted: boolean
     todayCompletionData: DailyCompletion | null
-    showGuessText: boolean
     isAnimating: boolean
 }
 
@@ -21,12 +21,12 @@ export default function GameImage({
     dailyImage,
     remainingGuesses,
     currentGuess,
+    lastIncorrectGuess,
     correctAnswer,
     gameWon,
     gameLost,
     todayCompleted,
     todayCompletionData,
-    showGuessText,
     isAnimating,
 }: GameImageProps) {
     // Truncate text to 20 characters
@@ -85,15 +85,30 @@ export default function GameImage({
                         </div>
                     </div>
                 ) : (
-                    showGuessText && currentGuess && (
-                        <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
-                            <div
-                                className={`rounded-full bg-black px-4 py-2 text-lg font-bold tracking-wider text-white ${isAnimating && !gameWon ? 'shake-animation fade-out-animation' : ''}`}
-                            >
-                                {truncateText(currentGuess)}
-                            </div>
+                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                        <div
+                            className={`rounded-full bg-black px-4 py-2 font-bold tracking-wider ${
+                                lastIncorrectGuess || currentGuess ? 'text-lg' : 'text-base'
+                            } ${
+                                lastIncorrectGuess
+                                    ? 'text-red-500'
+                                    : currentGuess
+                                      ? 'text-white'
+                                      : ''
+                            } ${isAnimating && !gameWon ? 'shake-animation' : ''}`}
+                            style={
+                                !lastIncorrectGuess && !currentGuess
+                                    ? { color: '#FFFFFF50' }
+                                    : undefined
+                            }
+                        >
+                            {lastIncorrectGuess
+                                ? truncateText(lastIncorrectGuess)
+                                : currentGuess
+                                  ? truncateText(currentGuess)
+                                  : 'YOUR GUESS WILL APPEAR HERE!'}
                         </div>
-                    )
+                    </div>
                 )}
             </div>
         </div>

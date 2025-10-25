@@ -23,6 +23,8 @@ interface GameProgressHook {
     handleGameWin: (guessNumber: number) => void
     handleGameLoss: () => void
     saveProgress: (newGuesses: Array<'correct' | 'incorrect' | 'empty'>) => void
+    saveGuessAttempt: (guess: string) => void
+    loadGuessAttempts: () => string[]
 }
 
 export function useGameProgress(
@@ -47,6 +49,8 @@ export function useGameProgress(
         saveDailyProgress,
         loadDailyProgress,
         clearDailyProgress,
+        saveGuessAttempt,
+        loadGuessAttempts,
     } = useUserStats()
 
     useEffect(() => {
@@ -111,16 +115,20 @@ export function useGameProgress(
 
     const handleGameWin = useCallback(
         (guessNumber: number) => {
-            updateStats(true, guessNumber, dailyImage?.id, correctAnswer)
+            const attempts = loadGuessAttempts()
+            updateStats(true, guessNumber, dailyImage?.id, correctAnswer, attempts)
             clearDailyProgress()
+            // Don't clear guess attempts here - they're needed for the modal
         },
-        [updateStats, dailyImage, correctAnswer, clearDailyProgress]
+        [updateStats, dailyImage, correctAnswer, clearDailyProgress, loadGuessAttempts]
     )
 
     const handleGameLoss = useCallback(() => {
-        updateStats(false, 0, dailyImage?.id, correctAnswer)
+        const attempts = loadGuessAttempts()
+        updateStats(false, 0, dailyImage?.id, correctAnswer, attempts)
         clearDailyProgress()
-    }, [updateStats, dailyImage, correctAnswer, clearDailyProgress])
+        // Don't clear guess attempts here - they're needed for the modal
+    }, [updateStats, dailyImage, correctAnswer, clearDailyProgress, loadGuessAttempts])
 
     const saveProgress = useCallback(
         (newGuesses: Array<'correct' | 'incorrect' | 'empty'>) => {
@@ -145,6 +153,8 @@ export function useGameProgress(
         handleGameWin,
         handleGameLoss,
         saveProgress,
+        saveGuessAttempt,
+        loadGuessAttempts,
     }
 }
 
