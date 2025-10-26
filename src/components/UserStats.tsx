@@ -10,6 +10,7 @@ export interface DailyCompletion {
     won: boolean
     guessCount: number
     correctAnswer: string
+    guessAttempts?: string[] // Array of actual guess attempts
 }
 
 export interface DailyProgress {
@@ -89,7 +90,8 @@ export function useUserStats() {
         won: boolean,
         guessCount: number,
         imageId?: number,
-        correctAnswer?: string
+        correctAnswer?: string,
+        guessAttempts?: string[]
     ) => {
         const today = new Date().toDateString()
 
@@ -117,6 +119,7 @@ export function useUserStats() {
                     won,
                     guessCount: won ? guessCount : 0,
                     correctAnswer,
+                    guessAttempts: guessAttempts || [],
                 }
             }
 
@@ -206,6 +209,31 @@ export function useUserStats() {
         }
     }, [])
 
+    const saveGuessAttempt = useCallback((guess: string) => {
+        try {
+            const today = new Date().toDateString()
+            const key = `idol-guessr-guess-attempts-${today}`
+            const existingAttempts = localStorage.getItem(key)
+            const attempts = existingAttempts ? JSON.parse(existingAttempts) : []
+            attempts.push(guess)
+            localStorage.setItem(key, JSON.stringify(attempts))
+        } catch (error) {
+            console.error('Error saving guess attempt:', error)
+        }
+    }, [])
+
+    const loadGuessAttempts = useCallback((): string[] => {
+        try {
+            const today = new Date().toDateString()
+            const key = `idol-guessr-guess-attempts-${today}`
+            const attempts = localStorage.getItem(key)
+            return attempts ? JSON.parse(attempts) : []
+        } catch (error) {
+            console.error('Error loading guess attempts:', error)
+            return []
+        }
+    }, [])
+
     return {
         stats,
         isLoaded,
@@ -215,6 +243,8 @@ export function useUserStats() {
         saveDailyProgress,
         loadDailyProgress,
         clearDailyProgress,
+        saveGuessAttempt,
+        loadGuessAttempts,
     }
 }
 
@@ -257,8 +287,8 @@ export default function UserStats({
                     className='h-20 w-auto'
                 />
             </div>
-            <div className='mb-4 flex items-center justify-between'>
-                <h2 className='text-xl font-bold text-gray-900 uppercase'>
+            <div className='mb-4 flex items-center justify-center'>
+                <h2 className='text-2xl font-bold text-gray-900 uppercase'>
                     Statistics
                 </h2>
             </div>
