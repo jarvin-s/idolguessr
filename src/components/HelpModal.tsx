@@ -30,7 +30,9 @@ export default function HelpModal({
                 <ul className='mt-4 space-y-2 font-bold'>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>
-                        <span>Each guess must be a valid K-pop idol stage name</span>
+                        <span>
+                            Each guess must be a valid K-pop idol stage name
+                        </span>
                     </li>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>
@@ -123,8 +125,8 @@ export default function HelpModal({
 
                 <button
                     onClick={onClose}
-                    className='absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
-                    aria-label='Close Statistics'
+                    className='absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
+                    aria-label='Close Help'
                 >
                     <svg
                         className='h-4 w-4 text-gray-600'
