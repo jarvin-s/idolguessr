@@ -10,10 +10,33 @@ import StatsModal from '@/components/StatsModal'
 import HelpModal from '@/components/HelpModal'
 import FeedbackModal from '@/components/FeedbackModal'
 import WinModal from '@/components/WinModal'
-import { getDailyImage, type DailyImage as DailyRow, getImageUrl, trackGuess, resetGuessTimer } from '@/lib/supabase'
+import {
+    getDailyImage,
+    getMultipleRandomUnlimitedImages,
+    type DailyImage as DailyRow,
+    getImageUrl,
+    trackGuess,
+    resetGuessTimer,
+} from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
+import { useUnlimitedStats } from '@/components/UserStats'
+
+function encodeIdolName(name: string): string {
+    const reversed = name.split('').reverse().join('')
+    return btoa(reversed)
+}
+
+function decodeIdolName(encoded: string): string {
+    try {
+        const decoded = atob(encoded)
+        return decoded.split('').reverse().join('')
+    } catch {
+        return ''
+    }
+}
 
 export default function Home() {
+    const [gameMode, setGameMode] = useState<'daily' | 'unlimited'>('daily')
     const [currentGuess, setCurrentGuess] = useState('')
     const [lastIncorrectGuess, setLastIncorrectGuess] = useState('')
     const [dailyImage, setDailyImage] = useState<DailyRow | null>(null)
@@ -29,6 +52,11 @@ export default function Home() {
         width: 0,
         height: 0,
     })
+    const [prefetchedImages, setPrefetchedImages] = useState<DailyRow[]>([])
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
+    const [showStreakPopup, setShowStreakPopup] = useState(false)
+    const [streakMilestone, setStreakMilestone] = useState(0)
+    const lastStreakMilestoneRef = useRef(0)
 
     const {
         guesses,
@@ -47,6 +75,8 @@ export default function Home() {
         saveGuessAttempt,
         loadGuessAttempts,
     } = useGameProgress(dailyImage, correctAnswer)
+
+    const unlimitedStats = useUnlimitedStats()
 
     const [timer, setTimer] = useState('00:00:00')
     const serverOffsetRef = useRef<number>(0)
@@ -137,50 +167,279 @@ export default function Home() {
         scheduleCountdownAndFlip(row.end_at)
     }, [scheduleCountdownAndFlip])
 
+    const loadUnlimitedRef = useRef(false)
+
+    const loadUnlimited = useCallback(async () => {
+        if (loadUnlimitedRef.current) return
+        loadUnlimitedRef.current = true
+
+        const currentStreak = unlimitedStats.stats.currentStreak
+        const milestones = [1, 10, 25, 50, 75, 100]
+        const lastMilestone =
+            milestones.filter((m) => m <= currentStreak).pop() || 0
+        lastStreakMilestoneRef.current = lastMilestone
+
+        const savedGameState = unlimitedStats.loadGameState()
+
+        if (savedGameState) {
+            if (!savedGameState.encodedIdolName) {
+                unlimitedStats.clearGameState()
+                const newImages = await getMultipleRandomUnlimitedImages(5)
+                setIsLoading(false)
+
+                if (newImages.length > 0) {
+                    setPrefetchedImages(newImages)
+                    setCurrentImageIndex(1)
+                    setDailyImage(newImages[0])
+                    if (newImages[0].name)
+                        setCorrectAnswer(newImages[0].name.toUpperCase())
+                }
+                loadUnlimitedRef.current = false
+                return
+            }
+
+            const decodedName = decodeIdolName(savedGameState.encodedIdolName)
+
+            const savedImage: DailyRow = {
+                id: 0,
+                name: decodedName,
+                group_type: savedGameState.groupType,
+                img_bucket: savedGameState.imgBucket,
+                group_category: savedGameState.groupCategory,
+                base64_group: savedGameState.base64Group,
+                base64_idol: savedGameState.base64Idol,
+            }
+
+            setDailyImage(savedImage)
+            setCorrectAnswer(decodedName.toUpperCase())
+            setGuesses(savedGameState.guesses)
+
+            const hasWon = savedGameState.guesses.includes('correct')
+            const hasLost =
+                savedGameState.guesses.filter((g) => g === 'incorrect')
+                    .length === 6
+            setGameWon(hasWon)
+            setGameLost(hasLost)
+            
+            // Clear UI state when restoring
+            setCurrentGuess('')
+            setLastIncorrectGuess('')
+            setIsAnimating(false)
+            setShowConfetti(false)
+            setShowWinModal(false)
+            setIsLoading(false)
+
+            getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                setPrefetchedImages(newImages)
+                setCurrentImageIndex(0)
+            })
+        } else {
+            setIsLoading(true)
+            const newImages = await getMultipleRandomUnlimitedImages(5)
+            setIsLoading(false)
+
+            if (newImages.length > 0) {
+                setPrefetchedImages(newImages)
+                setCurrentImageIndex(1)
+                setDailyImage(newImages[0])
+                if (newImages[0].name)
+                    setCorrectAnswer(newImages[0].name.toUpperCase())
+            }
+        }
+
+        loadUnlimitedRef.current = false
+    }, [unlimitedStats, setGuesses, setGameWon, setGameLost, setCurrentGuess, setLastIncorrectGuess, setIsAnimating, setShowConfetti, setShowWinModal])
+
+    const handleGameModeChange = useCallback(
+        (mode: 'daily' | 'unlimited') => {
+            if (mode === gameMode) return
+
+            if (gameMode === 'unlimited' && dailyImage && !gameWon && !gameLost) {
+                unlimitedStats.saveGameState({
+                    groupType: dailyImage.group_type,
+                    imgBucket: dailyImage.img_bucket,
+                    groupCategory: dailyImage.group_category,
+                    base64Group: dailyImage.base64_group,
+                    base64Idol: dailyImage.base64_idol,
+                    encodedIdolName: encodeIdolName(dailyImage.name || ''),
+                    guesses: guesses,
+                    savedAt: new Date().toISOString(),
+                })
+            }
+
+            localStorage.setItem('idol-guessr-game-mode', mode)
+            setGameMode(mode)
+
+            if (mode === 'daily') {
+                setCurrentGuess('')
+                setLastIncorrectGuess('')
+                setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+                setIsAnimating(false)
+                setShowConfetti(false)
+                setGameWon(false)
+                setGameLost(false)
+                setShowWinModal(false)
+                void loadCurrent()
+            } else {
+                clearTimers()
+                setPrefetchedImages([])
+                setCurrentImageIndex(0)
+                loadUnlimitedRef.current = false
+                lastStreakMilestoneRef.current = 0
+                void loadUnlimited()
+            }
+        },
+        [
+            gameMode,
+            loadCurrent,
+            loadUnlimited,
+            clearTimers,
+            setGuesses,
+            setGameWon,
+            setGameLost,
+            dailyImage,
+            guesses,
+            gameWon,
+            gameLost,
+            unlimitedStats,
+        ]
+    )
+
+    const loadNextUnlimited = useCallback(() => {
+        if (!gameWon && !gameLost) {
+            const hasGuesses = guesses.some(g => g === 'incorrect' || g === 'correct')
+            if (hasGuesses) {
+                unlimitedStats.updateStats(false, 0, true)
+            }
+            lastStreakMilestoneRef.current = 0
+        }
+
+        setCurrentGuess('')
+        setLastIncorrectGuess('')
+        const freshGuesses: Array<'correct' | 'incorrect' | 'empty'> = [
+            'empty',
+            'empty',
+            'empty',
+            'empty',
+            'empty',
+            'empty',
+        ]
+        setGuesses(freshGuesses)
+        setIsAnimating(false)
+        setShowConfetti(false)
+        setGameWon(false)
+        setGameLost(false)
+        setShowWinModal(false)
+        resetGuessTimer()
+
+        if (prefetchedImages.length > currentImageIndex) {
+            const row = prefetchedImages[currentImageIndex]
+            setDailyImage(row)
+            if (row.name) setCorrectAnswer(row.name.toUpperCase())
+            setCurrentImageIndex((prev) => prev + 1)
+
+            unlimitedStats.saveGameState({
+                groupType: row.group_type,
+                imgBucket: row.img_bucket,
+                groupCategory: row.group_category,
+                base64Group: row.base64_group,
+                base64Idol: row.base64_idol,
+                encodedIdolName: encodeIdolName(row.name || ''),
+                guesses: freshGuesses,
+                savedAt: new Date().toISOString(),
+            })
+
+            if (currentImageIndex >= prefetchedImages.length - 2) {
+                getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                    setPrefetchedImages((prev) => [...prev, ...newImages])
+                })
+            }
+        }
+    }, [
+        prefetchedImages,
+        currentImageIndex,
+        setGuesses,
+        setGameWon,
+        setGameLost,
+        unlimitedStats,
+        gameWon,
+        gameLost,
+        guesses,
+    ])
+
     const handleKeyPress = useCallback(
         (key: string) => {
-            if (todayCompleted) return
+            if (gameMode === 'daily' && todayCompleted) return
 
-        if (key === 'ENTER') {
+            if (key === 'ENTER') {
                 if (
                     currentGuess.trim() &&
                     guesses.some((g) => g === 'empty') &&
-                    !isAnimating
+                    !isAnimating &&
+                    !gameWon &&
+                    !gameLost
                 ) {
                     const normalizedGuess = currentGuess.toUpperCase().trim()
                     const isCorrect = normalizedGuess === correctAnswer
                     const guessNumber = 6 - remainingGuesses + 1
 
-                    // Save the guess attempt to localStorage
-                    saveGuessAttempt(normalizedGuess)
+                    if (gameMode === 'daily') {
+                        saveGuessAttempt(normalizedGuess)
 
-                    if (dailyImage?.id) {
-                        void trackGuess(
-                            dailyImage.id,
-                            normalizedGuess,
-                            isCorrect,
-                            guessNumber
-                        )
+                        if (dailyImage?.id) {
+                            void trackGuess(
+                                dailyImage.id,
+                                normalizedGuess,
+                                isCorrect,
+                                guessNumber
+                            )
+                        }
                     }
 
                     setIsAnimating(true)
 
                     if (!isCorrect) {
-                        // Save the incorrect guess to display it
                         setLastIncorrectGuess(normalizedGuess)
-                        
-                        // Clear current guess immediately so lastIncorrectGuess shows
+
                         setCurrentGuess('')
-                        
-                        // Wait for shake animation to complete (500ms)
+
+                        const emptyIndex = guesses.findIndex(
+                            (g) => g === 'empty'
+                        )
+                        const newGuesses = [...guesses]
+                        newGuesses[emptyIndex] = 'incorrect'
+
+                        const remainingAfterThis = newGuesses.filter(
+                            (g) => g === 'empty'
+                        ).length
+
+                        if (
+                            gameMode === 'unlimited' &&
+                            dailyImage &&
+                            remainingAfterThis > 0
+                        ) {
+                            unlimitedStats.saveGameState({
+                                groupType: dailyImage.group_type,
+                                imgBucket: dailyImage.img_bucket,
+                                groupCategory: dailyImage.group_category,
+                                base64Group: dailyImage.base64_group,
+                                base64Idol: dailyImage.base64_idol,
+                                encodedIdolName: encodeIdolName(
+                                    dailyImage.name || ''
+                                ),
+                                guesses: newGuesses,
+                                savedAt: new Date().toISOString(),
+                            })
+                        }
+
                         setTimeout(() => {
                             setIsAnimating(false)
 
-                            const emptyIndex = guesses.findIndex(
-                                (g) => g === 'empty'
-                            )
                             setGuesses((prev) => {
                                 const newGuesses = [...prev]
+                                const emptyIndex = newGuesses.findIndex(
+                                    (g) => g === 'empty'
+                                )
                                 newGuesses[emptyIndex] = 'incorrect'
 
                                 const remainingAfterThis = newGuesses.filter(
@@ -189,14 +448,23 @@ export default function Home() {
                                 if (remainingAfterThis === 0) {
                                     setTimeout(() => {
                                         setGameLost(true)
-                                        handleGameLoss()
-                                        
-                                        setTimeout(() => {
-                                            setShowWinModal(true)
-                                        }, 2000)
+
+                                        if (gameMode === 'daily') {
+                                            handleGameLoss()
+                                            setTimeout(() => {
+                                                setShowWinModal(true)
+                                            }, 2000)
+                                        } else {
+                                            // Increment totalGames on loss (streak break)
+                                            unlimitedStats.updateStats(false, 0, true)
+                                            unlimitedStats.clearGameState()
+                                            lastStreakMilestoneRef.current = 0
+                                        }
                                     }, 300)
                                 } else {
-                                    saveProgress(newGuesses)
+                                    if (gameMode === 'daily') {
+                                        saveProgress(newGuesses)
+                                    }
                                 }
 
                                 return newGuesses
@@ -208,39 +476,64 @@ export default function Home() {
                         )
 
                         setGameWon(true)
-                        setShowConfetti(true)
+                        if (gameMode === 'daily') {
+                            setShowConfetti(true)
+                        }
                         setIsAnimating(false)
+                        setCurrentGuess('')
                         setGuesses((prev) => {
                             const newGuesses = [...prev]
                             newGuesses[emptyIndex] = 'correct'
                             return newGuesses
                         })
 
-                        handleGameWin(guessNumber)
+                        if (gameMode === 'daily') {
+                            handleGameWin(guessNumber)
+                            setTimeout(() => {
+                                setShowWinModal(true)
+                            }, 2000)
+                        } else {
+                            const currentStreak =
+                                unlimitedStats.stats.currentStreak
+                            const newStreak = currentStreak + 1
 
-                        setTimeout(() => {
-                            setShowWinModal(true)
-                        }, 2000)
+                            const milestones = [1, 10, 25, 50, 75, 100]
+                            const milestone = milestones.find(
+                                (m) =>
+                                    newStreak === m &&
+                                    lastStreakMilestoneRef.current < m
+                            )
+
+                            if (milestone) {
+                                lastStreakMilestoneRef.current = milestone
+                                setStreakMilestone(milestone)
+                                setShowStreakPopup(true)
+                            }
+
+                            // Don't increment totalGames on win, only on streak break
+                            unlimitedStats.updateStats(true, guessNumber, false)
+                            unlimitedStats.clearGameState()
+                        }
                     }
                 }
-        } else if (key === '✕') {
+            } else if (key === '✕') {
                 if (!gameWon && !gameLost) {
-            setCurrentGuess((prev) => prev.slice(0, -1))
+                    setCurrentGuess((prev) => prev.slice(0, -1))
                 }
-        } else {
+            } else {
                 if (
                     guesses.some((g) => g === 'empty') &&
                     !isAnimating &&
                     !gameWon &&
                     !gameLost
                 ) {
-            // Clear the last incorrect guess when starting to type a new guess
-            if (lastIncorrectGuess) {
-                setLastIncorrectGuess('')
+                    // Clear the last incorrect guess when starting to type a new guess
+                    if (lastIncorrectGuess) {
+                        setLastIncorrectGuess('')
+                    }
+                    setCurrentGuess((prev) => prev + key)
+                }
             }
-            setCurrentGuess((prev) => prev + key)
-        }
-    }
         },
         [
             currentGuess,
@@ -260,6 +553,8 @@ export default function Home() {
             dailyImage,
             saveGuessAttempt,
             lastIncorrectGuess,
+            gameMode,
+            unlimitedStats,
         ]
     )
 
@@ -295,14 +590,48 @@ export default function Home() {
             window.removeEventListener('keydown', handlePhysicalKeyPress)
     }, [handleKeyPress])
 
+    const gameModeRef = useRef(gameMode)
+    gameModeRef.current = gameMode
+    const hasLoadedInitialRef = useRef(false)
+
     useEffect(() => {
-        let mounted = true
-        ;(async () => mounted && (await loadCurrent()))()
-        const onFocus = () => {
-            void loadCurrent()
+        const savedMode = localStorage.getItem('idol-guessr-game-mode')
+        if (savedMode === 'unlimited') {
+            setGameMode('unlimited')
+        } else {
+            hasLoadedInitialRef.current = true
         }
-        window.addEventListener('focus', onFocus)
-        document.addEventListener('visibilitychange', onFocus)
+    }, [])
+
+    useEffect(() => {
+        if (!hasLoadedInitialRef.current && gameMode === 'daily') {
+            return
+        }
+        hasLoadedInitialRef.current = true
+
+        let mounted = true
+        const loadGame = async () => {
+            if (!mounted) return
+
+            if (gameMode === 'daily') {
+                await loadCurrent()
+            } else {
+                await loadUnlimited()
+            }
+        }
+        void loadGame()
+
+        const onFocus = () => {
+            if (gameModeRef.current === 'daily') {
+                void loadCurrent()
+            }
+        }
+
+        if (gameMode === 'daily') {
+            window.addEventListener('focus', onFocus)
+            document.addEventListener('visibilitychange', onFocus)
+        }
+
         resetGuessTimer()
         return () => {
             mounted = false
@@ -310,7 +639,8 @@ export default function Home() {
             window.removeEventListener('focus', onFocus)
             document.removeEventListener('visibilitychange', onFocus)
         }
-    }, [loadCurrent, clearTimers])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gameMode])
 
     useEffect(() => {
         const update = () =>
@@ -336,14 +666,28 @@ export default function Home() {
         }
     }, [])
 
-    // Auto-open win modal if game was already completed today (win or loss)
     useEffect(() => {
-        if (todayCompleted && todayCompletionData && statsLoaded) {
+        if (
+            gameMode === 'daily' &&
+            todayCompleted &&
+            todayCompletionData &&
+            statsLoaded
+        ) {
             setTimeout(() => {
                 setShowWinModal(true)
             }, 2000)
         }
-    }, [todayCompleted, todayCompletionData, statsLoaded])
+    }, [todayCompleted, todayCompletionData, statsLoaded, gameMode])
+
+    useEffect(() => {
+        if (gameMode === 'unlimited' && (gameWon || gameLost)) {
+            const timer = setTimeout(() => {
+                loadNextUnlimited()
+            }, 2000)
+
+            return () => clearTimeout(timer)
+        }
+    }, [gameMode, gameWon, gameLost, loadNextUnlimited])
 
     return (
         <div className='fixed inset-0 flex flex-col overflow-hidden bg-white'>
@@ -351,11 +695,12 @@ export default function Home() {
                 <GameHeader
                     timer={timer}
                     onShowStats={() => setShowStats(true)}
-                    onShowHelp={() => setShowHelp(true)}
+                    gameMode={gameMode}
+                    onGameModeChange={handleGameModeChange}
                 />
 
-                <div className='flex w-full flex-1 flex-col px-4 min-h-0'>
-                    <div className='flex w-full flex-1 flex-col items-center min-h-0'>
+                <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
+                    <div className='flex min-h-0 w-full flex-1 flex-col items-center'>
                         <GameImage
                             isLoading={isLoading}
                             dailyImage={dailyImage}
@@ -368,23 +713,42 @@ export default function Home() {
                             todayCompleted={todayCompleted}
                             todayCompletionData={todayCompletionData}
                             isAnimating={isAnimating}
+                            gameMode={gameMode}
+                            onPass={
+                                gameMode === 'unlimited' &&
+                                !gameWon &&
+                                !gameLost
+                                    ? loadNextUnlimited
+                                    : undefined
+                            }
+                            showStreakPopup={showStreakPopup}
+                            streakMilestone={streakMilestone}
+                            onStreakPopupComplete={() =>
+                                setShowStreakPopup(false)
+                            }
                         />
 
                         <GuessIndicators guesses={guesses} />
-            </div>
+                    </div>
 
                     <OnScreenKeyboard
                         onKeyPress={handleKeyPress}
                         className='flex-shrink-0 pb-4'
-                            />
-                        </div>
-                    </div>
+                    />
+                </div>
+            </div>
 
             <StatsModal
                 isOpen={showStats}
                 onClose={() => setShowStats(false)}
-                stats={stats}
-                statsLoaded={statsLoaded}
+                onShowHelp={() => {
+                    setShowStats(false)
+                    setShowHelp(true)
+                }}
+                stats={gameMode === 'daily' ? stats : unlimitedStats.stats}
+                statsLoaded={
+                    gameMode === 'daily' ? statsLoaded : unlimitedStats.isLoaded
+                }
             />
 
             <HelpModal
@@ -405,45 +769,69 @@ export default function Home() {
                 }}
             />
 
-            <WinModal
-                isOpen={showWinModal}
-                onClose={() => setShowWinModal(false)}
-                idolName={correctAnswer}
-                imageUrl={
-                    dailyImage
-                        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, 'clear')
-                        : ''
-                }
-                pixelatedImageUrl={
-                    dailyImage
-                        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, 1)
-                        : ''
-                }
-                guessCount={
-                    todayCompletionData?.guessCount ||
-                    6 - guesses.filter((g) => g === 'empty').length
-                }
-                isWin={todayCompletionData ? todayCompletionData.won : gameWon}
-                guessAttempts={
-                    todayCompletionData?.guessAttempts || loadGuessAttempts()
-                }
-                stats={{
-                    gamesPlayed: stats.totalGames,
-                    winPercentage: stats.totalGames > 0 
-                        ? Math.round((stats.totalWins / stats.totalGames) * 100)
-                        : 0,
-                    currentStreak: stats.currentStreak,
-                    maxStreak: stats.maxStreak,
-                }}
-                guessDistribution={[
-                    stats.guessDistribution[1] || 0,
-                    stats.guessDistribution[2] || 0,
-                    stats.guessDistribution[3] || 0,
-                    stats.guessDistribution[4] || 0,
-                    stats.guessDistribution[5] || 0,
-                    stats.guessDistribution[6] || 0,
-                ]}
-            />
+            {gameMode === 'daily' && (
+                <WinModal
+                    isOpen={showWinModal}
+                    onClose={() => setShowWinModal(false)}
+                    idolName={correctAnswer}
+                    imageUrl={
+                        dailyImage
+                            ? getImageUrl(
+                                  dailyImage.group_type,
+                                  dailyImage.img_bucket,
+                                  'clear',
+                                  gameMode,
+                                  dailyImage.group_category,
+                                  dailyImage.base64_group
+                              )
+                            : ''
+                    }
+                    pixelatedImageUrl={
+                        dailyImage
+                            ? getImageUrl(
+                                  dailyImage.group_type,
+                                  dailyImage.img_bucket,
+                                  1,
+                                  gameMode,
+                                  dailyImage.group_category,
+                                  dailyImage.base64_group
+                              )
+                            : ''
+                    }
+                    guessCount={
+                        todayCompletionData?.guessCount ||
+                        6 - guesses.filter((g) => g === 'empty').length
+                    }
+                    isWin={
+                        todayCompletionData ? todayCompletionData.won : gameWon
+                    }
+                    guessAttempts={
+                        todayCompletionData?.guessAttempts ||
+                        loadGuessAttempts()
+                    }
+                    stats={{
+                        gamesPlayed: stats.totalGames,
+                        winPercentage:
+                            stats.totalGames > 0
+                                ? Math.round(
+                                      (stats.totalWins / stats.totalGames) * 100
+                                  )
+                                : 0,
+                        currentStreak: stats.currentStreak,
+                        maxStreak: stats.maxStreak,
+                    }}
+                    guessDistribution={[
+                        stats.guessDistribution[1] || 0,
+                        stats.guessDistribution[2] || 0,
+                        stats.guessDistribution[3] || 0,
+                        stats.guessDistribution[4] || 0,
+                        stats.guessDistribution[5] || 0,
+                        stats.guessDistribution[6] || 0,
+                    ]}
+                    gameMode={gameMode}
+                    onNextUnlimited={loadNextUnlimited}
+                />
+            )}
 
             {showConfetti && windowDimensions.width > 0 && (
                 <Confetti

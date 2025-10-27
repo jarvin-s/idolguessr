@@ -30,6 +30,25 @@ export interface UserStats {
     dailyCompletions: { [key: string]: DailyCompletion }
 }
 
+export interface UnlimitedStats {
+    totalGames: number
+    totalWins: number
+    currentStreak: number
+    maxStreak: number
+    guessDistribution: { [key: number]: number }
+}
+
+export interface UnlimitedGameState {
+    groupType: string
+    imgBucket: string
+    groupCategory?: string
+    base64Group?: string
+    base64Idol?: string
+    encodedIdolName: string
+    guesses: Array<'correct' | 'incorrect' | 'empty'>
+    savedAt: string
+}
+
 const defaultStats: UserStats = {
     totalGames: 0,
     totalWins: 0,
@@ -39,6 +58,14 @@ const defaultStats: UserStats = {
     lastPlayedDate: '',
     todayCompleted: false,
     dailyCompletions: {},
+}
+
+const defaultUnlimitedStats: UnlimitedStats = {
+    totalGames: 0,
+    totalWins: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
 }
 
 export function useUserStats() {
@@ -214,7 +241,9 @@ export function useUserStats() {
             const today = new Date().toDateString()
             const key = `idol-guessr-guess-attempts-${today}`
             const existingAttempts = localStorage.getItem(key)
-            const attempts = existingAttempts ? JSON.parse(existingAttempts) : []
+            const attempts = existingAttempts
+                ? JSON.parse(existingAttempts)
+                : []
             attempts.push(guess)
             localStorage.setItem(key, JSON.stringify(attempts))
         } catch (error) {
@@ -245,6 +274,102 @@ export function useUserStats() {
         clearDailyProgress,
         saveGuessAttempt,
         loadGuessAttempts,
+    }
+}
+
+export function useUnlimitedStats() {
+    const [stats, setStats] = useState<UnlimitedStats>(defaultUnlimitedStats)
+    const [isLoaded, setIsLoaded] = useState(false)
+
+    useEffect(() => {
+        const loadStats = () => {
+            try {
+                const savedStats = localStorage.getItem('idol-guessr-unlimited-stats')
+                if (savedStats) {
+                    setStats(JSON.parse(savedStats))
+                } else {
+                    setStats(defaultUnlimitedStats)
+                }
+            } catch (error) {
+                console.error('Error loading unlimited stats:', error)
+                setStats(defaultUnlimitedStats)
+            } finally {
+                setIsLoaded(true)
+            }
+        }
+
+        loadStats()
+    }, [])
+
+    useEffect(() => {
+        if (isLoaded) {
+            try {
+                localStorage.setItem('idol-guessr-unlimited-stats', JSON.stringify(stats))
+            } catch (error) {
+                console.error('Error saving unlimited stats:', error)
+            }
+        }
+    }, [stats, isLoaded])
+
+    const updateStats = (won: boolean, guessCount: number, incrementTotalGames: boolean = true) => {
+        setStats((prevStats) => {
+            const newStats = {
+                ...prevStats,
+                guessDistribution: { ...prevStats.guessDistribution },
+            }
+
+            if (incrementTotalGames) {
+                newStats.totalGames += 1
+            }
+
+            if (won) {
+                newStats.totalWins += 1
+                newStats.guessDistribution[guessCount] += 1
+                newStats.currentStreak += 1
+                newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak)
+            } else {
+                newStats.currentStreak = 0
+            }
+
+            return newStats
+        })
+    }
+
+    const saveGameState = useCallback((gameState: UnlimitedGameState) => {
+        try {
+            localStorage.setItem('idol-guessr-unlimited-game-state', JSON.stringify(gameState))
+        } catch (error) {
+            console.error('Error saving unlimited game state:', error)
+        }
+    }, [])
+
+    const loadGameState = useCallback((): UnlimitedGameState | null => {
+        try {
+            const savedState = localStorage.getItem('idol-guessr-unlimited-game-state')
+            if (savedState) {
+                return JSON.parse(savedState) as UnlimitedGameState
+            }
+        } catch (error) {
+            console.error('Error loading unlimited game state:', error)
+        }
+        return null
+    }, [])
+
+    const clearGameState = useCallback(() => {
+        try {
+            localStorage.removeItem('idol-guessr-unlimited-game-state')
+        } catch (error) {
+            console.error('Error clearing unlimited game state:', error)
+        }
+    }, [])
+
+    return {
+        stats,
+        isLoaded,
+        updateStats,
+        saveGameState,
+        loadGameState,
+        clearGameState,
     }
 }
 
@@ -296,28 +421,36 @@ export default function UserStats({
             {/* Main Stats Grid */}
             <div className='mb-6 flex flex-row justify-center gap-4'>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {stats.totalGames}
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Played</div>
+                    <div className='text-sm leading-none text-gray-600'>
+                        Played
+                    </div>
                 </div>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {winPercentage}%
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Win %</div>
+                    <div className='text-sm leading-none text-gray-600'>
+                        Win %
+                    </div>
                 </div>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {stats.currentStreak}
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Current streak</div>
+                    <div className='text-sm leading-none text-gray-600'>
+                        Current streak
+                    </div>
                 </div>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {stats.maxStreak}
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Max streak</div>
+                    <div className='text-sm leading-none text-gray-600'>
+                        Max streak
+                    </div>
                 </div>
             </div>
 

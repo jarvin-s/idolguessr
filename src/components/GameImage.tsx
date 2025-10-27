@@ -1,10 +1,17 @@
 import PrePixelatedImage from './PrePixelatedImage'
 import { DailyCompletion } from './UserStats'
 import { getImageUrl } from '@/lib/supabase'
+import StreakPopup from './StreakPopup'
 
 interface GameImageProps {
     isLoading: boolean
-    dailyImage: { group_type: string; img_bucket: string } | null
+    dailyImage: {
+        group_type: string
+        img_bucket: string
+        group_category?: string
+        base64_group?: string
+        base64_idol?: string
+    } | null
     remainingGuesses: number
     currentGuess: string
     lastIncorrectGuess: string
@@ -14,6 +21,11 @@ interface GameImageProps {
     todayCompleted: boolean
     todayCompletionData: DailyCompletion | null
     isAnimating: boolean
+    gameMode: 'daily' | 'unlimited'
+    onPass?: () => void
+    showStreakPopup?: boolean
+    streakMilestone?: number
+    onStreakPopupComplete?: () => void
 }
 
 export default function GameImage({
@@ -28,30 +40,45 @@ export default function GameImage({
     todayCompleted,
     todayCompletionData,
     isAnimating,
+    gameMode,
+    onPass,
+    showStreakPopup,
+    streakMilestone,
+    onStreakPopupComplete,
 }: GameImageProps) {
-    // Truncate text to 20 characters
     const truncateText = (text: string, maxLength: number = 20) => {
         return text.length > maxLength ? text.slice(0, maxLength) : text
     }
 
     const getImageNumber = (): number | 'clear' => {
-        if (gameWon || gameLost || remainingGuesses === 0 || remainingGuesses === 1) {
+        if (
+            gameWon ||
+            gameLost ||
+            remainingGuesses === 0 ||
+            remainingGuesses === 1
+        ) {
             return 'clear'
         }
-        
-        // Map remaining guesses to image numbers
+
         if (remainingGuesses === 6) return 1
         if (remainingGuesses === 5) return 2
         if (remainingGuesses === 4) return 3
         if (remainingGuesses === 3) return 4
         if (remainingGuesses === 2) return 5
-        
-        return 1 // Default
+
+        return 1
     }
 
     const imageNumber = getImageNumber()
-    const imageUrl = dailyImage 
-        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, imageNumber)
+    const imageUrl = dailyImage
+        ? getImageUrl(
+              dailyImage.group_type,
+              dailyImage.img_bucket,
+              imageNumber,
+              gameMode,
+              dailyImage.group_category,
+              dailyImage.base64_group
+          )
         : ''
 
     return (
@@ -62,23 +89,47 @@ export default function GameImage({
                         <div className='text-gray-400'>Loading...</div>
                     </div>
                 ) : dailyImage ? (
-                    <PrePixelatedImage
-                        src={imageUrl}
-                        alt='Daily idol'
-                    />
+                    <PrePixelatedImage src={imageUrl} alt='Daily idol' />
                 ) : (
                     <div className='flex h-full w-full items-center justify-center'>
                         <div className='text-gray-400'>No image available</div>
                     </div>
                 )}
 
-                {(todayCompleted && todayCompletionData && todayCompletionData.won) || gameWon ? (
+                {gameMode === 'unlimited' &&
+                    !gameWon &&
+                    !gameLost &&
+                    onPass && (
+                        <button
+                            onClick={onPass}
+                            className='absolute top-3 right-3 z-10 cursor-pointer rounded-lg bg-red-400 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-400/80'
+                        >
+                            PASS
+                        </button>
+                    )}
+
+                {showStreakPopup &&
+                    streakMilestone &&
+                    onStreakPopupComplete && (
+                        <StreakPopup
+                            streak={streakMilestone}
+                            onComplete={onStreakPopupComplete}
+                        />
+                    )}
+
+                {(todayCompleted &&
+                    todayCompletionData &&
+                    todayCompletionData.won) ||
+                gameWon ? (
                     <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
                         <div className='rounded-full bg-green-400 px-4 py-2 text-lg font-bold tracking-wider text-white'>
                             {truncateText(correctAnswer)}
                         </div>
                     </div>
-                ) : (todayCompleted && todayCompletionData && !todayCompletionData.won) || gameLost ? (
+                ) : (todayCompleted &&
+                      todayCompletionData &&
+                      !todayCompletionData.won) ||
+                  gameLost ? (
                     <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
                         <div className='rounded-full bg-red-500 px-4 py-2 text-lg font-bold tracking-wider text-white'>
                             {truncateText(correctAnswer)}
@@ -88,7 +139,9 @@ export default function GameImage({
                     <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
                         <div
                             className={`rounded-full bg-black px-4 py-2 font-bold tracking-wider ${
-                                lastIncorrectGuess || currentGuess ? 'text-lg' : 'text-base'
+                                lastIncorrectGuess || currentGuess
+                                    ? 'text-lg'
+                                    : 'text-base'
                             } ${
                                 lastIncorrectGuess
                                     ? 'text-red-500'

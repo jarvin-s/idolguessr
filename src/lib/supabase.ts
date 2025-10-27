@@ -9,10 +9,14 @@ export interface DailyImage {
   id: number
   name: string
   group_type: string
-  play_date: string
+  play_date?: string
   img_bucket: string
   created_at?: string
   updated_at?: string
+  group_name?: string
+  group_category?: string
+  base64_group?: string
+  base64_idol?: string
 }
 
 export interface CurrentDaily {
@@ -41,6 +45,30 @@ export async function getDailyImage(): Promise<CurrentDaily | null> {
   return data[0] as CurrentDaily;
 }
 
+export async function getRandomUnlimitedImage(): Promise<DailyImage | null> {
+  const { data, error } = await supabase.rpc('get_random_unlimited');
+  if (error || !data?.length) {
+    console.error('get_random_unlimited error:', error);
+    return null;
+  }
+  return data[0] as DailyImage;
+}
+
+export async function getMultipleRandomUnlimitedImages(count: number): Promise<DailyImage[]> {
+  const images: DailyImage[] = [];
+  const promises = Array(count).fill(null).map(() => supabase.rpc('get_random_unlimited'));
+
+  const results = await Promise.all(promises);
+  console.log('results', results);
+  for (const result of results) {
+    if (result.data?.length) {
+      images.push(result.data[0] as DailyImage);
+    }
+  }
+
+  return images;
+}
+
 export async function insertNewFeedback(feedback: Feedback): Promise<void> {
   const { error } = await supabase.from('feedback').insert({
     message: feedback.message,
@@ -53,10 +81,21 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
   }
 }
 
-export function getImageUrl(groupType: string, imgBucket: string, guessNumber: number | 'clear'): string {
+export function getImageUrl(
+  groupType: string,
+  imgBucket: string,
+  guessNumber: number | 'clear',
+  mode: 'daily' | 'unlimited' = 'daily',
+  groupCategory?: string,
+  base64Group?: string,
+): string {
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
 
-  return `${supabaseUrl}/storage/v1/object/public/images/daily/${groupType}/${imgBucket}/${fileName}`
+  if (mode === 'unlimited' && groupCategory && base64Group && imgBucket) {
+    return `${supabaseUrl}/storage/v1/object/public/images/unlimited/${groupCategory}/${base64Group}/${imgBucket}/${fileName}`
+  }
+
+  return `${supabaseUrl}/storage/v1/object/public/images/${mode}/${groupType}/${imgBucket}/${fileName}`
 }
 
 export interface GuessTrackingData {
@@ -91,7 +130,15 @@ export function getOrCreateSessionId(): string {
 
   let sessionId = sessionStorage.getItem('idol-guessr-session-id')
   if (!sessionId) {
-    sessionId = crypto.randomUUID()
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      sessionId = crypto.randomUUID()
+    } else {
+      sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0
+        const v = c === 'x' ? r : (r & 0x3 | 0x8)
+        return v.toString(16)
+      })
+    }
     sessionStorage.setItem('idol-guessr-session-id', sessionId)
   }
   return sessionId
