@@ -54,15 +54,75 @@ export async function getRandomUnlimitedImage(): Promise<DailyImage | null> {
   return data[0] as DailyImage;
 }
 
+// Helper functions for tracking seen idols
+export function getSeenIdols(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const seen = localStorage.getItem('idol-guessr-seen-idols')
+    return seen ? JSON.parse(seen) : []
+  } catch {
+    return []
+  }
+}
+
+export function addSeenIdol(imgBucket: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const seen = getSeenIdols()
+    if (!seen.includes(imgBucket)) {
+      seen.push(imgBucket)
+      localStorage.setItem('idol-guessr-seen-idols', JSON.stringify(seen))
+    }
+  } catch (error) {
+    console.error('Error adding seen idol:', error)
+  }
+}
+
+export function clearSeenIdols(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem('idol-guessr-seen-idols')
+  } catch (error) {
+    console.error('Error clearing seen idols:', error)
+  }
+}
+
 export async function getMultipleRandomUnlimitedImages(count: number): Promise<DailyImage[]> {
   const images: DailyImage[] = [];
-  const promises = Array(count).fill(null).map(() => supabase.rpc('get_random_unlimited'));
+  const seenIdols = getSeenIdols();
+  
+  // Fetch more images than needed to account for filtering
+  const fetchCount = Math.max(count * 3, 15);
+  const promises = Array(fetchCount).fill(null).map(() => supabase.rpc('get_random_unlimited'));
 
   const results = await Promise.all(promises);
   console.log('results', results);
+  
   for (const result of results) {
     if (result.data?.length) {
-      images.push(result.data[0] as DailyImage);
+      const image = result.data[0] as DailyImage;
+      // Only add if we haven't seen this img_bucket before and we still need more images
+      if (image.img_bucket && !seenIdols.includes(image.img_bucket) && images.length < count) {
+        // Also check if this image isn't already in our current batch
+        if (!images.some(img => img.img_bucket === image.img_bucket)) {
+          images.push(image);
+        }
+      }
+    }
+  }
+
+  // If we still don't have enough unique images, the pool is exhausted
+  // Clear the history and try again
+  if (images.length < count && seenIdols.length > 0) {
+    console.log('Insufficient unique images, clearing seen history...');
+    clearSeenIdols();
+    // Try again with cleared history
+    const retryPromises = Array(count).fill(null).map(() => supabase.rpc('get_random_unlimited'));
+    const retryResults = await Promise.all(retryPromises);
+    for (const result of retryResults) {
+      if (result.data?.length && images.length < count) {
+        images.push(result.data[0] as DailyImage);
+      }
     }
   }
 

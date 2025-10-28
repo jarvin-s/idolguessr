@@ -1,7 +1,8 @@
-import PrePixelatedImage from './PrePixelatedImage'
 import { DailyCompletion } from './UserStats'
 import { getImageUrl } from '@/lib/supabase'
 import StreakPopup from './StreakPopup'
+import Image from 'next/image'
+import { useEffect, useState } from 'react'
 
 interface GameImageProps {
     isLoading: boolean
@@ -46,6 +47,17 @@ export default function GameImage({
     streakMilestone,
     onStreakPopupComplete,
 }: GameImageProps) {
+    const [isEntering, setIsEntering] = useState(false)
+
+    useEffect(() => {
+        // Trigger entering animation when idol changes
+        if (dailyImage?.img_bucket) {
+            setIsEntering(true)
+            const timer = setTimeout(() => setIsEntering(false), 50)
+            return () => clearTimeout(timer)
+        }
+    }, [dailyImage?.img_bucket])
+
     const truncateText = (text: string, maxLength: number = 20) => {
         return text.length > maxLength ? text.slice(0, maxLength) : text
     }
@@ -70,16 +82,20 @@ export default function GameImage({
     }
 
     const imageNumber = getImageNumber()
-    const imageUrl = dailyImage
-        ? getImageUrl(
-              dailyImage.group_type,
-              dailyImage.img_bucket,
-              imageNumber,
-              gameMode,
-              dailyImage.group_category,
-              dailyImage.base64_group
+
+    // Generate all image URLs for preloading and layering
+    const allImageUrls = dailyImage
+        ? [1, 2, 3, 4, 5, 'clear'].map((num) =>
+              getImageUrl(
+                  dailyImage.group_type,
+                  dailyImage.img_bucket,
+                  num as number | 'clear',
+                  gameMode,
+                  dailyImage.group_category,
+                  dailyImage.base64_group
+              )
           )
-        : ''
+        : []
 
     return (
         <div className='relative mb-3 min-h-0 w-full flex-1 sm:mx-auto sm:max-w-md'>
@@ -89,7 +105,57 @@ export default function GameImage({
                         <div className='text-gray-400'>Loading...</div>
                     </div>
                 ) : dailyImage ? (
-                    <PrePixelatedImage src={imageUrl} alt='Daily idol' />
+                    <div 
+                        className='absolute inset-0 transition-transform duration-[1500ms] ease-out'
+                        style={{
+                            transform: isEntering ? 'translateY(-100%)' : 'translateY(0)',
+                            zIndex: isEntering ? 100 : 10,
+                        }}
+                        key={dailyImage.img_bucket}
+                    >
+                        {/* Layer all 6 images on top of each other */}
+                        {allImageUrls.map((url, index) => {
+                            const imageNum =
+                                index === 5 ? 'clear' : (index + 1)
+                            const isVisible = imageNumber === imageNum
+                            
+                            // Determine if this image is "ahead" or "behind" the current one
+                            const currentIndex = typeof imageNumber === 'number' ? imageNumber - 1 : 5
+                            const isPastImage = index < currentIndex // Already swiped left
+                            
+                            return (
+                                <div
+                                    key={url}
+                                    className='absolute inset-0 overflow-hidden rounded-lg transition-all duration-500 ease-out'
+                                    style={{
+                                        opacity: isVisible ? 1 : 0,
+                                        transform: isVisible
+                                            ? 'translateX(0) rotate(0deg)'
+                                            : isPastImage
+                                              ? 'translateX(-150%) rotate(-15deg)'
+                                              : 'translateX(150%) rotate(15deg)',
+                                        pointerEvents: isVisible
+                                            ? 'auto'
+                                            : 'none',
+                                    }}
+                                >
+                                    <Image
+                                        src={url}
+                                        alt='Daily idol'
+                                        width={600}
+                                        height={600}
+                                        className='rounded-lg object-cover'
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                        }}
+                                        unoptimized
+                                        priority={index === 0} // Prioritize first image
+                                    />
+                                </div>
+                            )
+                        })}
+                    </div>
                 ) : (
                     <div className='flex h-full w-full items-center justify-center'>
                         <div className='text-gray-400'>No image available</div>
@@ -121,7 +187,7 @@ export default function GameImage({
                     todayCompletionData &&
                     todayCompletionData.won) ||
                 gameWon ? (
-                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                    <div className='pointer-events-none absolute inset-0 z-[200] flex items-end justify-center pb-8'>
                         <div className='rounded-full bg-green-400 px-4 py-2 text-lg font-bold tracking-wider text-white'>
                             {truncateText(correctAnswer)}
                         </div>
@@ -130,13 +196,13 @@ export default function GameImage({
                       todayCompletionData &&
                       !todayCompletionData.won) ||
                   gameLost ? (
-                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                    <div className='pointer-events-none absolute inset-0 z-[200] flex items-end justify-center pb-8'>
                         <div className='rounded-full bg-red-500 px-4 py-2 text-lg font-bold tracking-wider text-white'>
                             {truncateText(correctAnswer)}
                         </div>
                     </div>
                 ) : (
-                    <div className='pointer-events-none absolute inset-0 flex items-end justify-center pb-8'>
+                    <div className='pointer-events-none absolute inset-0 z-[200] flex items-end justify-center pb-8'>
                         <div
                             className={`rounded-full bg-black px-4 py-2 font-bold tracking-wider ${
                                 lastIncorrectGuess || currentGuess

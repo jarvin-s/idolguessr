@@ -19,7 +19,7 @@ export default function StatsModal({
     if (!isOpen) return null
 
     return (
-        <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
+        <div className='bg-opacity-50 fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4'>
             <div className='modal-fade-in relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white'>
                 <div className='absolute top-4 right-4 flex gap-2'>
                     <button

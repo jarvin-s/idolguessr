@@ -17,6 +17,8 @@ import {
     getImageUrl,
     trackGuess,
     resetGuessTimer,
+    addSeenIdol,
+    clearSeenIdols,
 } from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
 import { useUnlimitedStats } from '@/components/UserStats'
@@ -193,6 +195,10 @@ export default function Home() {
                     setDailyImage(newImages[0])
                     if (newImages[0].name)
                         setCorrectAnswer(newImages[0].name.toUpperCase())
+                    // Track that we've seen this idol
+                    if (newImages[0].img_bucket) {
+                        addSeenIdol(newImages[0].img_bucket)
+                    }
                 }
                 loadUnlimitedRef.current = false
                 return
@@ -244,6 +250,10 @@ export default function Home() {
                 setDailyImage(newImages[0])
                 if (newImages[0].name)
                     setCorrectAnswer(newImages[0].name.toUpperCase())
+                // Track that we've seen this idol
+                if (newImages[0].img_bucket) {
+                    addSeenIdol(newImages[0].img_bucket)
+                }
             }
         }
 
@@ -268,6 +278,11 @@ export default function Home() {
             }
 
             localStorage.setItem('idol-guessr-game-mode', mode)
+            
+            // Clear image state immediately to prevent race condition
+            setDailyImage(null)
+            setIsLoading(true)
+            
             setGameMode(mode)
 
             if (mode === 'daily') {
@@ -337,6 +352,11 @@ export default function Home() {
             setDailyImage(row)
             if (row.name) setCorrectAnswer(row.name.toUpperCase())
             setCurrentImageIndex((prev) => prev + 1)
+
+            // Track that we've seen this idol
+            if (row.img_bucket) {
+                addSeenIdol(row.img_bucket)
+            }
 
             unlimitedStats.saveGameState({
                 groupType: row.group_type,
@@ -459,6 +479,8 @@ export default function Home() {
                                             unlimitedStats.updateStats(false, 0, true)
                                             unlimitedStats.clearGameState()
                                             lastStreakMilestoneRef.current = 0
+                                            // Clear seen idols pool when you die
+                                            clearSeenIdols()
                                         }
                                     }, 300)
                                 } else {
@@ -497,16 +519,9 @@ export default function Home() {
                                 unlimitedStats.stats.currentStreak
                             const newStreak = currentStreak + 1
 
-                            const milestones = [1, 10, 25, 50, 75, 100]
-                            const milestone = milestones.find(
-                                (m) =>
-                                    newStreak === m &&
-                                    lastStreakMilestoneRef.current < m
-                            )
-
-                            if (milestone) {
-                                lastStreakMilestoneRef.current = milestone
-                                setStreakMilestone(milestone)
+                            // Show popup on streak milestones (5, 10, 15, etc.)
+                            if (newStreak % 5 === 0) {
+                                setStreakMilestone(newStreak)
                                 setShowStreakPopup(true)
                             }
 
@@ -681,13 +696,15 @@ export default function Home() {
 
     useEffect(() => {
         if (gameMode === 'unlimited' && (gameWon || gameLost)) {
+            const delay = showStreakPopup ? 2300 : 2000
+            
             const timer = setTimeout(() => {
                 loadNextUnlimited()
-            }, 2000)
+            }, delay)
 
             return () => clearTimeout(timer)
         }
-    }, [gameMode, gameWon, gameLost, loadNextUnlimited])
+    }, [gameMode, gameWon, gameLost, loadNextUnlimited, showStreakPopup])
 
     return (
         <div className='fixed inset-0 flex flex-col overflow-hidden bg-white'>
@@ -725,6 +742,11 @@ export default function Home() {
                             streakMilestone={streakMilestone}
                             onStreakPopupComplete={() =>
                                 setShowStreakPopup(false)
+                            }
+                            currentStreak={
+                                gameMode === 'unlimited'
+                                    ? unlimitedStats.stats.currentStreak
+                                    : 0
                             }
                         />
 
