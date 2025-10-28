@@ -70,13 +70,19 @@ export default function GameHeader({
                                 gameMode === 'daily' ? 'unlimited' : 'daily'
                             )
                         }
-                        className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+                        className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors'
                         aria-label='View Game Mode'
-                        style={{
-                            background: meshGradient,
-                        }}
+                        style={
+                            gameMode === 'daily'
+                                ? {
+                                      background: meshGradient,
+                                  }
+                                : {
+                                      background: 'black',
+                                  }
+                        }
                     >
-                        <GameModeIcon />
+                        <GameModeIcon gameMode={gameMode} />
                     </button>
                 </div>
             </div>
@@ -102,26 +108,36 @@ function StatsIcon() {
     )
 }
 
-function GameModeIcon() {
+function GameModeIcon({ gameMode }: { gameMode: 'daily' | 'unlimited' }) {
+    if (gameMode === 'unlimited') {
+        // Show clock icon when on unlimited page (to switch back to daily)
+        return (
+            <svg
+                xmlns='http://www.w3.org/2000/svg'
+                width='23'
+                height='23'
+                viewBox='0 0 24 24'
+            >
+                <path
+                    fill='white'
+                    d='M9 3V1h6v2zm3 19q-1.85 0-3.488-.712T5.65 19.35t-1.937-2.863T3 13t.713-3.488T5.65 6.65t2.863-1.937T12 4q1.55 0 2.975.5t2.675 1.45l1.4-1.4l1.4 1.4l-1.4 1.4Q20 8.6 20.5 10.025T21 13q0 1.85-.713 3.488T18.35 19.35t-2.863 1.938T12 22m-2-5l6-4l-6-4z'
+                />
+            </svg>
+        )
+    }
+
+    // Show infinity icon when on daily page (to switch to unlimited)
     return (
         <svg
+            xmlns='http://www.w3.org/2000/svg'
             width='23'
             height='23'
-            viewBox='0 0 23 23'
-            fill='none'
-            xmlns='http://www.w3.org/2000/svg'
+            viewBox='0 0 56 56'
         >
-            <g clipPath='url(#clip0_2093_121)'>
-                <path
-                    d='M16.1736 0.0977746C16.3143 0.179336 16.4232 0.306198 16.4824 0.457635C16.5417 0.609072 16.5479 0.776133 16.4999 0.931525L13.911 9.34377H18.6878C18.8282 9.34372 18.9655 9.38477 19.0828 9.46187C19.2001 9.53896 19.2923 9.64872 19.3479 9.7776C19.4036 9.90648 19.4203 10.0488 19.3959 10.1871C19.3716 10.3253 19.3073 10.4534 19.211 10.5556L7.71104 22.7743C7.59976 22.8927 7.45169 22.9698 7.29096 22.9932C7.13023 23.0166 6.96631 22.9849 6.82592 22.9032C6.68554 22.8215 6.57697 22.6946 6.5179 22.5433C6.45883 22.392 6.45276 22.2252 6.50066 22.07L9.0896 13.6563H4.31279C4.17241 13.6563 4.03508 13.6153 3.91777 13.5382C3.80046 13.4611 3.70828 13.3513 3.65264 13.2224C3.59699 13.0936 3.5803 12.9512 3.60463 12.813C3.62895 12.6747 3.69324 12.5466 3.78954 12.4445L15.2895 0.225712C15.4007 0.107548 15.5485 0.0304545 15.709 0.00696569C15.8695 -0.0165231 16.0333 0.0149745 16.1736 0.0963371V0.0977746Z'
-                    fill='white'
-                />
-            </g>
-            <defs>
-                <clipPath id='clip0_2093_121'>
-                    <rect width='23' height='23' fill='white' />
-                </clipPath>
-            </defs>
+            <path
+                fill='white'
+                d='M28 20.851C30.784 16.773 36.045 14 41 14c7.18 0 13 5.82 13 13s-5.82 13-13 13c-4.955 0-10.216-2.773-13-6.851C25.216 37.227 19.955 40 15 40C7.82 40 2 34.18 2 27s5.82-13 13-13c4.955 0 10.216 2.773 13 6.851M15 34c4.475 0 9-3.732 9-7s-4.525-7-9-7a7 7 0 1 0 0 14m26 0a7 7 0 0 0 0-14c-4.475 0-9 3.732-9 7s4.525 7 9 7'
+            />
         </svg>
     )
 }

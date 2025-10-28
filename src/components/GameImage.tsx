@@ -27,6 +27,7 @@ interface GameImageProps {
     showStreakPopup?: boolean
     streakMilestone?: number
     onStreakPopupComplete?: () => void
+    currentStreak?: number
 }
 
 export default function GameImage({
@@ -46,6 +47,7 @@ export default function GameImage({
     showStreakPopup,
     streakMilestone,
     onStreakPopupComplete,
+    currentStreak = 0,
 }: GameImageProps) {
     const [isEntering, setIsEntering] = useState(false)
 
@@ -162,17 +164,47 @@ export default function GameImage({
                     </div>
                 )}
 
-                {gameMode === 'unlimited' &&
-                    !gameWon &&
-                    !gameLost &&
-                    onPass && (
-                        <button
-                            onClick={onPass}
-                            className='absolute top-3 right-3 z-10 cursor-pointer rounded-lg bg-red-400 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-400/80'
-                        >
-                            PASS
-                        </button>
-                    )}
+                {gameMode === 'unlimited' && !gameWon && !gameLost && (
+                    <>
+                        {currentStreak >= 5 && (
+                            <div className='absolute top-3 left-3 z-10 flex items-center gap-1.5'>
+                                <span className='text-2xl'>🔥</span>
+                                <span
+                                    className='text-2xl font-bold text-white'
+                                    style={{
+                                        textShadow:
+                                            '2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5)',
+                                    }}
+                                >
+                                    {currentStreak}
+                                </span>
+                            </div>
+                        )}
+                        {onPass && (
+                            <button
+                                onClick={onPass}
+                                className='absolute top-3 right-3 z-10 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-gray-100'
+                            >
+                                <svg
+                                    xmlns='http://www.w3.org/2000/svg'
+                                    width='16'
+                                    height='16'
+                                    viewBox='0 0 512 512'
+                                >
+                                    <path
+                                        d='M64 64v384l277.3-192L64 64z'
+                                        fill='currentColor'
+                                    />
+                                    <path
+                                        d='M384 64h64v384h-64z'
+                                        fill='currentColor'
+                                    />
+                                </svg>
+                                PASS
+                            </button>
+                        )}
+                    </>
+                )}
 
                 {showStreakPopup &&
                     streakMilestone &&
