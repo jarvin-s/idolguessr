@@ -7,6 +7,7 @@ interface StatsModalProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     stats: any
     statsLoaded: boolean
+    gameMode?: 'daily' | 'unlimited'
 }
 
 export default function StatsModal({
@@ -15,6 +16,7 @@ export default function StatsModal({
     onShowHelp,
     stats,
     statsLoaded,
+    gameMode = 'daily',
 }: StatsModalProps) {
     if (!isOpen) return null
 
@@ -54,6 +56,7 @@ export default function StatsModal({
                     stats={stats}
                     isLoaded={statsLoaded}
                     className='border-0 shadow-none'
+                    gameMode={gameMode}
                 />
             </div>
         </div>

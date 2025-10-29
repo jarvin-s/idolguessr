@@ -226,7 +226,7 @@ export default function Home() {
                     .length === 6
             setGameWon(hasWon)
             setGameLost(hasLost)
-            
+
             // Clear UI state when restoring
             setCurrentGuess('')
             setLastIncorrectGuess('')
@@ -258,13 +258,28 @@ export default function Home() {
         }
 
         loadUnlimitedRef.current = false
-    }, [unlimitedStats, setGuesses, setGameWon, setGameLost, setCurrentGuess, setLastIncorrectGuess, setIsAnimating, setShowConfetti, setShowWinModal])
+    }, [
+        unlimitedStats,
+        setGuesses,
+        setGameWon,
+        setGameLost,
+        setCurrentGuess,
+        setLastIncorrectGuess,
+        setIsAnimating,
+        setShowConfetti,
+        setShowWinModal,
+    ])
 
     const handleGameModeChange = useCallback(
         (mode: 'daily' | 'unlimited') => {
             if (mode === gameMode) return
 
-            if (gameMode === 'unlimited' && dailyImage && !gameWon && !gameLost) {
+            if (
+                gameMode === 'unlimited' &&
+                dailyImage &&
+                !gameWon &&
+                !gameLost
+            ) {
                 unlimitedStats.saveGameState({
                     groupType: dailyImage.group_type,
                     imgBucket: dailyImage.img_bucket,
@@ -278,17 +293,24 @@ export default function Home() {
             }
 
             localStorage.setItem('idol-guessr-game-mode', mode)
-            
+
             // Clear image state immediately to prevent race condition
             setDailyImage(null)
             setIsLoading(true)
-            
+
             setGameMode(mode)
 
             if (mode === 'daily') {
                 setCurrentGuess('')
                 setLastIncorrectGuess('')
-                setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+                setGuesses([
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                ])
                 setIsAnimating(false)
                 setShowConfetti(false)
                 setGameWon(false)
@@ -322,9 +344,11 @@ export default function Home() {
 
     const loadNextUnlimited = useCallback(() => {
         if (!gameWon && !gameLost) {
-            const hasGuesses = guesses.some(g => g === 'incorrect' || g === 'correct')
+            const hasGuesses = guesses.some(
+                (g) => g === 'incorrect' || g === 'correct'
+            )
             if (hasGuesses) {
-                unlimitedStats.updateStats(false, 0, true)
+                unlimitedStats.updateStats(false, true)
             }
             lastStreakMilestoneRef.current = 0
         }
@@ -475,11 +499,12 @@ export default function Home() {
                                                 setShowWinModal(true)
                                             }, 2000)
                                         } else {
-                                            // Increment totalGames on loss (streak break)
-                                            unlimitedStats.updateStats(false, 0, true)
+                                            unlimitedStats.updateStats(
+                                                false,
+                                                true
+                                            )
                                             unlimitedStats.clearGameState()
                                             lastStreakMilestoneRef.current = 0
-                                            // Clear seen idols pool when you die
                                             clearSeenIdols()
                                         }
                                     }, 300)
@@ -519,14 +544,12 @@ export default function Home() {
                                 unlimitedStats.stats.currentStreak
                             const newStreak = currentStreak + 1
 
-                            // Show popup on streak milestones (5, 10, 15, etc.)
                             if (newStreak % 5 === 0) {
                                 setStreakMilestone(newStreak)
                                 setShowStreakPopup(true)
                             }
 
-                            // Don't increment totalGames on win, only on streak break
-                            unlimitedStats.updateStats(true, guessNumber, false)
+                            unlimitedStats.updateStats(true, false)
                             unlimitedStats.clearGameState()
                         }
                     }
@@ -697,7 +720,7 @@ export default function Home() {
     useEffect(() => {
         if (gameMode === 'unlimited' && (gameWon || gameLost)) {
             const delay = showStreakPopup ? 2300 : 2000
-            
+
             const timer = setTimeout(() => {
                 loadNextUnlimited()
             }, delay)
@@ -771,6 +794,7 @@ export default function Home() {
                 statsLoaded={
                     gameMode === 'daily' ? statsLoaded : unlimitedStats.isLoaded
                 }
+                gameMode={gameMode}
             />
 
             <HelpModal

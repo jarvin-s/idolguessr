@@ -35,7 +35,6 @@ export interface UnlimitedStats {
     totalWins: number
     currentStreak: number
     maxStreak: number
-    guessDistribution: { [key: number]: number }
 }
 
 export interface UnlimitedGameState {
@@ -65,7 +64,6 @@ const defaultUnlimitedStats: UnlimitedStats = {
     totalWins: 0,
     currentStreak: 0,
     maxStreak: 0,
-    guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
 }
 
 export function useUserStats() {
@@ -284,7 +282,9 @@ export function useUnlimitedStats() {
     useEffect(() => {
         const loadStats = () => {
             try {
-                const savedStats = localStorage.getItem('idol-guessr-unlimited-stats')
+                const savedStats = localStorage.getItem(
+                    'idol-guessr-unlimited-stats'
+                )
                 if (savedStats) {
                     setStats(JSON.parse(savedStats))
                 } else {
@@ -304,18 +304,20 @@ export function useUnlimitedStats() {
     useEffect(() => {
         if (isLoaded) {
             try {
-                localStorage.setItem('idol-guessr-unlimited-stats', JSON.stringify(stats))
+                localStorage.setItem(
+                    'idol-guessr-unlimited-stats',
+                    JSON.stringify(stats)
+                )
             } catch (error) {
                 console.error('Error saving unlimited stats:', error)
             }
         }
     }, [stats, isLoaded])
 
-    const updateStats = (won: boolean, guessCount: number, incrementTotalGames: boolean = true) => {
+    const updateStats = (won: boolean, incrementTotalGames: boolean = true) => {
         setStats((prevStats) => {
             const newStats = {
                 ...prevStats,
-                guessDistribution: { ...prevStats.guessDistribution },
             }
 
             if (incrementTotalGames) {
@@ -324,9 +326,11 @@ export function useUnlimitedStats() {
 
             if (won) {
                 newStats.totalWins += 1
-                newStats.guessDistribution[guessCount] += 1
                 newStats.currentStreak += 1
-                newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak)
+                newStats.maxStreak = Math.max(
+                    newStats.maxStreak,
+                    newStats.currentStreak
+                )
             } else {
                 newStats.currentStreak = 0
             }
@@ -337,7 +341,10 @@ export function useUnlimitedStats() {
 
     const saveGameState = useCallback((gameState: UnlimitedGameState) => {
         try {
-            localStorage.setItem('idol-guessr-unlimited-game-state', JSON.stringify(gameState))
+            localStorage.setItem(
+                'idol-guessr-unlimited-game-state',
+                JSON.stringify(gameState)
+            )
         } catch (error) {
             console.error('Error saving unlimited game state:', error)
         }
@@ -345,7 +352,9 @@ export function useUnlimitedStats() {
 
     const loadGameState = useCallback((): UnlimitedGameState | null => {
         try {
-            const savedState = localStorage.getItem('idol-guessr-unlimited-game-state')
+            const savedState = localStorage.getItem(
+                'idol-guessr-unlimited-game-state'
+            )
             if (savedState) {
                 return JSON.parse(savedState) as UnlimitedGameState
             }
@@ -374,15 +383,17 @@ export function useUnlimitedStats() {
 }
 
 interface UserStatsProps {
-    stats: UserStats
+    stats: UserStats | UnlimitedStats
     isLoaded: boolean
     className?: string
+    gameMode?: 'daily' | 'unlimited'
 }
 
 export default function UserStats({
     stats,
     isLoaded,
     className = '',
+    gameMode = 'daily',
 }: UserStatsProps) {
     if (!isLoaded) {
         return (
@@ -401,6 +412,9 @@ export default function UserStats({
             ? Math.round((stats.totalWins / stats.totalGames) * 100)
             : 0
 
+    const isUnlimited = gameMode === 'unlimited'
+    const hasGuessDistribution = 'guessDistribution' in stats
+
     return (
         <div className={`rounded-lg bg-white p-10 shadow-lg ${className}`}>
             <div className='mb-10 flex items-center justify-center'>
@@ -414,7 +428,7 @@ export default function UserStats({
             </div>
             <div className='mb-4 flex items-center justify-center'>
                 <h2 className='text-2xl font-bold text-gray-900 uppercase'>
-                    Statistics
+                    {isUnlimited ? 'Unlimited Statistics' : 'Statistics'}
                 </h2>
             </div>
 
@@ -428,14 +442,16 @@ export default function UserStats({
                         Played
                     </div>
                 </div>
-                <div className='text-center'>
-                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
-                        {winPercentage}%
+                {!isUnlimited && (
+                    <div className='text-center'>
+                        <div className='mb-2.5 text-2xl font-bold text-gray-900'>
+                            {winPercentage}%
+                        </div>
+                        <div className='text-sm leading-none text-gray-600'>
+                            Win %
+                        </div>
                     </div>
-                    <div className='text-sm leading-none text-gray-600'>
-                        Win %
-                    </div>
-                </div>
+                )}
                 <div className='text-center'>
                     <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {stats.currentStreak}
@@ -454,45 +470,45 @@ export default function UserStats({
                 </div>
             </div>
 
-            {/* Guess Distribution */}
-            {stats.totalWins > 0 && (
+            {/* Guess Distribution - Only for daily mode */}
+            {!isUnlimited && hasGuessDistribution && stats.totalWins > 0 && (
                 <>
                     <h3 className='mb-3 text-lg font-semibold text-gray-900 uppercase'>
                         Guess distribution
                     </h3>
                     <div className='space-y-2'>
-                        {Object.entries(stats.guessDistribution).map(
-                            ([guesses, count]) => {
-                                const percentage =
-                                    stats.totalWins > 0
-                                        ? (count / stats.totalWins) * 100
-                                        : 0
-                                return (
-                                    <div
-                                        key={guesses}
-                                        className='flex items-center'
-                                    >
-                                        <div className='w-4 text-sm font-medium text-black'>
-                                            {guesses}
-                                        </div>
-                                        <div className='relative mx-2 h-6 flex-1 rounded-full bg-gray-200'>
-                                            <div
-                                                className='flex h-6 items-center justify-end rounded-full bg-green-400 pr-2'
-                                                style={{
-                                                    width: `${Math.min(Math.max(percentage, 8), 100)}%`,
-                                                }}
-                                            >
-                                                {count > 0 && (
-                                                    <span className='text-xs font-bold text-white'>
-                                                        {count}
-                                                    </span>
-                                                )}
-                                            </div>
+                        {Object.entries(
+                            (stats as UserStats).guessDistribution
+                        ).map(([guesses, count]) => {
+                            const percentage =
+                                stats.totalWins > 0
+                                    ? (count / stats.totalWins) * 100
+                                    : 0
+                            return (
+                                <div
+                                    key={guesses}
+                                    className='flex items-center'
+                                >
+                                    <div className='w-4 text-sm font-medium text-black'>
+                                        {guesses}
+                                    </div>
+                                    <div className='relative mx-2 h-6 flex-1 rounded-full bg-gray-200'>
+                                        <div
+                                            className='flex h-6 items-center justify-end rounded-full bg-green-400 pr-2'
+                                            style={{
+                                                width: `${Math.min(Math.max(percentage, 8), 100)}%`,
+                                            }}
+                                        >
+                                            {count > 0 && (
+                                                <span className='text-xs font-bold text-white'>
+                                                    {count}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                )
-                            }
-                        )}
+                                </div>
+                            )
+                        })}
                     </div>
                 </>
             )}

@@ -200,7 +200,7 @@ export default function GameImage({
                                         fill='currentColor'
                                     />
                                 </svg>
-                                PASS
+                                SKIP
                             </button>
                         )}
                     </>

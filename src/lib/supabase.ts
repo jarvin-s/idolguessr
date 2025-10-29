@@ -54,7 +54,6 @@ export async function getRandomUnlimitedImage(): Promise<DailyImage | null> {
   return data[0] as DailyImage;
 }
 
-// Helper functions for tracking seen idols
 export function getSeenIdols(): string[] {
   if (typeof window === 'undefined') return []
   try {
@@ -90,20 +89,17 @@ export function clearSeenIdols(): void {
 export async function getMultipleRandomUnlimitedImages(count: number): Promise<DailyImage[]> {
   const images: DailyImage[] = [];
   const seenIdols = getSeenIdols();
-  
-  // Fetch more images than needed to account for filtering
+
   const fetchCount = Math.max(count * 3, 15);
   const promises = Array(fetchCount).fill(null).map(() => supabase.rpc('get_random_unlimited'));
 
   const results = await Promise.all(promises);
   console.log('results', results);
-  
+
   for (const result of results) {
     if (result.data?.length) {
       const image = result.data[0] as DailyImage;
-      // Only add if we haven't seen this img_bucket before and we still need more images
       if (image.img_bucket && !seenIdols.includes(image.img_bucket) && images.length < count) {
-        // Also check if this image isn't already in our current batch
         if (!images.some(img => img.img_bucket === image.img_bucket)) {
           images.push(image);
         }
@@ -111,12 +107,9 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
     }
   }
 
-  // If we still don't have enough unique images, the pool is exhausted
-  // Clear the history and try again
   if (images.length < count && seenIdols.length > 0) {
     console.log('Insufficient unique images, clearing seen history...');
     clearSeenIdols();
-    // Try again with cleared history
     const retryPromises = Array(count).fill(null).map(() => supabase.rpc('get_random_unlimited'));
     const retryResults = await Promise.all(retryPromises);
     for (const result of retryResults) {
@@ -193,7 +186,7 @@ export function getOrCreateSessionId(): string {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
       sessionId = crypto.randomUUID()
     } else {
-      sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = Math.random() * 16 | 0
         const v = c === 'x' ? r : (r & 0x3 | 0x8)
         return v.toString(16)
