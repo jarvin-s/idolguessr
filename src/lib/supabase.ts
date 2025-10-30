@@ -131,7 +131,12 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
     }
   }
 
-  console.log(`[Prefetch] Fetched ${uniqueImages.length}/${count} unique unseen idols:`, uniqueImages.map(img => img.name));
+  console.log(`[Prefetch] Fetched ${uniqueImages.length}/${count} unique unseen idols:`, uniqueImages.map(img => ({
+    name: img.name,
+    img_bucket: img.img_bucket,
+    group_category: img.group_category,
+    base64_group: img.base64_group,
+  })));
 
   // If we still don't have enough, clear and retry
   if (uniqueImages.length < count && seenIdols.length > 0) {
@@ -176,7 +181,17 @@ export function getImageUrl(
 ): string {
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
 
-  if (mode === 'unlimited' && groupCategory && base64Group && imgBucket) {
+  if (mode === 'unlimited') {
+    if (!groupCategory || !base64Group || !imgBucket) {
+      console.error('[getImageUrl] Missing required fields for unlimited mode:', {
+        groupCategory,
+        base64Group,
+        imgBucket,
+        groupType
+      })
+      // Fallback to prevent broken URLs, but this shouldn't happen
+      return `${supabaseUrl}/storage/v1/object/public/images/unlimited/error/missing-data/${fileName}`
+    }
     return `${supabaseUrl}/storage/v1/object/public/images/unlimited/${groupCategory}/${base64Group}/${imgBucket}/${fileName}`
   }
 

@@ -92,8 +92,22 @@ export default function GameImage({
 
     const imageNumber = getImageNumber()
 
+    // Safety check: In unlimited mode, verify we have all required fields
+    const hasValidData = 
+        !dailyImage || 
+        gameMode === 'daily' || 
+        (dailyImage.group_category && dailyImage.base64_group)
+
+    // Auto-recovery: If we detect invalid data in unlimited mode, treat it as loading
+    // This prevents broken images and the game will recover once valid data arrives
+    useEffect(() => {
+        if (!hasValidData && dailyImage && gameMode === 'unlimited') {
+            console.error('[GameImage] Race condition detected: unlimited mode with daily image data. Waiting for valid data...', dailyImage)
+        }
+    }, [hasValidData, dailyImage, gameMode])
+
     // Generate all image URLs for preloading and layering
-    const allImageUrls = dailyImage
+    const allImageUrls = dailyImage && hasValidData
         ? [1, 2, 3, 4, 5, 'clear'].map((num) =>
               getImageUrl(
                   dailyImage.group_type,
@@ -109,7 +123,7 @@ export default function GameImage({
     return (
         <div className='relative mb-3 min-h-0 w-full flex-1 sm:mx-auto sm:max-w-md'>
             <div className='relative h-full w-full overflow-hidden rounded-lg'>
-                {isLoading ? (
+                {isLoading || !hasValidData ? (
                     <div className='flex h-full w-full items-center justify-center'>
                         <div className='text-gray-400'>Loading...</div>
                     </div>

@@ -60,6 +60,7 @@ export default function Home() {
     const [streakMilestone, setStreakMilestone] = useState(0)
     const lastStreakMilestoneRef = useRef(0)
     const [showGameOver, setShowGameOver] = useState(false)
+    const isSwitchingModeRef = useRef(false)
 
     const {
         guesses,
@@ -278,6 +279,14 @@ export default function Home() {
     const handleGameModeChange = useCallback(
         (mode: 'daily' | 'unlimited') => {
             if (mode === gameMode) return
+            
+            // CRITICAL: Prevent multiple simultaneous mode switches
+            if (isSwitchingModeRef.current) {
+                console.log('[Mode Switch] Already switching, ignoring request')
+                return
+            }
+
+            isSwitchingModeRef.current = true
 
             if (
                 gameMode === 'unlimited' &&
@@ -299,11 +308,16 @@ export default function Home() {
 
             localStorage.setItem('idol-guessr-game-mode', mode)
 
-            // Clear image state immediately to prevent race condition
+            // CRITICAL: Clear image BEFORE changing mode to prevent race condition
+            // This ensures GameImage never renders with mismatched mode + data
             setDailyImage(null)
             setIsLoading(true)
-
-            setGameMode(mode)
+            
+            // Use setTimeout to ensure state updates are processed in correct order
+            setTimeout(() => {
+                setGameMode(mode)
+                // Lock will be released after data loads in useEffect
+            }, 0)
 
             if (mode === 'daily') {
                 setCurrentGuess('')
@@ -691,6 +705,13 @@ export default function Home() {
                 await loadCurrent()
             } else {
                 await loadUnlimited()
+            }
+            
+            // Release mode switch lock after data is loaded
+            if (isSwitchingModeRef.current) {
+                setTimeout(() => {
+                    isSwitchingModeRef.current = false
+                }, 100)
             }
         }
         void loadGame()
