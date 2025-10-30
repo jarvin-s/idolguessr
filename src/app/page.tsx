@@ -238,6 +238,10 @@ export default function Home() {
             getMultipleRandomUnlimitedImages(5).then((newImages) => {
                 setPrefetchedImages(newImages)
                 setCurrentImageIndex(0)
+                // Mark all prefetched idols as seen immediately
+                newImages.forEach(img => {
+                    if (img.img_bucket) addSeenIdol(img.img_bucket)
+                })
             })
         } else {
             setIsLoading(true)
@@ -250,10 +254,10 @@ export default function Home() {
                 setDailyImage(newImages[0])
                 if (newImages[0].name)
                     setCorrectAnswer(newImages[0].name.toUpperCase())
-                // Track that we've seen this idol
-                if (newImages[0].img_bucket) {
-                    addSeenIdol(newImages[0].img_bucket)
-                }
+                // Mark all prefetched idols as seen immediately
+                newImages.forEach(img => {
+                    if (img.img_bucket) addSeenIdol(img.img_bucket)
+                })
             }
         }
 
@@ -377,10 +381,7 @@ export default function Home() {
             if (row.name) setCorrectAnswer(row.name.toUpperCase())
             setCurrentImageIndex((prev) => prev + 1)
 
-            // Track that we've seen this idol
-            if (row.img_bucket) {
-                addSeenIdol(row.img_bucket)
-            }
+            // No need to add to seen here - already added when fetched
 
             unlimitedStats.saveGameState({
                 groupType: row.group_type,
@@ -393,9 +394,38 @@ export default function Home() {
                 savedAt: new Date().toISOString(),
             })
 
+            // Preload next idol's images into browser cache
+            if (prefetchedImages.length > currentImageIndex) {
+                const nextRow = prefetchedImages[currentImageIndex]
+                if (nextRow) {
+                    // Preload all 6 images for the next idol
+                    const imagesToPreload = [1, 2, 3, 4, 5, 'clear'].map((num) =>
+                        getImageUrl(
+                            nextRow.group_type,
+                            nextRow.img_bucket,
+                            num as number | 'clear',
+                            'unlimited',
+                            nextRow.group_category,
+                            nextRow.base64_group
+                        )
+                    )
+                    
+                    // Preload images in background
+                    imagesToPreload.forEach((url) => {
+                        const img = new window.Image()
+                        img.src = url
+                    })
+                }
+            }
+
+            // Fetch more idols when running low
             if (currentImageIndex >= prefetchedImages.length - 2) {
                 getMultipleRandomUnlimitedImages(5).then((newImages) => {
                     setPrefetchedImages((prev) => [...prev, ...newImages])
+                    // Mark all prefetched idols as seen immediately
+                    newImages.forEach(img => {
+                        if (img.img_bucket) addSeenIdol(img.img_bucket)
+                    })
                 })
             }
         }
@@ -415,7 +445,7 @@ export default function Home() {
         (key: string) => {
             if (gameMode === 'daily' && todayCompleted) return
 
-            if (key === 'ENTER') {
+        if (key === 'ENTER') {
                 if (
                     currentGuess.trim() &&
                     guesses.some((g) => g === 'empty') &&
@@ -554,11 +584,11 @@ export default function Home() {
                         }
                     }
                 }
-            } else if (key === '✕') {
+        } else if (key === '✕') {
                 if (!gameWon && !gameLost) {
-                    setCurrentGuess((prev) => prev.slice(0, -1))
+            setCurrentGuess((prev) => prev.slice(0, -1))
                 }
-            } else {
+        } else {
                 if (
                     guesses.some((g) => g === 'empty') &&
                     !isAnimating &&
@@ -569,9 +599,9 @@ export default function Home() {
                     if (lastIncorrectGuess) {
                         setLastIncorrectGuess('')
                     }
-                    setCurrentGuess((prev) => prev + key)
-                }
-            }
+            setCurrentGuess((prev) => prev + key)
+        }
+    }
         },
         [
             currentGuess,
@@ -719,7 +749,7 @@ export default function Home() {
 
     useEffect(() => {
         if (gameMode === 'unlimited' && (gameWon || gameLost)) {
-            const delay = showStreakPopup ? 2300 : 2000
+            const delay = showStreakPopup ? 2400 : 2000
 
             const timer = setTimeout(() => {
                 loadNextUnlimited()
@@ -774,14 +804,14 @@ export default function Home() {
                         />
 
                         <GuessIndicators guesses={guesses} />
-                    </div>
+            </div>
 
                     <OnScreenKeyboard
                         onKeyPress={handleKeyPress}
                         className='flex-shrink-0 pb-4'
-                    />
-                </div>
-            </div>
+                            />
+                        </div>
+                    </div>
 
             <StatsModal
                 isOpen={showStats}

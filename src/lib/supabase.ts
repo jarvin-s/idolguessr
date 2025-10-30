@@ -6,7 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface DailyImage {
-  id: number
+  id: number  // int4 in database
   name: string
   group_type: string
   play_date?: string
@@ -87,39 +87,71 @@ export function clearSeenIdols(): void {
 }
 
 export async function getMultipleRandomUnlimitedImages(count: number): Promise<DailyImage[]> {
-  const images: DailyImage[] = [];
   const seenIdols = getSeenIdols();
+  
+  // Try to fetch with exclusions first (3x count to ensure we get enough after deduplication)
+  const fetchCount = count * 3;
+  const { data, error } = await supabase.rpc('get_multiple_random_unlimited', {
+    excluded_buckets: seenIdols,
+    row_count: fetchCount
+  });
 
-  const fetchCount = Math.max(count * 3, 15);
-  const promises = Array(fetchCount).fill(null).map(() => supabase.rpc('get_random_unlimited'));
-
-  const results = await Promise.all(promises);
-  console.log('results', results);
-
-  for (const result of results) {
-    if (result.data?.length) {
-      const image = result.data[0] as DailyImage;
-      if (image.img_bucket && !seenIdols.includes(image.img_bucket) && images.length < count) {
-        if (!images.some(img => img.img_bucket === image.img_bucket)) {
-          images.push(image);
-        }
-      }
-    }
+  if (error) {
+    console.error('get_multiple_random_unlimited error:', error);
+    return [];
   }
 
-  if (images.length < count && seenIdols.length > 0) {
-    console.log('Insufficient unique images, clearing seen history...');
+  if (!data || data.length === 0) {
+    console.log('[Prefetch] No unseen idols available, clearing seen history...');
     clearSeenIdols();
-    const retryPromises = Array(count).fill(null).map(() => supabase.rpc('get_random_unlimited'));
-    const retryResults = await Promise.all(retryPromises);
-    for (const result of retryResults) {
-      if (result.data?.length && images.length < count) {
-        images.push(result.data[0] as DailyImage);
-      }
+    
+    // Retry without exclusions
+    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
+      excluded_buckets: [],
+      row_count: count
+    });
+
+    if (retryError || !retryData) {
+      console.error('get_multiple_random_unlimited retry error:', retryError);
+      return [];
+    }
+
+    console.log(`[Prefetch] After reset: fetched ${retryData.length} idols:`, retryData.map((img: DailyImage) => img.name));
+    return retryData.slice(0, count);
+  }
+
+  // Remove duplicates (same img_bucket) and limit to requested count
+  const uniqueImages: DailyImage[] = [];
+  const seenBuckets = new Set<string>();
+
+  for (const image of data) {
+    if (!seenBuckets.has(image.img_bucket) && uniqueImages.length < count) {
+      uniqueImages.push(image);
+      seenBuckets.add(image.img_bucket);
     }
   }
 
-  return images;
+  console.log(`[Prefetch] Fetched ${uniqueImages.length}/${count} unique unseen idols:`, uniqueImages.map(img => img.name));
+
+  // If we still don't have enough, clear and retry
+  if (uniqueImages.length < count && seenIdols.length > 0) {
+    console.log('[Prefetch] Insufficient unique images, clearing seen history...');
+    clearSeenIdols();
+    
+    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
+      excluded_buckets: [],
+      row_count: count
+    });
+
+    if (retryError || !retryData) {
+      console.error('get_multiple_random_unlimited retry error:', retryError);
+      return uniqueImages; // Return what we have
+    }
+
+    return retryData.slice(0, count);
+  }
+
+  return uniqueImages;
 }
 
 export async function insertNewFeedback(feedback: Feedback): Promise<void> {
