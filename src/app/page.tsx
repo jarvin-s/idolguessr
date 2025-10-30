@@ -308,15 +308,11 @@ export default function Home() {
 
             localStorage.setItem('idol-guessr-game-mode', mode)
 
-            // CRITICAL: Clear image BEFORE changing mode to prevent race condition
-            // This ensures GameImage never renders with mismatched mode + data
             setDailyImage(null)
             setIsLoading(true)
             
-            // Use setTimeout to ensure state updates are processed in correct order
             setTimeout(() => {
                 setGameMode(mode)
-                // Lock will be released after data loads in useEffect
             }, 0)
 
             if (mode === 'daily') {
@@ -795,29 +791,21 @@ export default function Home() {
                     
                     console.log('[Emergency Recovery] Successfully restored game state!')
                 } else {
-                    console.error('[Emergency Recovery] No valid saved state, using fallback idol (Wonyoung)')
+                    console.error('[Emergency Recovery] No valid saved state, re-triggering unlimited flow')
                     
-                    // Fallback to Wonyoung from IVE
-                    const fallbackImage: DailyRow = {
-                        id: 84,
-                        name: 'Wonyoung',
-                        group_type: 'girl-group',
-                        img_bucket: 'V29ueW91bmc-001',
-                        group_category: 'girl-group',
-                        base64_group: 'SVZF',
-                        base64_idol: 'V29ueW91bmc',
-                    }
-                    
-                    setDailyImage(fallbackImage)
-                    setCorrectAnswer('WONYOUNG')
+                    // Clear everything and force reload unlimited data
+                    setDailyImage(null)
+                    setIsLoading(true)
                     setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
                     setGameWon(false)
                     setGameLost(false)
                     setCurrentGuess('')
                     setLastIncorrectGuess('')
-                    setIsLoading(false)
                     
-                    console.log('[Emergency Recovery] Loaded fallback idol successfully!')
+                    // Force reload - this will trigger the useEffect and load fresh unlimited data
+                    void loadUnlimited()
+                    
+                    console.log('[Emergency Recovery] Re-triggered unlimited mode loading!')
                 }
             }
         }
