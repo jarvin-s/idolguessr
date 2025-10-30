@@ -25,6 +25,7 @@ interface GameImageProps {
     isAnimating: boolean
     gameMode: 'daily' | 'unlimited'
     onPass?: () => void
+    skipsRemaining?: number
     showStreakPopup?: boolean
     streakMilestone?: number
     onStreakPopupComplete?: () => void
@@ -48,6 +49,7 @@ export default function GameImage({
     isAnimating,
     gameMode,
     onPass,
+    skipsRemaining = 3,
     showStreakPopup,
     streakMilestone,
     onStreakPopupComplete,
@@ -57,6 +59,7 @@ export default function GameImage({
     onPlayAgain,
 }: GameImageProps) {
     const [isEntering, setIsEntering] = useState(false)
+    const [showMinusOne, setShowMinusOne] = useState(false)
 
     useEffect(() => {
         // Trigger entering animation when idol changes
@@ -216,27 +219,43 @@ export default function GameImage({
                             </div>
                         )}
                         {onPass && (
-                            <button
-                                onClick={onPass}
-                                className='absolute top-3 right-3 z-10 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-gray-100'
-                            >
-                                <svg
-                                    xmlns='http://www.w3.org/2000/svg'
-                                    width='16'
-                                    height='16'
-                                    viewBox='0 0 512 512'
+                            <div className='absolute top-3 right-3 z-10'>
+                                <button
+                                    onClick={() => {
+                                        setShowMinusOne(true)
+                                        setTimeout(() => setShowMinusOne(false), 1000)
+                                        onPass()
+                                    }}
+                                    className='relative flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-black transition-transform hover:bg-gray-100 hover:scale-105 active:scale-95'
                                 >
-                                    <path
-                                        d='M64 64v384l277.3-192L64 64z'
-                                        fill='currentColor'
-                                    />
-                                    <path
-                                        d='M384 64h64v384h-64z'
-                                        fill='currentColor'
-                                    />
-                                </svg>
-                                SKIP
-                            </button>
+                                    <svg
+                                        xmlns='http://www.w3.org/2000/svg'
+                                        width='16'
+                                        height='16'
+                                        viewBox='0 0 512 512'
+                                    >
+                                        <path
+                                            d='M64 64v384l277.3-192L64 64z'
+                                            fill='currentColor'
+                                        />
+                                        <path
+                                            d='M384 64h64v384h-64z'
+                                            fill='currentColor'
+                                        />
+                                    </svg>
+                                    SKIP ({skipsRemaining})
+                                </button>
+                                {showMinusOne && (
+                                    <div
+                                        className='pointer-events-none absolute right-1/2 top-0 translate-x-1/2 text-2xl font-bold text-red-500'
+                                        style={{
+                                            animation: 'float-up 1s ease-out forwards',
+                                        }}
+                                    >
+                                        -1
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </>
                 )}

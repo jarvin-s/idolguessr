@@ -61,6 +61,7 @@ export default function Home() {
     const lastStreakMilestoneRef = useRef(0)
     const [showGameOver, setShowGameOver] = useState(false)
     const isSwitchingModeRef = useRef(false)
+    const [skipsRemaining, setSkipsRemaining] = useState(3)
 
     const {
         guesses,
@@ -186,7 +187,18 @@ export default function Home() {
         const savedGameState = unlimitedStats.loadGameState()
 
         if (savedGameState) {
-            if (!savedGameState.encodedIdolName) {
+            // Validate saved game state has all required fields
+            const isValidSavedState = 
+                savedGameState.encodedIdolName &&
+                savedGameState.groupCategory &&
+                savedGameState.base64Group
+
+            if (!isValidSavedState) {
+                console.warn('[loadUnlimited] Invalid saved game state detected, clearing and starting fresh:', {
+                    hasEncodedName: !!savedGameState.encodedIdolName,
+                    hasGroupCategory: !!savedGameState.groupCategory,
+                    hasBase64Group: !!savedGameState.base64Group,
+                })
                 unlimitedStats.clearGameState()
                 const newImages = await getMultipleRandomUnlimitedImages(5)
                 setIsLoading(false)
@@ -195,9 +207,9 @@ export default function Home() {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(1)
                     setDailyImage(newImages[0])
+                    setSkipsRemaining(3) // Reset skips for new game
                     if (newImages[0].name)
                         setCorrectAnswer(newImages[0].name.toUpperCase())
-                    // Track that we've seen this idol
                     if (newImages[0].img_bucket) {
                         addSeenIdol(newImages[0].img_bucket)
                     }
@@ -229,7 +241,6 @@ export default function Home() {
             setGameWon(hasWon)
             setGameLost(hasLost)
 
-            // Clear UI state when restoring
             setCurrentGuess('')
             setLastIncorrectGuess('')
             setIsAnimating(false)
@@ -237,14 +248,36 @@ export default function Home() {
             setShowWinModal(false)
             setIsLoading(false)
 
-            getMultipleRandomUnlimitedImages(5).then((newImages) => {
-                setPrefetchedImages(newImages)
-                setCurrentImageIndex(0)
-                // Mark all prefetched idols as seen immediately
-                newImages.forEach(img => {
-                    if (img.img_bucket) addSeenIdol(img.img_bucket)
+            if (savedGameState.prefetchedImages && savedGameState.prefetchedImages.length > 0) {
+                // Validate that ALL prefetched images have required fields
+                const allImagesValid = savedGameState.prefetchedImages.every(img => 
+                    img.group_category && img.base64_group
+                )
+                
+                if (allImagesValid) {
+                    console.log('♻️ Restored prefetch pool from saved state:', savedGameState.prefetchedImages.length, 'idols')
+                    setPrefetchedImages(savedGameState.prefetchedImages)
+                    setCurrentImageIndex(savedGameState.currentImageIndex || 0)
+                } else {
+                    console.warn('⚠️ Saved prefetch pool has invalid images, fetching fresh...')
+                    getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                        setPrefetchedImages(newImages)
+                        setCurrentImageIndex(0)
+                        newImages.forEach(img => {
+                            if (img.img_bucket) addSeenIdol(img.img_bucket)
+                        })
+                    })
+                }
+            } else {
+                console.log('🔄 No saved prefetch pool, fetching fresh...')
+                getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                    setPrefetchedImages(newImages)
+                    setCurrentImageIndex(0)
+                    newImages.forEach(img => {
+                        if (img.img_bucket) addSeenIdol(img.img_bucket)
+                    })
                 })
-            })
+            }
         } else {
             setIsLoading(true)
             const newImages = await getMultipleRandomUnlimitedImages(5)
@@ -254,6 +287,7 @@ export default function Home() {
                 setPrefetchedImages(newImages)
                 setCurrentImageIndex(1)
                 setDailyImage(newImages[0])
+                setSkipsRemaining(3) // Reset skips for fresh game
                 if (newImages[0].name)
                     setCorrectAnswer(newImages[0].name.toUpperCase())
                 // Mark all prefetched idols as seen immediately
@@ -303,6 +337,8 @@ export default function Home() {
                     encodedIdolName: encodeIdolName(dailyImage.name || ''),
                     guesses: guesses,
                     savedAt: new Date().toISOString(),
+                    prefetchedImages: prefetchedImages,
+                    currentImageIndex: currentImageIndex,
                 })
             }
 
@@ -354,6 +390,8 @@ export default function Home() {
             gameWon,
             gameLost,
             unlimitedStats,
+            prefetchedImages,
+            currentImageIndex,
         ]
     )
 
@@ -403,6 +441,8 @@ export default function Home() {
                 encodedIdolName: encodeIdolName(row.name || ''),
                 guesses: freshGuesses,
                 savedAt: new Date().toISOString(),
+                prefetchedImages: prefetchedImages,
+                currentImageIndex: currentImageIndex,
             })
 
             // Preload next idol's images into browser cache
@@ -454,8 +494,16 @@ export default function Home() {
 
     const handlePlayAgain = useCallback(() => {
         setShowGameOver(false)
+        setSkipsRemaining(3) // Reset skips when playing again
         loadNextUnlimited()
     }, [loadNextUnlimited])
+
+    const handleSkip = useCallback(() => {
+        if (skipsRemaining > 0) {
+            setSkipsRemaining(prev => prev - 1)
+            loadNextUnlimited()
+        }
+    }, [skipsRemaining, loadNextUnlimited])
 
     const handleKeyPress = useCallback(
         (key: string) => {
@@ -519,6 +567,8 @@ export default function Home() {
                                 ),
                                 guesses: newGuesses,
                                 savedAt: new Date().toISOString(),
+                                prefetchedImages: prefetchedImages,
+                                currentImageIndex: currentImageIndex,
                             })
                         }
 
@@ -639,6 +689,8 @@ export default function Home() {
             lastIncorrectGuess,
             gameMode,
             unlimitedStats,
+            prefetchedImages,
+            currentImageIndex,
         ]
     )
 
@@ -770,7 +822,14 @@ export default function Home() {
             if (gameMode === 'unlimited') {
                 const savedGameState = unlimitedStats.loadGameState()
                 
-                if (savedGameState && savedGameState.encodedIdolName) {
+                // Validate saved game state has all required fields
+                const isValidSavedState = 
+                    savedGameState &&
+                    savedGameState.encodedIdolName &&
+                    savedGameState.groupCategory &&
+                    savedGameState.base64Group
+                
+                if (isValidSavedState) {
                     console.log('[Emergency Recovery] Restoring saved unlimited game state:', savedGameState)
                     
                     const decodedName = decodeIdolName(savedGameState.encodedIdolName)
@@ -791,7 +850,10 @@ export default function Home() {
                     
                     console.log('[Emergency Recovery] Successfully restored game state!')
                 } else {
-                    console.error('[Emergency Recovery] No valid saved state, re-triggering unlimited flow')
+                    console.error('[Emergency Recovery] Invalid or missing saved state, clearing and re-triggering unlimited flow')
+                    
+                    // Clear the invalid saved state
+                    unlimitedStats.clearGameState()
                     
                     // Clear everything and force reload unlimited data
                     setDailyImage(null)
@@ -874,10 +936,12 @@ export default function Home() {
                             onPass={
                                 gameMode === 'unlimited' &&
                                 !gameWon &&
-                                !gameLost
-                                    ? loadNextUnlimited
+                                !gameLost &&
+                                skipsRemaining > 0
+                                    ? handleSkip
                                     : undefined
                             }
+                            skipsRemaining={skipsRemaining}
                             showStreakPopup={showStreakPopup}
                             streakMilestone={streakMilestone}
                             onStreakPopupComplete={() =>

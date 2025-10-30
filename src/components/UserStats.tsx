@@ -46,6 +46,16 @@ export interface UnlimitedGameState {
     encodedIdolName: string
     guesses: Array<'correct' | 'incorrect' | 'empty'>
     savedAt: string
+    prefetchedImages?: Array<{
+        id: number
+        name: string
+        group_type: string
+        img_bucket: string
+        group_category?: string
+        base64_group?: string
+        base64_idol?: string
+    }>
+    currentImageIndex?: number
 }
 
 const defaultStats: UserStats = {

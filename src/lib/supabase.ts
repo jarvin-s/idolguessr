@@ -71,6 +71,7 @@ export function addSeenIdol(imgBucket: string): void {
     if (!seen.includes(imgBucket)) {
       seen.push(imgBucket)
       localStorage.setItem('idol-guessr-seen-idols', JSON.stringify(seen))
+      console.log(`[Seen Idols] Added ${imgBucket}. Total seen: ${seen.length}`)
     }
   } catch (error) {
     console.error('Error adding seen idol:', error)
@@ -81,6 +82,7 @@ export function clearSeenIdols(): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.removeItem('idol-guessr-seen-idols')
+    console.log('[Seen Idols] Cleared all seen idols (pool reset)')
   } catch (error) {
     console.error('Error clearing seen idols:', error)
   }
@@ -88,6 +90,13 @@ export function clearSeenIdols(): void {
 
 export async function getMultipleRandomUnlimitedImages(count: number): Promise<DailyImage[]> {
   const seenIdols = getSeenIdols();
+  
+  console.log('[DB Request] Fetching unlimited idols:', {
+    requested_count: count,
+    fetch_count: count * 3,
+    excluded_idols: seenIdols.length,
+    excluded_list: seenIdols,
+  });
   
   // Try to fetch with exclusions first (3x count to ensure we get enough after deduplication)
   const fetchCount = count * 3;
@@ -97,9 +106,14 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
   });
 
   if (error) {
-    console.error('get_multiple_random_unlimited error:', error);
+    console.error('[DB Request] Error:', error);
     return [];
   }
+
+  console.log('[DB Response] Received:', {
+    received_count: data?.length || 0,
+    idols: data?.map((img: DailyImage) => img.img_bucket).slice(0, 10) || [], // Show first 10
+  });
 
   if (!data || data.length === 0) {
     console.log('[Prefetch] No unseen idols available, clearing seen history...');
@@ -116,15 +130,40 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
       return [];
     }
 
-    console.log(`[Prefetch] After reset: fetched ${retryData.length} idols:`, retryData.map((img: DailyImage) => img.name));
-    return retryData.slice(0, count);
+    // Filter out invalid data from retry results
+    const validRetryData = retryData.filter((img: DailyImage) => {
+      if (!img.group_category || !img.base64_group) {
+        console.warn('[Prefetch] Skipping image with missing data in retry:', {
+          name: img.name,
+          img_bucket: img.img_bucket,
+          has_group_category: !!img.group_category,
+          has_base64_group: !!img.base64_group,
+        });
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`[Prefetch] After reset: fetched ${validRetryData.length} idols:`, validRetryData.map((img: DailyImage) => img.name));
+    return validRetryData.slice(0, count);
   }
 
-  // Remove duplicates (same img_bucket) and limit to requested count
+  // Remove duplicates (same img_bucket), filter invalid data, and limit to requested count
   const uniqueImages: DailyImage[] = [];
   const seenBuckets = new Set<string>();
 
   for (const image of data) {
+    // Skip images missing required fields for unlimited mode
+    if (!image.group_category || !image.base64_group) {
+      console.warn('[Prefetch] Skipping image with missing data:', {
+        name: image.name,
+        img_bucket: image.img_bucket,
+        has_group_category: !!image.group_category,
+        has_base64_group: !!image.base64_group,
+      });
+      continue;
+    }
+    
     if (!seenBuckets.has(image.img_bucket) && uniqueImages.length < count) {
       uniqueImages.push(image);
       seenBuckets.add(image.img_bucket);
@@ -153,7 +192,21 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
       return uniqueImages; // Return what we have
     }
 
-    return retryData.slice(0, count);
+    // Filter out invalid data from second retry
+    const validRetryData = retryData.filter((img: DailyImage) => {
+      if (!img.group_category || !img.base64_group) {
+        console.warn('[Prefetch] Skipping image with missing data in second retry:', {
+          name: img.name,
+          img_bucket: img.img_bucket,
+          has_group_category: !!img.group_category,
+          has_base64_group: !!img.base64_group,
+        });
+        return false;
+      }
+      return true;
+    });
+
+    return validRetryData.slice(0, count);
   }
 
   return uniqueImages;
