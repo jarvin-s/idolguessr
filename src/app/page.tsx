@@ -700,6 +700,11 @@ export default function Home() {
         let mounted = true
         const loadGame = async () => {
             if (!mounted) return
+            
+            // Safety: Clear any existing image data before loading
+            // This prevents race conditions where old data lingers
+            setDailyImage(null)
+            setIsLoading(true)
 
             if (gameMode === 'daily') {
                 await loadCurrent()
@@ -760,6 +765,66 @@ export default function Home() {
             console.error('Error checking first visit:', error)
         }
     }, [])
+
+    // Emergency recovery: Restore from saved game state if invalid data detected
+    useEffect(() => {
+        const handleEmergencyRecovery = () => {
+            console.error('[Emergency Recovery] Invalid data detected, restoring from saved state...')
+            
+            if (gameMode === 'unlimited') {
+                const savedGameState = unlimitedStats.loadGameState()
+                
+                if (savedGameState && savedGameState.encodedIdolName) {
+                    console.log('[Emergency Recovery] Restoring saved unlimited game state:', savedGameState)
+                    
+                    const decodedName = decodeIdolName(savedGameState.encodedIdolName)
+                    const savedImage: DailyRow = {
+                        id: 0,
+                        name: decodedName,
+                        group_type: savedGameState.groupType,
+                        img_bucket: savedGameState.imgBucket,
+                        group_category: savedGameState.groupCategory,
+                        base64_group: savedGameState.base64Group,
+                        base64_idol: savedGameState.base64Idol,
+                    }
+                    
+                    setDailyImage(savedImage)
+                    setCorrectAnswer(decodedName.toUpperCase())
+                    setGuesses(savedGameState.guesses)
+                    setIsLoading(false)
+                    
+                    console.log('[Emergency Recovery] Successfully restored game state!')
+                } else {
+                    console.error('[Emergency Recovery] No valid saved state, using fallback idol (Wonyoung)')
+                    
+                    // Fallback to Wonyoung from IVE
+                    const fallbackImage: DailyRow = {
+                        id: 84,
+                        name: 'Wonyoung',
+                        group_type: 'girl-group',
+                        img_bucket: 'V29ueW91bmc-001',
+                        group_category: 'girl-group',
+                        base64_group: 'SVZF',
+                        base64_idol: 'V29ueW91bmc',
+                    }
+                    
+                    setDailyImage(fallbackImage)
+                    setCorrectAnswer('WONYOUNG')
+                    setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+                    setGameWon(false)
+                    setGameLost(false)
+                    setCurrentGuess('')
+                    setLastIncorrectGuess('')
+                    setIsLoading(false)
+                    
+                    console.log('[Emergency Recovery] Loaded fallback idol successfully!')
+                }
+            }
+        }
+        
+        window.addEventListener('idol-guessr-emergency-recovery', handleEmergencyRecovery)
+        return () => window.removeEventListener('idol-guessr-emergency-recovery', handleEmergencyRecovery)
+    }, [gameMode, unlimitedStats, setGuesses, setIsLoading, loadUnlimited, setGameWon, setGameLost])
 
     useEffect(() => {
         if (

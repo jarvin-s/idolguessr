@@ -98,11 +98,25 @@ export default function GameImage({
         gameMode === 'daily' || 
         (dailyImage.group_category && dailyImage.base64_group)
 
-    // Auto-recovery: If we detect invalid data in unlimited mode, treat it as loading
-    // This prevents broken images and the game will recover once valid data arrives
+    // Emergency recovery: Notify parent to reload from saved state
     useEffect(() => {
         if (!hasValidData && dailyImage && gameMode === 'unlimited') {
-            console.error('[GameImage] Race condition detected: unlimited mode with daily image data. Waiting for valid data...', dailyImage)
+            console.error('[GameImage] CRITICAL: Invalid data detected! Will trigger emergency recovery...', {
+                gameMode,
+                img_bucket: dailyImage.img_bucket,
+                group_category: dailyImage.group_category,
+                base64_group: dailyImage.base64_group,
+            })
+            
+            // Trigger a custom event that parent can listen to
+            const emergencyTimer = setTimeout(() => {
+                if (!hasValidData && dailyImage && gameMode === 'unlimited') {
+                    console.error('[GameImage] Triggering emergency recovery event')
+                    window.dispatchEvent(new CustomEvent('idol-guessr-emergency-recovery'))
+                }
+            }, 500) // Quick recovery - 500ms
+            
+            return () => clearTimeout(emergencyTimer)
         }
     }, [hasValidData, dailyImage, gameMode])
 
