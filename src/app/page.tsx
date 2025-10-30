@@ -59,6 +59,7 @@ export default function Home() {
     const [showStreakPopup, setShowStreakPopup] = useState(false)
     const [streakMilestone, setStreakMilestone] = useState(0)
     const lastStreakMilestoneRef = useRef(0)
+    const [showGameOver, setShowGameOver] = useState(false)
 
     const {
         guesses,
@@ -441,6 +442,11 @@ export default function Home() {
         guesses,
     ])
 
+    const handlePlayAgain = useCallback(() => {
+        setShowGameOver(false)
+        loadNextUnlimited()
+    }, [loadNextUnlimited])
+
     const handleKeyPress = useCallback(
         (key: string) => {
             if (gameMode === 'daily' && todayCompleted) return
@@ -749,13 +755,20 @@ export default function Home() {
 
     useEffect(() => {
         if (gameMode === 'unlimited' && (gameWon || gameLost)) {
-            const delay = showStreakPopup ? 2400 : 2000
-
-            const timer = setTimeout(() => {
-                loadNextUnlimited()
-            }, delay)
-
-            return () => clearTimeout(timer)
+            if (gameLost) {
+                // Show game over modal after 2 seconds
+                const timer = setTimeout(() => {
+                    setShowGameOver(true)
+                }, 2000)
+                return () => clearTimeout(timer)
+            } else {
+                // For wins, continue to next idol
+                const delay = showStreakPopup ? 2400 : 2000
+                const timer = setTimeout(() => {
+                    loadNextUnlimited()
+                }, delay)
+                return () => clearTimeout(timer)
+            }
         }
     }, [gameMode, gameWon, gameLost, loadNextUnlimited, showStreakPopup])
 
@@ -801,6 +814,9 @@ export default function Home() {
                                     ? unlimitedStats.stats.currentStreak
                                     : 0
                             }
+                            showGameOver={showGameOver}
+                            highestStreak={unlimitedStats.stats.maxStreak}
+                            onPlayAgain={handlePlayAgain}
                         />
 
                         <GuessIndicators guesses={guesses} />

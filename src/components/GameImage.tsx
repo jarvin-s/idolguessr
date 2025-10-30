@@ -1,6 +1,7 @@
 import { DailyCompletion } from './UserStats'
 import { getImageUrl } from '@/lib/supabase'
 import StreakPopup from './StreakPopup'
+import GameOverModal from './GameOverModal'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
@@ -28,6 +29,9 @@ interface GameImageProps {
     streakMilestone?: number
     onStreakPopupComplete?: () => void
     currentStreak?: number
+    showGameOver?: boolean
+    highestStreak?: number
+    onPlayAgain?: () => void
 }
 
 export default function GameImage({
@@ -48,6 +52,9 @@ export default function GameImage({
     streakMilestone,
     onStreakPopupComplete,
     currentStreak = 0,
+    showGameOver = false,
+    highestStreak = 0,
+    onPlayAgain,
 }: GameImageProps) {
     const [isEntering, setIsEntering] = useState(false)
 
@@ -260,6 +267,15 @@ export default function GameImage({
                                   : 'YOUR GUESS WILL APPEAR HERE!'}
                         </div>
                     </div>
+                )}
+
+                {/* Game Over Modal */}
+                {showGameOver && onPlayAgain && (
+                    <GameOverModal
+                        isOpen={showGameOver}
+                        highestStreak={highestStreak}
+                        onPlayAgain={onPlayAgain}
+                    />
                 )}
             </div>
         </div>
