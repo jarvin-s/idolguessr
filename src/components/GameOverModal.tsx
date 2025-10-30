@@ -50,9 +50,9 @@ export default function GameOverModal({
                 {/* Play Again Button */}
                 <button
                     onClick={onPlayAgain}
-                    className='pointer-events-auto mt-4 rounded-xl bg-white px-8 py-4 text-xl font-bold text-black transition-transform hover:scale-105 active:scale-95'
+                    className='pointer-events-auto mt-2 rounded-xl bg-white px-6 py-3 text-l font-bold text-black transition-transform hover:scale-105 active:scale-95'
                 >
-                    Play Again
+                    PLAY AGAIN
                 </button>
             </div>
         </div>
