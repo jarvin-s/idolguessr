@@ -228,35 +228,61 @@ export default function GameImage({
                 {gameMode === 'unlimited' && !gameWon && !gameLost && (
                     <>
                         <div className='absolute top-3 left-3 z-10 flex items-center gap-2'>
-                            {dailyImage?.group_name &&
-                                (!hintUsed || groupNameRevealed) && (
-                                    <button
-                                        onClick={() => {
-                                            if (
-                                                !groupNameRevealed &&
-                                                dailyImage?.img_bucket
-                                            ) {
-                                                setGroupNameRevealed(true)
-                                                onHintUse?.()
-                                            }
-                                        }}
-                                        className='flex items-center gap-2 justify-center rounded-lg px-4 py-2 text-sm font-bold text-black transition-all hover:scale-105 active:scale-95'
-                                        style={{
-                                            backgroundColor:
-                                                'rgb(255, 249, 127)',
-                                            border: '1px solid #00000012',
-                                            cursor: groupNameRevealed
-                                                ? 'default'
+                            {dailyImage?.group_name && (
+                                <button
+                                    onClick={() => {
+                                        if (
+                                            !groupNameRevealed &&
+                                            dailyImage?.img_bucket &&
+                                            !(
+                                                hintUsed &&
+                                                hintUsedOnIdol ===
+                                                    dailyImage.img_bucket
+                                            )
+                                        ) {
+                                            setGroupNameRevealed(true)
+                                            onHintUse?.()
+                                        }
+                                    }}
+                                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                                        hintUsed &&
+                                        hintUsedOnIdol !== dailyImage.img_bucket
+                                            ? 'cursor-not-allowed bg-gray-200 text-gray-500'
+                                            : 'text-black hover:scale-105 active:scale-95'
+                                    }`}
+                                    style={{
+                                        backgroundColor:
+                                            hintUsed &&
+                                            hintUsedOnIdol !==
+                                                dailyImage.img_bucket
+                                                ? 'rgb(229, 229, 229)'
+                                                : 'rgb(255, 249, 127)',
+                                        border: '1px solid #00000012',
+                                        cursor:
+                                            hintUsed &&
+                                            hintUsedOnIdol !==
+                                                dailyImage.img_bucket
+                                                ? 'not-allowed'
                                                 : 'pointer',
-                                        }}
-                                        disabled={groupNameRevealed}
-                                    >
-                                        <HintButton />
-                                        {groupNameRevealed
+                                    }}
+                                    disabled={
+                                        hintUsed &&
+                                        hintUsedOnIdol !== dailyImage.img_bucket
+                                    }
+                                >
+                                    <HintButton />
+                                    {hintUsed &&
+                                    hintUsedOnIdol !== dailyImage.img_bucket
+                                        ? 'HINT (0)'
+                                        : hintUsed &&
+                                            hintUsedOnIdol ===
+                                                dailyImage.img_bucket
+                                          ? dailyImage.group_name
+                                          : groupNameRevealed
                                             ? dailyImage.group_name
                                             : 'HINT (1)'}
-                                    </button>
-                                )}
+                                </button>
+                            )}
 
                             {currentStreak >= 5 && (
                                 <div className='flex items-center gap-1.5'>
@@ -273,38 +299,44 @@ export default function GameImage({
                                 </div>
                             )}
                         </div>
-                        {onPass && (
-                            <div className='absolute top-3 right-3 z-10'>
-                                <button
-                                    onClick={() => {
+                        <div className='absolute top-3 right-3 z-10'>
+                            <button
+                                onClick={() => {
+                                    if (skipsRemaining > 0 && onPass) {
                                         setShowMinusOne(true)
                                         setTimeout(
                                             () => setShowMinusOne(false),
                                             1000
                                         )
                                         onPass()
-                                    }}
-                                    className='relative flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-black transition-transform hover:scale-105 hover:bg-gray-100 active:scale-95'
+                                    }
+                                }}
+                                className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-transform ${
+                                    skipsRemaining === 0
+                                        ? 'cursor-not-allowed bg-gray-200 text-gray-500'
+                                        : 'cursor-pointer bg-white text-black hover:scale-105 hover:bg-gray-100 active:scale-95'
+                                }`}
+                                style={{
+                                    border: '1px solid #00000012',
+                                }}
+                                disabled={skipsRemaining === 0}
+                            >
+                                <SkipButton />
+                                SKIP (
+                                {skipsRemaining === 0 ? 0 : skipsRemaining})
+                            </button>
+                            {showMinusOne && (
+                                <div
+                                    className='pointer-events-none absolute top-0 right-1/2 translate-x-1/2 text-2xl font-bold text-red-500'
                                     style={{
-                                        border: '1px solid #00000012',
+                                        animation:
+                                            'float-up 1s ease-out forwards',
                                     }}
                                 >
-                                    <SkipButton />
-                                    SKIP ({skipsRemaining})
-                                </button>
-                                {showMinusOne && (
-                                    <div
-                                        className='pointer-events-none absolute top-0 right-1/2 translate-x-1/2 text-2xl font-bold text-red-500'
-                                        style={{
-                                            animation:
-                                                'float-up 1s ease-out forwards',
-                                        }}
-                                    >
-                                        -1
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    -1
+                                </div>
+                            )}
+                        </div>
                     </>
                 )}
 
@@ -323,12 +355,12 @@ export default function GameImage({
                         {guesses.map((guess, index) => (
                             <div
                                 key={`${index}-${guess}`}
-                                className={`flex h-11 w-11 items-center justify-center rounded-full border border-[#f3f3f3]/20 transition-all duration-300 ${
+                                className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 ${
                                     guess === 'correct'
                                         ? 'bg-green-400'
                                         : guess === 'incorrect'
-                                          ? 'bg-red-400/60'
-                                          : 'bg-black/60'
+                                          ? 'bg-red-400/75'
+                                          : 'bg-black/75'
                                 }`}
                             ></div>
                         ))}
@@ -366,9 +398,9 @@ function HintButton() {
                 />
                 <path
                     fill='currentColor'
-                    fill-rule='evenodd'
+                    fillRule='evenodd'
                     d='M5.4 6.23c-.44.33-.843.678-1.21 1.032a15.1 15.1 0 0 0-3.001 4.11a1.44 1.44 0 0 0 0 1.255a15.1 15.1 0 0 0 3 4.111C5.94 18.423 8.518 20 12 20c2.236 0 4.1-.65 5.61-1.562l-3.944-3.943a3 3 0 0 1-4.161-4.161L5.401 6.229zm15.266 9.608a15 15 0 0 0 2.145-3.21a1.44 1.44 0 0 0 0-1.255a15.1 15.1 0 0 0-3-4.111C18.06 5.577 15.483 4 12 4a10.8 10.8 0 0 0-2.808.363z'
-                    clip-rule='evenodd'
+                    clipRule='evenodd'
                 />
             </g>
         </svg>

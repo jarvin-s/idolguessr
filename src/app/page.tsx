@@ -403,22 +403,6 @@ export default function Home() {
                 setCurrentImageIndex(0)
                 loadUnlimitedRef.current = false
                 lastStreakMilestoneRef.current = 0
-                setCurrentGuess('')
-                setLastIncorrectGuess('')
-                setGuesses([
-                    'empty',
-                    'empty',
-                    'empty',
-                    'empty',
-                    'empty',
-                    'empty',
-                ])
-                setIsAnimating(false)
-                setShowConfetti(false)
-                setGameWon(false)
-                setGameLost(false)
-                setShowWinModal(false)
-                setShowGameOver(false)
                 void loadUnlimited()
             }
         },
@@ -1116,6 +1100,31 @@ export default function Home() {
                                 setHintUsed(true)
                                 if (dailyImage?.img_bucket) {
                                     setHintUsedOnIdol(dailyImage.img_bucket)
+                                }
+                                if (
+                                    gameMode === 'unlimited' &&
+                                    dailyImage &&
+                                    !gameWon &&
+                                    !gameLost
+                                ) {
+                                    unlimitedStats.saveGameState({
+                                        groupType: dailyImage.group_type,
+                                        imgBucket: dailyImage.img_bucket,
+                                        groupCategory: dailyImage.group_category,
+                                        base64Group: dailyImage.base64_group,
+                                        base64Idol: dailyImage.base64_idol,
+                                        encodedIdolName: encodeIdolName(
+                                            dailyImage.name || ''
+                                        ),
+                                        groupName: dailyImage.group_name,
+                                        hintUsed: true,
+                                        hintUsedOnIdol: dailyImage.img_bucket || undefined,
+                                        skipsRemaining: skipsRemaining,
+                                        guesses: guesses,
+                                        savedAt: new Date().toISOString(),
+                                        prefetchedImages: prefetchedImages,
+                                        currentImageIndex: currentImageIndex,
+                                    })
                                 }
                             }}
                             showStreakPopup={showStreakPopup}

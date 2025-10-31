@@ -63,7 +63,7 @@ export default function GuessInput({
 
     return (
         <div
-            className={`mb-2 w-full flex-shrink-0 rounded-md ${display.bgColor}`}
+            className={`mb-3 w-full flex-shrink-0 rounded-md ${display.bgColor}`}
         >
             <div
                 className={`flex items-center justify-center rounded-lg px-4 py-3 text-center font-bold tracking-wider transition-all duration-300 ${
