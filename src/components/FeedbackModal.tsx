@@ -51,12 +51,12 @@ export default function FeedbackModal({
     }
 
     return (
-        <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
+        <div className='bg-opacity-50 fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4'>
             <div className='relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6'>
                 <div className='mb-6 flex items-center justify-between'>
                     <button
                         onClick={onBack}
-                        className='flex h-8 items-center justify-center gap-2 rounded-full bg-gray-100 px-3 transition-colors hover:bg-gray-200'
+                        className='flex h-8 cursor-pointer items-center justify-center gap-2 rounded-full bg-gray-100 px-3 transition-colors hover:bg-gray-200'
                         aria-label='Go back'
                     >
                         <ArrowLeftIcon />
@@ -64,7 +64,7 @@ export default function FeedbackModal({
                     </button>
                     <button
                         onClick={onClose}
-                        className='flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
+                        className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
                         aria-label='Close Feedback'
                     >
                         <svg

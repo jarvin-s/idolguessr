@@ -30,6 +30,39 @@ export interface UserStats {
     dailyCompletions: { [key: string]: DailyCompletion }
 }
 
+export interface UnlimitedStats {
+    totalGames: number
+    totalWins: number
+    currentStreak: number
+    maxStreak: number
+}
+
+export interface UnlimitedGameState {
+    groupType: string
+    imgBucket: string
+    groupCategory?: string
+    base64Group?: string
+    base64Idol?: string
+    encodedIdolName: string
+    groupName?: string
+    hintUsed?: boolean
+    hintUsedOnIdol?: string
+    skipsRemaining?: number
+    guesses: Array<'correct' | 'incorrect' | 'empty'>
+    savedAt: string
+    prefetchedImages?: Array<{
+        id: number
+        name: string
+        group_type: string
+        img_bucket: string
+        group_category?: string
+        base64_group?: string
+        base64_idol?: string
+        group_name?: string
+    }>
+    currentImageIndex?: number
+}
+
 const defaultStats: UserStats = {
     totalGames: 0,
     totalWins: 0,
@@ -39,6 +72,13 @@ const defaultStats: UserStats = {
     lastPlayedDate: '',
     todayCompleted: false,
     dailyCompletions: {},
+}
+
+const defaultUnlimitedStats: UnlimitedStats = {
+    totalGames: 0,
+    totalWins: 0,
+    currentStreak: 0,
+    maxStreak: 0,
 }
 
 export function useUserStats() {
@@ -214,7 +254,9 @@ export function useUserStats() {
             const today = new Date().toDateString()
             const key = `idol-guessr-guess-attempts-${today}`
             const existingAttempts = localStorage.getItem(key)
-            const attempts = existingAttempts ? JSON.parse(existingAttempts) : []
+            const attempts = existingAttempts
+                ? JSON.parse(existingAttempts)
+                : []
             attempts.push(guess)
             localStorage.setItem(key, JSON.stringify(attempts))
         } catch (error) {
@@ -248,16 +290,125 @@ export function useUserStats() {
     }
 }
 
+export function useUnlimitedStats() {
+    const [stats, setStats] = useState<UnlimitedStats>(defaultUnlimitedStats)
+    const [isLoaded, setIsLoaded] = useState(false)
+
+    useEffect(() => {
+        const loadStats = () => {
+            try {
+                const savedStats = localStorage.getItem(
+                    'idol-guessr-unlimited-stats'
+                )
+                if (savedStats) {
+                    setStats(JSON.parse(savedStats))
+                } else {
+                    setStats(defaultUnlimitedStats)
+                }
+            } catch (error) {
+                console.error('Error loading unlimited stats:', error)
+                setStats(defaultUnlimitedStats)
+            } finally {
+                setIsLoaded(true)
+            }
+        }
+
+        loadStats()
+    }, [])
+
+    useEffect(() => {
+        if (isLoaded) {
+            try {
+                localStorage.setItem(
+                    'idol-guessr-unlimited-stats',
+                    JSON.stringify(stats)
+                )
+            } catch (error) {
+                console.error('Error saving unlimited stats:', error)
+            }
+        }
+    }, [stats, isLoaded])
+
+    const updateStats = (won: boolean, incrementTotalGames: boolean = true) => {
+        setStats((prevStats) => {
+            const newStats = {
+                ...prevStats,
+            }
+
+            if (incrementTotalGames) {
+                newStats.totalGames += 1
+            }
+
+            if (won) {
+                newStats.totalWins += 1
+                newStats.currentStreak += 1
+                newStats.maxStreak = Math.max(
+                    newStats.maxStreak,
+                    newStats.currentStreak
+                )
+            } else {
+                newStats.currentStreak = 0
+            }
+
+            return newStats
+        })
+    }
+
+    const saveGameState = useCallback((gameState: UnlimitedGameState) => {
+        try {
+            localStorage.setItem(
+                'idol-guessr-unlimited-game-state',
+                JSON.stringify(gameState)
+            )
+        } catch (error) {
+            console.error('Error saving unlimited game state:', error)
+        }
+    }, [])
+
+    const loadGameState = useCallback((): UnlimitedGameState | null => {
+        try {
+            const savedState = localStorage.getItem(
+                'idol-guessr-unlimited-game-state'
+            )
+            if (savedState) {
+                return JSON.parse(savedState) as UnlimitedGameState
+            }
+        } catch (error) {
+            console.error('Error loading unlimited game state:', error)
+        }
+        return null
+    }, [])
+
+    const clearGameState = useCallback(() => {
+        try {
+            localStorage.removeItem('idol-guessr-unlimited-game-state')
+        } catch (error) {
+            console.error('Error clearing unlimited game state:', error)
+        }
+    }, [])
+
+    return {
+        stats,
+        isLoaded,
+        updateStats,
+        saveGameState,
+        loadGameState,
+        clearGameState,
+    }
+}
+
 interface UserStatsProps {
-    stats: UserStats
+    stats: UserStats | UnlimitedStats
     isLoaded: boolean
     className?: string
+    gameMode?: 'daily' | 'unlimited'
 }
 
 export default function UserStats({
     stats,
     isLoaded,
     className = '',
+    gameMode = 'daily',
 }: UserStatsProps) {
     if (!isLoaded) {
         return (
@@ -276,6 +427,9 @@ export default function UserStats({
             ? Math.round((stats.totalWins / stats.totalGames) * 100)
             : 0
 
+    const isUnlimited = gameMode === 'unlimited'
+    const hasGuessDistribution = 'guessDistribution' in stats
+
     return (
         <div className={`rounded-lg bg-white p-10 shadow-lg ${className}`}>
             <div className='mb-10 flex items-center justify-center'>
@@ -289,77 +443,87 @@ export default function UserStats({
             </div>
             <div className='mb-4 flex items-center justify-center'>
                 <h2 className='text-2xl font-bold text-gray-900 uppercase'>
-                    Statistics
+                    {isUnlimited ? 'Unlimited Statistics' : 'Statistics'}
                 </h2>
             </div>
 
             {/* Main Stats Grid */}
             <div className='mb-6 flex flex-row justify-center gap-4'>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {stats.totalGames}
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Played</div>
-                </div>
-                <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
-                        {winPercentage}%
+                    <div className='text-sm leading-none text-gray-600'>
+                        Played
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Win %</div>
                 </div>
+                {!isUnlimited && (
+                    <div className='text-center'>
+                        <div className='mb-2.5 text-2xl font-bold text-gray-900'>
+                            {winPercentage}%
+                        </div>
+                        <div className='text-sm leading-none text-gray-600'>
+                            Win %
+                        </div>
+                    </div>
+                )}
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {stats.currentStreak}
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Current streak</div>
+                    <div className='text-sm leading-none text-gray-600'>
+                        Current streak
+                    </div>
                 </div>
                 <div className='text-center'>
-                    <div className='text-2xl font-bold text-gray-900 mb-2.5'>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
                         {stats.maxStreak}
                     </div>
-                    <div className='text-sm text-gray-600 leading-none'>Max streak</div>
+                    <div className='text-sm leading-none text-gray-600'>
+                        Max streak
+                    </div>
                 </div>
             </div>
 
-            {/* Guess Distribution */}
-            {stats.totalWins > 0 && (
+            {/* Guess Distribution - Only for daily mode */}
+            {!isUnlimited && hasGuessDistribution && stats.totalWins > 0 && (
                 <>
                     <h3 className='mb-3 text-lg font-semibold text-gray-900 uppercase'>
                         Guess distribution
                     </h3>
                     <div className='space-y-2'>
-                        {Object.entries(stats.guessDistribution).map(
-                            ([guesses, count]) => {
-                                const percentage =
-                                    stats.totalWins > 0
-                                        ? (count / stats.totalWins) * 100
-                                        : 0
-                                return (
-                                    <div
-                                        key={guesses}
-                                        className='flex items-center'
-                                    >
-                                        <div className='w-4 text-sm font-medium text-black'>
-                                            {guesses}
-                                        </div>
-                                        <div className='relative mx-2 h-6 flex-1 rounded-full bg-gray-200'>
-                                            <div
-                                                className='flex h-6 items-center justify-end rounded-full bg-green-400 pr-2'
-                                                style={{
-                                                    width: `${Math.min(Math.max(percentage, 8), 100)}%`,
-                                                }}
-                                            >
-                                                {count > 0 && (
-                                                    <span className='text-xs font-bold text-white'>
-                                                        {count}
-                                                    </span>
-                                                )}
-                                            </div>
+                        {Object.entries(
+                            (stats as UserStats).guessDistribution
+                        ).map(([guesses, count]) => {
+                            const percentage =
+                                stats.totalWins > 0
+                                    ? (count / stats.totalWins) * 100
+                                    : 0
+                            return (
+                                <div
+                                    key={guesses}
+                                    className='flex items-center'
+                                >
+                                    <div className='w-4 text-sm font-medium text-black'>
+                                        {guesses}
+                                    </div>
+                                    <div className='relative mx-2 h-6 flex-1 rounded-full bg-gray-200'>
+                                        <div
+                                            className='flex h-6 items-center justify-end rounded-full bg-green-400 pr-2'
+                                            style={{
+                                                width: `${Math.min(Math.max(percentage, 8), 100)}%`,
+                                            }}
+                                        >
+                                            {count > 0 && (
+                                                <span className='text-xs font-bold text-white'>
+                                                    {count}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                )
-                            }
-                        )}
+                                </div>
+                            )
+                        })}
                     </div>
                 </>
             )}

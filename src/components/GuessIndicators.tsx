@@ -4,7 +4,7 @@ interface GuessIndicatorsProps {
 
 export default function GuessIndicators({ guesses }: GuessIndicatorsProps) {
     return (
-        <div className='grid w-full grid-cols-6 gap-2 sm:mx-auto sm:max-w-md flex-shrink-0 mb-3'>
+        <div className='mb-3 grid w-full flex-shrink-0 grid-cols-6 gap-2 sm:mx-auto sm:max-w-md'>
             {guesses.map((guess, index) => (
                 <div
                     key={`${index}-${guess}`}
@@ -17,14 +17,17 @@ export default function GuessIndicators({ guesses }: GuessIndicatorsProps) {
                     }`}
                 >
                     {guess === 'incorrect' && (
-                        <span className='text-base font-bold text-white'>✕</span>
+                        <span className='text-base font-bold text-white select-none'>
+                            ✕
+                        </span>
                     )}
                     {guess === 'empty' && (
-                        <span className='text-base font-bold text-gray-300'>✕</span>
+                        <span className='text-base font-bold text-gray-300 select-none'>
+                            ✕
+                        </span>
                     )}
                 </div>
             ))}
         </div>
     )
 }
-
