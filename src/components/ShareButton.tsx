@@ -51,11 +51,7 @@ export default function ShareButton({
                     setCopyStatus('idle')
                     setIsModalOpen(false)
                 }, 2000)
-            } catch (clipboardError) {
-                console.log(
-                    'Clipboard API failed, downloading instead:',
-                    clipboardError
-                )
+            } catch {
                 const fileName = `idolguessr-${correctAnswer}-${guessCount}turns.png`
                 const url = URL.createObjectURL(blob)
                 const link = document.createElement('a')

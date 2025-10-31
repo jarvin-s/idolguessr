@@ -5,7 +5,7 @@ import Confetti from 'react-confetti'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
 import GameHeader from '@/components/GameHeader'
 import GameImage from '@/components/GameImage'
-import GuessIndicators from '@/components/GuessIndicators'
+import GuessInput from '@/components/GuessInput'
 import StatsModal from '@/components/StatsModal'
 import HelpModal from '@/components/HelpModal'
 import FeedbackModal from '@/components/FeedbackModal'
@@ -16,6 +16,7 @@ import {
     type DailyImage as DailyRow,
     getImageUrl,
     trackGuess,
+    trackUnlimitedGame,
     resetGuessTimer,
     addSeenIdol,
     clearSeenIdols,
@@ -64,6 +65,7 @@ export default function Home() {
     const [skipsRemaining, setSkipsRemaining] = useState(3)
     const [hintUsed, setHintUsed] = useState(false)
     const [hintUsedOnIdol, setHintUsedOnIdol] = useState<string | null>(null)
+    const hasTrackedCurrentGame = useRef(false)
 
     const {
         guesses,
@@ -190,17 +192,20 @@ export default function Home() {
 
         if (savedGameState) {
             // Validate saved game state has all required fields
-            const isValidSavedState = 
+            const isValidSavedState =
                 savedGameState.encodedIdolName &&
                 savedGameState.groupCategory &&
                 savedGameState.base64Group
 
             if (!isValidSavedState) {
-                console.warn('[loadUnlimited] Invalid saved game state detected, clearing and starting fresh:', {
-                    hasEncodedName: !!savedGameState.encodedIdolName,
-                    hasGroupCategory: !!savedGameState.groupCategory,
-                    hasBase64Group: !!savedGameState.base64Group,
-                })
+                console.warn(
+                    '[loadUnlimited] Invalid saved game state detected, clearing and starting fresh:',
+                    {
+                        hasEncodedName: !!savedGameState.encodedIdolName,
+                        hasGroupCategory: !!savedGameState.groupCategory,
+                        hasBase64Group: !!savedGameState.base64Group,
+                    }
+                )
                 unlimitedStats.clearGameState()
                 const newImages = await getMultipleRandomUnlimitedImages(5)
                 setIsLoading(false)
@@ -256,32 +261,41 @@ export default function Home() {
             setShowWinModal(false)
             setIsLoading(false)
 
-            if (savedGameState.prefetchedImages && savedGameState.prefetchedImages.length > 0) {
+            if (
+                savedGameState.prefetchedImages &&
+                savedGameState.prefetchedImages.length > 0
+            ) {
                 // Validate that ALL prefetched images have required fields
-                const allImagesValid = savedGameState.prefetchedImages.every(img => 
-                    img.group_category && img.base64_group
+                const allImagesValid = savedGameState.prefetchedImages.every(
+                    (img) => img.group_category && img.base64_group
                 )
-                
+
                 if (allImagesValid) {
-                    console.log('♻️ Restored prefetch pool from saved state:', savedGameState.prefetchedImages.length, 'idols')
+                    // console.log(
+                    //     '♻️ Restored prefetch pool from saved state:',
+                    //     savedGameState.prefetchedImages.length,
+                    //     'idols'
+                    // )
                     setPrefetchedImages(savedGameState.prefetchedImages)
                     setCurrentImageIndex(savedGameState.currentImageIndex || 0)
                 } else {
-                    console.warn('⚠️ Saved prefetch pool has invalid images, fetching fresh...')
+                    console.warn(
+                        '⚠️ Saved prefetch pool has invalid images, fetching fresh...'
+                    )
                     getMultipleRandomUnlimitedImages(5).then((newImages) => {
                         setPrefetchedImages(newImages)
                         setCurrentImageIndex(0)
-                        newImages.forEach(img => {
+                        newImages.forEach((img) => {
                             if (img.img_bucket) addSeenIdol(img.img_bucket)
                         })
                     })
                 }
             } else {
-                console.log('🔄 No saved prefetch pool, fetching fresh...')
+                // console.log('🔄 No saved prefetch pool, fetching fresh...')
                 getMultipleRandomUnlimitedImages(5).then((newImages) => {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(0)
-                    newImages.forEach(img => {
+                    newImages.forEach((img) => {
                         if (img.img_bucket) addSeenIdol(img.img_bucket)
                     })
                 })
@@ -301,7 +315,7 @@ export default function Home() {
                 if (newImages[0].name)
                     setCorrectAnswer(newImages[0].name.toUpperCase())
                 // Mark all prefetched idols as seen immediately
-                newImages.forEach(img => {
+                newImages.forEach((img) => {
                     if (img.img_bucket) addSeenIdol(img.img_bucket)
                 })
             }
@@ -323,10 +337,10 @@ export default function Home() {
     const handleGameModeChange = useCallback(
         (mode: 'daily' | 'unlimited') => {
             if (mode === gameMode) return
-            
+
             // CRITICAL: Prevent multiple simultaneous mode switches
             if (isSwitchingModeRef.current) {
-                console.log('[Mode Switch] Already switching, ignoring request')
+                // console.log('[Mode Switch] Already switching, ignoring request')
                 return
             }
 
@@ -360,7 +374,7 @@ export default function Home() {
 
             setDailyImage(null)
             setIsLoading(true)
-            
+
             setTimeout(() => {
                 setGameMode(mode)
             }, 0)
@@ -413,152 +427,180 @@ export default function Home() {
         ]
     )
 
-    const loadNextUnlimited = useCallback((overrideSkipsRemaining?: number) => {
-        if (!gameWon && !gameLost) {
-            const hasGuesses = guesses.some(
-                (g) => g === 'incorrect' || g === 'correct'
-            )
-            if (hasGuesses) {
-                unlimitedStats.updateStats(false, true)
-            }
-            lastStreakMilestoneRef.current = 0
-        }
+    const loadNextUnlimited = useCallback(
+        (overrideSkipsRemaining?: number) => {
+            if (!gameWon && !gameLost) {
+                const hasGuesses = guesses.some(
+                    (g) => g === 'incorrect' || g === 'correct'
+                )
+                if (hasGuesses) {
+                    const currentStreak = unlimitedStats.stats.currentStreak
 
-        setCurrentGuess('')
-        setLastIncorrectGuess('')
-        const freshGuesses: Array<'correct' | 'incorrect' | 'empty'> = [
-            'empty',
-            'empty',
-            'empty',
-            'empty',
-            'empty',
-            'empty',
-        ]
-        setGuesses(freshGuesses)
-        setIsAnimating(false)
-        setShowConfetti(false)
-        setGameWon(false)
-        setGameLost(false)
-        setShowWinModal(false)
-        resetGuessTimer()
-
-        if (prefetchedImages.length > currentImageIndex) {
-            const row = prefetchedImages[currentImageIndex]
-            const nextImageIndex = currentImageIndex + 1
-            setDailyImage(row)
-            if (row.name) setCorrectAnswer(row.name.toUpperCase())
-            setCurrentImageIndex(nextImageIndex)
-
-            // No need to add to seen here - already added when fetched
-
-            unlimitedStats.saveGameState({
-                groupType: row.group_type,
-                imgBucket: row.img_bucket,
-                groupCategory: row.group_category,
-                base64Group: row.base64_group,
-                base64Idol: row.base64_idol,
-                encodedIdolName: encodeIdolName(row.name || ''),
-                groupName: row.group_name,
-                hintUsed: hintUsed, // Persist hintUsed across idols
-                hintUsedOnIdol: hintUsedOnIdol || undefined,
-                skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
-                guesses: freshGuesses,
-                savedAt: new Date().toISOString(),
-                prefetchedImages: prefetchedImages,
-                currentImageIndex: nextImageIndex, // Save the NEW incremented index
-            })
-
-            // Preload next idol's images into browser cache
-            if (prefetchedImages.length > nextImageIndex) {
-                const nextRow = prefetchedImages[nextImageIndex]
-                if (nextRow) {
-                    // Preload all 6 images for the next idol
-                    const imagesToPreload = [1, 2, 3, 4, 5, 'clear'].map((num) =>
-                        getImageUrl(
-                            nextRow.group_type,
-                            nextRow.img_bucket,
-                            num as number | 'clear',
-                            'unlimited',
-                            nextRow.group_category,
-                            nextRow.base64_group
+                    if (
+                        currentStreak >= 1 &&
+                        dailyImage?.id &&
+                        !hasTrackedCurrentGame.current
+                    ) {
+                        const guessCount = guesses.filter(
+                            (g) => g === 'incorrect' || g === 'correct'
+                        ).length
+                        void trackUnlimitedGame(
+                            dailyImage.id,
+                            guessCount,
+                            currentStreak
                         )
-                    )
-                    
-                    // Preload images in background
-                    imagesToPreload.forEach((url) => {
-                        const img = new window.Image()
-                        img.src = url
+                        hasTrackedCurrentGame.current = true
+                    }
+
+                    unlimitedStats.updateStats(false, true)
+                }
+                lastStreakMilestoneRef.current = 0
+            }
+
+            hasTrackedCurrentGame.current = false
+
+            setCurrentGuess('')
+            setLastIncorrectGuess('')
+            const freshGuesses: Array<'correct' | 'incorrect' | 'empty'> = [
+                'empty',
+                'empty',
+                'empty',
+                'empty',
+                'empty',
+                'empty',
+            ]
+            setGuesses(freshGuesses)
+            setIsAnimating(false)
+            setShowConfetti(false)
+            setGameWon(false)
+            setGameLost(false)
+            setShowWinModal(false)
+            resetGuessTimer()
+
+            if (prefetchedImages.length > currentImageIndex) {
+                const row = prefetchedImages[currentImageIndex]
+                const nextImageIndex = currentImageIndex + 1
+                setDailyImage(row)
+                if (row.name) setCorrectAnswer(row.name.toUpperCase())
+                setCurrentImageIndex(nextImageIndex)
+
+                unlimitedStats.saveGameState({
+                    groupType: row.group_type,
+                    imgBucket: row.img_bucket,
+                    groupCategory: row.group_category,
+                    base64Group: row.base64_group,
+                    base64Idol: row.base64_idol,
+                    encodedIdolName: encodeIdolName(row.name || ''),
+                    groupName: row.group_name,
+                    hintUsed: hintUsed,
+                    hintUsedOnIdol: hintUsedOnIdol || undefined,
+                    skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
+                    guesses: freshGuesses,
+                    savedAt: new Date().toISOString(),
+                    prefetchedImages: prefetchedImages,
+                    currentImageIndex: nextImageIndex,
+                })
+
+                if (prefetchedImages.length > nextImageIndex) {
+                    const nextRow = prefetchedImages[nextImageIndex]
+                    if (nextRow) {
+                        // Preload all 6 images for the next idol
+                        const imagesToPreload = [1, 2, 3, 4, 5, 'clear'].map(
+                            (num) =>
+                                getImageUrl(
+                                    nextRow.group_type,
+                                    nextRow.img_bucket,
+                                    num as number | 'clear',
+                                    'unlimited',
+                                    nextRow.group_category,
+                                    nextRow.base64_group
+                                )
+                        )
+
+                        // Preload images in background
+                        imagesToPreload.forEach((url) => {
+                            const img = new window.Image()
+                            img.src = url
+                        })
+                    }
+                }
+
+                // Fetch more idols when running low
+                if (nextImageIndex >= prefetchedImages.length - 2) {
+                    getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                        setPrefetchedImages((prev) => [...prev, ...newImages])
+                        // Mark all prefetched idols as seen immediately
+                        newImages.forEach((img) => {
+                            if (img.img_bucket) addSeenIdol(img.img_bucket)
+                        })
                     })
                 }
-            }
-
-            // Fetch more idols when running low
-            if (nextImageIndex >= prefetchedImages.length - 2) {
+            } else {
+                // No more prefetched images - fetch more and retry
+                // console.log(
+                //     '[loadNextUnlimited] Out of prefetched images, fetching more...'
+                // )
                 getMultipleRandomUnlimitedImages(5).then((newImages) => {
-                    setPrefetchedImages((prev) => [...prev, ...newImages])
-                    // Mark all prefetched idols as seen immediately
-                    newImages.forEach(img => {
-                        if (img.img_bucket) addSeenIdol(img.img_bucket)
-                    })
+                    if (newImages.length > 0) {
+                        const updatedPrefetched = [
+                            ...prefetchedImages,
+                            ...newImages,
+                        ]
+                        setPrefetchedImages(updatedPrefetched)
+                        // Now load the first new image
+                        const row = newImages[0]
+                        const nextImageIndex = prefetchedImages.length
+                        setDailyImage(row)
+                        if (row.name) setCorrectAnswer(row.name.toUpperCase())
+                        setCurrentImageIndex(nextImageIndex + 1)
+
+                        unlimitedStats.saveGameState({
+                            groupType: row.group_type,
+                            imgBucket: row.img_bucket,
+                            groupCategory: row.group_category,
+                            base64Group: row.base64_group,
+                            base64Idol: row.base64_idol,
+                            encodedIdolName: encodeIdolName(row.name || ''),
+                            groupName: row.group_name,
+                            hintUsed: hintUsed,
+                            hintUsedOnIdol: hintUsedOnIdol || undefined,
+                            skipsRemaining:
+                                overrideSkipsRemaining ?? skipsRemaining,
+                            guesses: freshGuesses,
+                            savedAt: new Date().toISOString(),
+                            prefetchedImages: updatedPrefetched,
+                            currentImageIndex: nextImageIndex + 1,
+                        })
+
+                        // Mark new images as seen
+                        newImages.forEach((img) => {
+                            if (img.img_bucket) addSeenIdol(img.img_bucket)
+                        })
+                    }
                 })
             }
-        } else {
-            // No more prefetched images - fetch more and retry
-            console.log('[loadNextUnlimited] Out of prefetched images, fetching more...')
-            getMultipleRandomUnlimitedImages(5).then((newImages) => {
-                if (newImages.length > 0) {
-                    const updatedPrefetched = [...prefetchedImages, ...newImages]
-                    setPrefetchedImages(updatedPrefetched)
-                    // Now load the first new image
-                    const row = newImages[0]
-                    const nextImageIndex = prefetchedImages.length
-                    setDailyImage(row)
-                    if (row.name) setCorrectAnswer(row.name.toUpperCase())
-                    setCurrentImageIndex(nextImageIndex + 1)
-                    
-                    unlimitedStats.saveGameState({
-                        groupType: row.group_type,
-                        imgBucket: row.img_bucket,
-                        groupCategory: row.group_category,
-                        base64Group: row.base64_group,
-                        base64Idol: row.base64_idol,
-                        encodedIdolName: encodeIdolName(row.name || ''),
-                        groupName: row.group_name,
-                        hintUsed: hintUsed,
-                        hintUsedOnIdol: hintUsedOnIdol || undefined,
-                        skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
-                        guesses: freshGuesses,
-                        savedAt: new Date().toISOString(),
-                        prefetchedImages: updatedPrefetched,
-                        currentImageIndex: nextImageIndex + 1,
-                    })
-                    
-                    // Mark new images as seen
-                    newImages.forEach(img => {
-                        if (img.img_bucket) addSeenIdol(img.img_bucket)
-                    })
-                }
-            })
-        }
-    }, [
-        prefetchedImages,
-        currentImageIndex,
-        setGuesses,
-        setGameWon,
-        setGameLost,
-        unlimitedStats,
-        gameWon,
-        gameLost,
-        guesses,
-        hintUsed,
-        hintUsedOnIdol,
-        skipsRemaining,
-    ])
+        },
+        [
+            prefetchedImages,
+            currentImageIndex,
+            setGuesses,
+            setGameWon,
+            setGameLost,
+            unlimitedStats,
+            gameWon,
+            gameLost,
+            guesses,
+            hintUsed,
+            hintUsedOnIdol,
+            skipsRemaining,
+            dailyImage,
+        ]
+    )
 
     const handlePlayAgain = useCallback(() => {
         setShowGameOver(false)
-        setSkipsRemaining(3) // Reset skips when playing again
-        setHintUsed(false) // Reset hint when playing again
+        setSkipsRemaining(3)
+        setHintUsed(false)
         setHintUsedOnIdol(null)
         loadNextUnlimited()
     }, [loadNextUnlimited])
@@ -567,7 +609,6 @@ export default function Home() {
         if (skipsRemaining > 0) {
             const newSkipsRemaining = skipsRemaining - 1
             setSkipsRemaining(newSkipsRemaining)
-            // Pass the new skip count so loadNextUnlimited saves with correct value
             loadNextUnlimited(newSkipsRemaining)
         }
     }, [skipsRemaining, loadNextUnlimited])
@@ -576,7 +617,7 @@ export default function Home() {
         (key: string) => {
             if (gameMode === 'daily' && todayCompleted) return
 
-        if (key === 'ENTER') {
+            if (key === 'ENTER') {
                 if (
                     currentGuess.trim() &&
                     guesses.some((g) => g === 'empty') &&
@@ -666,6 +707,26 @@ export default function Home() {
                                                 setShowWinModal(true)
                                             }, 2000)
                                         } else {
+                                            const currentStreak =
+                                                unlimitedStats.stats
+                                                    .currentStreak
+
+                                            // Only track game if user had a streak (won at least once)
+                                            if (
+                                                currentStreak >= 1 &&
+                                                dailyImage?.id &&
+                                                !hasTrackedCurrentGame.current
+                                            ) {
+                                                const guessCount = 6 // They used all guesses
+                                                void trackUnlimitedGame(
+                                                    dailyImage.id,
+                                                    guessCount,
+                                                    currentStreak
+                                                )
+                                                hasTrackedCurrentGame.current =
+                                                    true
+                                            }
+
                                             unlimitedStats.updateStats(
                                                 false,
                                                 true
@@ -721,24 +782,23 @@ export default function Home() {
                         }
                     }
                 }
-        } else if (key === '✕') {
+            } else if (key === '✕') {
                 if (!gameWon && !gameLost) {
-            setCurrentGuess((prev) => prev.slice(0, -1))
+                    setCurrentGuess((prev) => prev.slice(0, -1))
                 }
-        } else {
+            } else {
                 if (
                     guesses.some((g) => g === 'empty') &&
                     !isAnimating &&
                     !gameWon &&
                     !gameLost
                 ) {
-                    // Clear the last incorrect guess when starting to type a new guess
                     if (lastIncorrectGuess) {
                         setLastIncorrectGuess('')
                     }
-            setCurrentGuess((prev) => prev + key)
-        }
-    }
+                    setCurrentGuess((prev) => prev + key)
+                }
+            }
         },
         [
             currentGuess,
@@ -822,9 +882,7 @@ export default function Home() {
         let mounted = true
         const loadGame = async () => {
             if (!mounted) return
-            
-            // Safety: Clear any existing image data before loading
-            // This prevents race conditions where old data lingers
+
             setDailyImage(null)
             setIsLoading(true)
 
@@ -833,8 +891,7 @@ export default function Home() {
             } else {
                 await loadUnlimited()
             }
-            
-            // Release mode switch lock after data is loaded
+
             if (isSwitchingModeRef.current) {
                 setTimeout(() => {
                     isSwitchingModeRef.current = false
@@ -875,7 +932,6 @@ export default function Home() {
         return () => window.removeEventListener('resize', update)
     }, [])
 
-    // Auto-open help modal for first-time visitors
     useEffect(() => {
         try {
             const hasVisited = localStorage.getItem('idol-guessr-has-visited')
@@ -888,25 +944,30 @@ export default function Home() {
         }
     }, [])
 
-    // Emergency recovery: Restore from saved game state if invalid data detected
     useEffect(() => {
         const handleEmergencyRecovery = () => {
-            console.error('[Emergency Recovery] Invalid data detected, restoring from saved state...')
-            
+            //console.error(
+            //    '[Emergency Recovery] Invalid data detected, restoring from saved state...'
+            //)
+
             if (gameMode === 'unlimited') {
                 const savedGameState = unlimitedStats.loadGameState()
-                
-                // Validate saved game state has all required fields
-                const isValidSavedState = 
+
+                const isValidSavedState =
                     savedGameState &&
                     savedGameState.encodedIdolName &&
                     savedGameState.groupCategory &&
                     savedGameState.base64Group
-                
+
                 if (isValidSavedState) {
-                    console.log('[Emergency Recovery] Restoring saved unlimited game state:', savedGameState)
-                    
-                    const decodedName = decodeIdolName(savedGameState.encodedIdolName)
+                    // console.log(
+                    //     '[Emergency Recovery] Restoring saved unlimited game state:',
+                    //     savedGameState
+                    // )
+
+                    const decodedName = decodeIdolName(
+                        savedGameState.encodedIdolName
+                    )
                     const savedImage: DailyRow = {
                         id: 0,
                         name: decodedName,
@@ -916,39 +977,64 @@ export default function Home() {
                         base64_group: savedGameState.base64Group,
                         base64_idol: savedGameState.base64Idol,
                     }
-                    
+
                     setDailyImage(savedImage)
                     setCorrectAnswer(decodedName.toUpperCase())
                     setGuesses(savedGameState.guesses)
                     setIsLoading(false)
-                    
-                    console.log('[Emergency Recovery] Successfully restored game state!')
+
+                    // console.log(
+                    //     '[Emergency Recovery] Successfully restored game state!'
+                    // )
                 } else {
-                    console.error('[Emergency Recovery] Invalid or missing saved state, clearing and re-triggering unlimited flow')
-                    
-                    // Clear the invalid saved state
+                    console.error(
+                        '[Emergency Recovery] Invalid or missing saved state, clearing and re-triggering unlimited flow'
+                    )
+
                     unlimitedStats.clearGameState()
-                    
-                    // Clear everything and force reload unlimited data
+
                     setDailyImage(null)
                     setIsLoading(true)
-                    setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+                    setGuesses([
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                    ])
                     setGameWon(false)
                     setGameLost(false)
                     setCurrentGuess('')
                     setLastIncorrectGuess('')
-                    
-                    // Force reload - this will trigger the useEffect and load fresh unlimited data
+
                     void loadUnlimited()
-                    
-                    console.log('[Emergency Recovery] Re-triggered unlimited mode loading!')
+
+                    // console.log(
+                    //     '[Emergency Recovery] Re-triggered unlimited mode loading!'
+                    // )
                 }
             }
         }
-        
-        window.addEventListener('idol-guessr-emergency-recovery', handleEmergencyRecovery)
-        return () => window.removeEventListener('idol-guessr-emergency-recovery', handleEmergencyRecovery)
-    }, [gameMode, unlimitedStats, setGuesses, setIsLoading, loadUnlimited, setGameWon, setGameLost])
+
+        window.addEventListener(
+            'idol-guessr-emergency-recovery',
+            handleEmergencyRecovery
+        )
+        return () =>
+            window.removeEventListener(
+                'idol-guessr-emergency-recovery',
+                handleEmergencyRecovery
+            )
+    }, [
+        gameMode,
+        unlimitedStats,
+        setGuesses,
+        setIsLoading,
+        loadUnlimited,
+        setGameWon,
+        setGameLost,
+    ])
 
     useEffect(() => {
         if (
@@ -966,13 +1052,11 @@ export default function Home() {
     useEffect(() => {
         if (gameMode === 'unlimited' && (gameWon || gameLost)) {
             if (gameLost) {
-                // Show game over modal after 2 seconds
                 const timer = setTimeout(() => {
                     setShowGameOver(true)
                 }, 2000)
                 return () => clearTimeout(timer)
             } else {
-                // For wins, continue to next idol
                 const delay = showStreakPopup ? 2400 : 2000
                 const timer = setTimeout(() => {
                     loadNextUnlimited()
@@ -998,14 +1082,8 @@ export default function Home() {
                             isLoading={isLoading}
                             dailyImage={dailyImage}
                             remainingGuesses={remainingGuesses}
-                            currentGuess={currentGuess}
-                            lastIncorrectGuess={lastIncorrectGuess}
-                            correctAnswer={correctAnswer}
                             gameWon={gameWon}
                             gameLost={gameLost}
-                            todayCompleted={todayCompleted}
-                            todayCompletionData={todayCompletionData}
-                            isAnimating={isAnimating}
                             gameMode={gameMode}
                             onPass={
                                 gameMode === 'unlimited' &&
@@ -1037,17 +1115,25 @@ export default function Home() {
                             showGameOver={showGameOver}
                             highestStreak={unlimitedStats.stats.maxStreak}
                             onPlayAgain={handlePlayAgain}
+                            guesses={guesses}
                         />
+                    </div>
 
-                        <GuessIndicators guesses={guesses} />
-            </div>
+                    <GuessInput
+                        currentGuess={currentGuess}
+                        correctAnswer={correctAnswer}
+                        gameWon={gameWon}
+                        gameLost={gameLost}
+                        lastIncorrectGuess={lastIncorrectGuess}
+                        isAnimating={isAnimating}
+                    />
 
                     <OnScreenKeyboard
                         onKeyPress={handleKeyPress}
                         className='flex-shrink-0 pb-4'
-                            />
-                        </div>
-                    </div>
+                    />
+                </div>
+            </div>
 
             <StatsModal
                 isOpen={showStats}

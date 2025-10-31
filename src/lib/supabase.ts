@@ -71,7 +71,7 @@ export function addSeenIdol(imgBucket: string): void {
     if (!seen.includes(imgBucket)) {
       seen.push(imgBucket)
       localStorage.setItem('idol-guessr-seen-idols', JSON.stringify(seen))
-      console.log(`[Seen Idols] Added ${imgBucket}. Total seen: ${seen.length}`)
+      // console.log(`[Seen Idols] Added ${imgBucket}. Total seen: ${seen.length}`)
     }
   } catch (error) {
     console.error('Error adding seen idol:', error)
@@ -82,7 +82,7 @@ export function clearSeenIdols(): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.removeItem('idol-guessr-seen-idols')
-    console.log('[Seen Idols] Cleared all seen idols (pool reset)')
+    // console.log('[Seen Idols] Cleared all seen idols (pool reset)')
   } catch (error) {
     console.error('Error clearing seen idols:', error)
   }
@@ -90,14 +90,15 @@ export function clearSeenIdols(): void {
 
 export async function getMultipleRandomUnlimitedImages(count: number): Promise<DailyImage[]> {
   const seenIdols = getSeenIdols();
-  
-  console.log('[DB Request] Fetching unlimited idols:', {
-    requested_count: count,
-    fetch_count: count * 3,
-    excluded_idols: seenIdols.length,
-    excluded_list: seenIdols,
-  });
-  
+
+  // console.log('[DB Request] Fetching unlimited idols:',
+  //   {
+  //     requested_count: count,
+  //     fetch_count: count * 3,
+  //     excluded_idols: seenIdols.length,
+  //     excluded_list: seenIdols,
+  //   });
+
   // Try to fetch with exclusions first (3x count to ensure we get enough after deduplication)
   const fetchCount = count * 3;
   const { data, error } = await supabase.rpc('get_multiple_random_unlimited', {
@@ -105,20 +106,20 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
     row_count: fetchCount
   });
 
-    if (error) {
+  if (error) {
     console.error('[DB Request] Error:', error);
     return [];
   }
 
-  console.log('[DB Response] Received:', {
-    received_count: data?.length || 0,
-    idols: data?.map((img: DailyImage) => img.img_bucket).slice(0, 10) || [], // Show first 10
-  });
+  // console.log('[DB Response] Received:', {
+  //   received_count: data?.length || 0,
+  //   idols: data?.map((img: DailyImage) => img.img_bucket).slice(0, 10) || [], // Show first 10
+  // });
 
   if (!data || data.length === 0) {
-    console.log('[Prefetch] No unseen idols available, clearing seen history...');
+    // console.log('[Prefetch] No unseen idols available, clearing seen history...');
     clearSeenIdols();
-    
+
     // Retry without exclusions
     const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
       excluded_buckets: [],
@@ -144,7 +145,7 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
       return true;
     });
 
-    console.log(`[Prefetch] After reset: fetched ${validRetryData.length} idols:`, validRetryData.map((img: DailyImage) => img.name));
+    // console.log(`[Prefetch] After reset: fetched ${validRetryData.length} idols:`, validRetryData.map((img: DailyImage) => img.name));
     return validRetryData.slice(0, count);
   }
 
@@ -155,33 +156,33 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
   for (const image of data) {
     // Skip images missing required fields for unlimited mode
     if (!image.group_category || !image.base64_group) {
-      console.warn('[Prefetch] Skipping image with missing data:', {
-        name: image.name,
-        img_bucket: image.img_bucket,
-        has_group_category: !!image.group_category,
-        has_base64_group: !!image.base64_group,
-      });
+      // console.warn('[Prefetch] Skipping image with missing data:', {
+      //   name: image.name,
+      //   img_bucket: image.img_bucket,
+      //   has_group_category: !!image.group_category,
+      //   has_base64_group: !!image.base64_group,
+      // });
       continue;
     }
-    
+
     if (!seenBuckets.has(image.img_bucket) && uniqueImages.length < count) {
       uniqueImages.push(image);
       seenBuckets.add(image.img_bucket);
     }
   }
 
-  console.log(`[Prefetch] Fetched ${uniqueImages.length}/${count} unique unseen idols:`, uniqueImages.map(img => ({
-    name: img.name,
-    img_bucket: img.img_bucket,
-    group_category: img.group_category,
-    base64_group: img.base64_group,
-  })));
+  // console.log(`[Prefetch] Fetched ${uniqueImages.length}/${count} unique unseen idols:`, uniqueImages.map(img => ({
+  //   name: img.name,
+  //   img_bucket: img.img_bucket,
+  //   group_category: img.group_category,
+  //   base64_group: img.base64_group,
+  // })));
 
   // If we still don't have enough, clear and retry
   if (uniqueImages.length < count && seenIdols.length > 0) {
-    console.log('[Prefetch] Insufficient unique images, clearing seen history...');
+    // console.log('[Prefetch] Insufficient unique images, clearing seen history...');
     clearSeenIdols();
-    
+
     const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
       excluded_buckets: [],
       row_count: count
@@ -195,12 +196,12 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
     // Filter out invalid data from second retry
     const validRetryData = retryData.filter((img: DailyImage) => {
       if (!img.group_category || !img.base64_group) {
-        console.warn('[Prefetch] Skipping image with missing data in second retry:', {
-          name: img.name,
-          img_bucket: img.img_bucket,
-          has_group_category: !!img.group_category,
-          has_base64_group: !!img.base64_group,
-        });
+        // console.warn('[Prefetch] Skipping image with missing data in second retry:', {
+        //   name: img.name,
+        //   img_bucket: img.img_bucket,
+        //   has_group_category: !!img.group_category,
+        //   has_base64_group: !!img.base64_group,
+        // });
         return false;
       }
       return true;
@@ -219,7 +220,7 @@ export async function insertNewFeedback(feedback: Feedback): Promise<void> {
     created_at: new Date().toISOString(),
   })
   if (error) {
-    console.log('insert_new_feedback error:', error.message)
+    // console.log('insert_new_feedback error:', error.message)
     return
   }
 }
@@ -262,6 +263,13 @@ export interface GuessTrackingData {
   user_agent: string | null
   device_type: string | null
   browser: string | null
+}
+
+export interface UnlimitedGameData {
+  session_id: string
+  unlimited_id: number
+  amount_of_guesses: number
+  streak: number
 }
 
 function getDeviceType(userAgent: string): string {
@@ -336,3 +344,31 @@ export async function trackGuess(
 export function resetGuessTimer(): void {
   lastGuessTime = null
 }
+
+export async function trackUnlimitedGame(
+  unlimitedId: number,
+  amountOfGuesses: number,
+  streak: number
+): Promise<void> {
+  if (amountOfGuesses < 1) {
+    return
+  }
+
+  try {
+    const gameData: UnlimitedGameData = {
+      session_id: getOrCreateSessionId(),
+      unlimited_id: unlimitedId,
+      amount_of_guesses: amountOfGuesses,
+      streak: streak,
+    }
+
+    const { error } = await supabase.from('unlimited_game_tracking').insert(gameData)
+
+    if (error) {
+      console.error('Error tracking unlimited game:', error)
+    }
+  } catch (error) {
+    console.error('Error tracking unlimited game:', error)
+  }
+}
+
