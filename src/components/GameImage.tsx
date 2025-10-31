@@ -3,7 +3,7 @@ import { getImageUrl } from '@/lib/supabase'
 import StreakPopup from './StreakPopup'
 import GameOverModal from './GameOverModal'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 interface GameImageProps {
     isLoading: boolean
@@ -13,6 +13,7 @@ interface GameImageProps {
         group_category?: string
         base64_group?: string
         base64_idol?: string
+        group_name?: string
     } | null
     remainingGuesses: number
     currentGuess: string
@@ -26,6 +27,9 @@ interface GameImageProps {
     gameMode: 'daily' | 'unlimited'
     onPass?: () => void
     skipsRemaining?: number
+    hintUsed?: boolean
+    hintUsedOnIdol?: string | null
+    onHintUse?: () => void
     showStreakPopup?: boolean
     streakMilestone?: number
     onStreakPopupComplete?: () => void
@@ -50,6 +54,9 @@ export default function GameImage({
     gameMode,
     onPass,
     skipsRemaining = 3,
+    hintUsed = false,
+    hintUsedOnIdol = null,
+    onHintUse,
     showStreakPopup,
     streakMilestone,
     onStreakPopupComplete,
@@ -60,15 +67,41 @@ export default function GameImage({
 }: GameImageProps) {
     const [isEntering, setIsEntering] = useState(false)
     const [showMinusOne, setShowMinusOne] = useState(false)
+    const [groupNameRevealed, setGroupNameRevealed] = useState(false)
+
+    // Track previous idol to detect when it's truly a new one
+    const prevIdolBucketRef = useRef<string | null>(null)
 
     useEffect(() => {
         // Trigger entering animation when idol changes
         if (dailyImage?.img_bucket) {
+            const isNewIdol = prevIdolBucketRef.current !== dailyImage.img_bucket
+            prevIdolBucketRef.current = dailyImage.img_bucket
+            
             setIsEntering(true)
+            
+            // On new idol: reset reveal state (button will be hidden if hintUsed, shown if !hintUsed)
+            if (isNewIdol) {
+                setGroupNameRevealed(false)
+            } else {
+                // Same idol: only show revealed if hint was used on THIS specific idol
+                setGroupNameRevealed(
+                    hintUsed && hintUsedOnIdol === dailyImage.img_bucket
+                )
+            }
+            
             const timer = setTimeout(() => setIsEntering(false), 50)
             return () => clearTimeout(timer)
         }
-    }, [dailyImage?.img_bucket])
+    }, [dailyImage?.img_bucket, hintUsed, hintUsedOnIdol])
+
+    // Restore revealed state when restoring from saved state
+    useEffect(() => {
+        if (hintUsed && hintUsedOnIdol && dailyImage?.img_bucket === hintUsedOnIdol) {
+            // Restoring from saved state: hint was used on the current idol
+            setGroupNameRevealed(true)
+        }
+    }, [hintUsed, hintUsedOnIdol, dailyImage?.img_bucket])
 
     const truncateText = (text: string, maxLength: number = 20) => {
         return text.length > maxLength ? text.slice(0, maxLength) : text
@@ -181,9 +214,9 @@ export default function GameImage({
                                 >
                                     <Image
                                         src={url}
-                                        alt='Daily idol'
-                                        width={600}
-                                        height={600}
+                        alt='Daily idol'
+                        width={600}
+                        height={600}
                                         className='rounded-lg object-cover'
                                         style={{
                                             width: '100%',
@@ -204,20 +237,42 @@ export default function GameImage({
 
                 {gameMode === 'unlimited' && !gameWon && !gameLost && (
                     <>
-                        {currentStreak >= 5 && (
-                            <div className='absolute top-3 left-3 z-10 flex items-center gap-1.5'>
-                                <span className='text-2xl'>🔥</span>
-                                <span
-                                    className='text-2xl font-bold text-white'
-                                    style={{
-                                        textShadow:
-                                            '2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5)',
+                        <div className='absolute top-3 left-3 z-10 flex items-center gap-2'>
+                            {dailyImage?.group_name && (!hintUsed || groupNameRevealed) && (
+                                <button
+                                    onClick={() => {
+                                        if (!groupNameRevealed && dailyImage?.img_bucket) {
+                                            setGroupNameRevealed(true)
+                                            onHintUse?.()
+                                        }
                                     }}
+                                    className='flex items-center justify-center rounded-lg px-4 py-2 text-sm font-bold text-black transition-all hover:scale-105 active:scale-95'
+                                    style={{
+                                        backgroundColor: 'rgb(255, 249, 127)',
+                                        border: '1px solid #00000012',
+                                        cursor: groupNameRevealed ? 'default' : 'pointer',
+                                    }}
+                                    disabled={groupNameRevealed}
                                 >
-                                    {currentStreak}
-                                </span>
-                            </div>
-                        )}
+                                    {groupNameRevealed ? dailyImage.group_name : 'ONE TIME HINT'}
+                                </button>
+                            )}
+                            
+                            {currentStreak >= 5 && (
+                                <div className='flex items-center gap-1.5'>
+                                    <span className='text-2xl'>🔥</span>
+                                    <span
+                                        className='text-2xl font-bold text-white'
+                                        style={{
+                                            textShadow:
+                                                '2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5)',
+                                        }}
+                                    >
+                                        {currentStreak}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                         {onPass && (
                             <div className='absolute top-3 right-3 z-10'>
                                 <button
@@ -227,6 +282,9 @@ export default function GameImage({
                                         onPass()
                                     }}
                                     className='relative flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-black transition-transform hover:bg-gray-100 hover:scale-105 active:scale-95'
+                                    style={{
+                                        border: '1px solid #00000012',
+                                    }}
                                 >
                                     <svg
                                         xmlns='http://www.w3.org/2000/svg'
@@ -312,8 +370,8 @@ export default function GameImage({
                                 : currentGuess
                                   ? truncateText(currentGuess)
                                   : 'YOUR GUESS WILL APPEAR HERE!'}
+                            </div>
                         </div>
-                    </div>
                 )}
 
                 {/* Game Over Modal */}

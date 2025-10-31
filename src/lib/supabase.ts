@@ -105,7 +105,7 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
     row_count: fetchCount
   });
 
-  if (error) {
+    if (error) {
     console.error('[DB Request] Error:', error);
     return [];
   }

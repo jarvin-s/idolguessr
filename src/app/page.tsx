@@ -62,6 +62,8 @@ export default function Home() {
     const [showGameOver, setShowGameOver] = useState(false)
     const isSwitchingModeRef = useRef(false)
     const [skipsRemaining, setSkipsRemaining] = useState(3)
+    const [hintUsed, setHintUsed] = useState(false)
+    const [hintUsedOnIdol, setHintUsedOnIdol] = useState<string | null>(null)
 
     const {
         guesses,
@@ -208,6 +210,8 @@ export default function Home() {
                     setCurrentImageIndex(1)
                     setDailyImage(newImages[0])
                     setSkipsRemaining(3) // Reset skips for new game
+                    setHintUsed(false) // Reset hint for new game
+                    setHintUsedOnIdol(null)
                     if (newImages[0].name)
                         setCorrectAnswer(newImages[0].name.toUpperCase())
                     if (newImages[0].img_bucket) {
@@ -228,11 +232,15 @@ export default function Home() {
                 group_category: savedGameState.groupCategory,
                 base64_group: savedGameState.base64Group,
                 base64_idol: savedGameState.base64Idol,
+                group_name: savedGameState.groupName,
             }
 
             setDailyImage(savedImage)
             setCorrectAnswer(decodedName.toUpperCase())
             setGuesses(savedGameState.guesses)
+            setHintUsed(savedGameState.hintUsed || false)
+            setHintUsedOnIdol(savedGameState.hintUsedOnIdol || null)
+            setSkipsRemaining(savedGameState.skipsRemaining ?? 3)
 
             const hasWon = savedGameState.guesses.includes('correct')
             const hasLost =
@@ -288,6 +296,8 @@ export default function Home() {
                 setCurrentImageIndex(1)
                 setDailyImage(newImages[0])
                 setSkipsRemaining(3) // Reset skips for fresh game
+                setHintUsed(false) // Reset hint for fresh game
+                setHintUsedOnIdol(null)
                 if (newImages[0].name)
                     setCorrectAnswer(newImages[0].name.toUpperCase())
                 // Mark all prefetched idols as seen immediately
@@ -335,6 +345,10 @@ export default function Home() {
                     base64Group: dailyImage.base64_group,
                     base64Idol: dailyImage.base64_idol,
                     encodedIdolName: encodeIdolName(dailyImage.name || ''),
+                    groupName: dailyImage.group_name,
+                    hintUsed: hintUsed,
+                    hintUsedOnIdol: hintUsedOnIdol || undefined,
+                    skipsRemaining: skipsRemaining,
                     guesses: guesses,
                     savedAt: new Date().toISOString(),
                     prefetchedImages: prefetchedImages,
@@ -367,6 +381,7 @@ export default function Home() {
                 setGameWon(false)
                 setGameLost(false)
                 setShowWinModal(false)
+                setShowGameOver(false) // Clear game over modal when switching to daily
                 void loadCurrent()
             } else {
                 clearTimers()
@@ -392,10 +407,13 @@ export default function Home() {
             unlimitedStats,
             prefetchedImages,
             currentImageIndex,
+            hintUsed,
+            hintUsedOnIdol,
+            skipsRemaining,
         ]
     )
 
-    const loadNextUnlimited = useCallback(() => {
+    const loadNextUnlimited = useCallback((overrideSkipsRemaining?: number) => {
         if (!gameWon && !gameLost) {
             const hasGuesses = guesses.some(
                 (g) => g === 'incorrect' || g === 'correct'
@@ -426,9 +444,10 @@ export default function Home() {
 
         if (prefetchedImages.length > currentImageIndex) {
             const row = prefetchedImages[currentImageIndex]
+            const nextImageIndex = currentImageIndex + 1
             setDailyImage(row)
             if (row.name) setCorrectAnswer(row.name.toUpperCase())
-            setCurrentImageIndex((prev) => prev + 1)
+            setCurrentImageIndex(nextImageIndex)
 
             // No need to add to seen here - already added when fetched
 
@@ -439,15 +458,19 @@ export default function Home() {
                 base64Group: row.base64_group,
                 base64Idol: row.base64_idol,
                 encodedIdolName: encodeIdolName(row.name || ''),
+                groupName: row.group_name,
+                hintUsed: hintUsed, // Persist hintUsed across idols
+                hintUsedOnIdol: hintUsedOnIdol || undefined,
+                skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
                 guesses: freshGuesses,
                 savedAt: new Date().toISOString(),
                 prefetchedImages: prefetchedImages,
-                currentImageIndex: currentImageIndex,
+                currentImageIndex: nextImageIndex, // Save the NEW incremented index
             })
 
             // Preload next idol's images into browser cache
-            if (prefetchedImages.length > currentImageIndex) {
-                const nextRow = prefetchedImages[currentImageIndex]
+            if (prefetchedImages.length > nextImageIndex) {
+                const nextRow = prefetchedImages[nextImageIndex]
                 if (nextRow) {
                     // Preload all 6 images for the next idol
                     const imagesToPreload = [1, 2, 3, 4, 5, 'clear'].map((num) =>
@@ -470,7 +493,7 @@ export default function Home() {
             }
 
             // Fetch more idols when running low
-            if (currentImageIndex >= prefetchedImages.length - 2) {
+            if (nextImageIndex >= prefetchedImages.length - 2) {
                 getMultipleRandomUnlimitedImages(5).then((newImages) => {
                     setPrefetchedImages((prev) => [...prev, ...newImages])
                     // Mark all prefetched idols as seen immediately
@@ -479,6 +502,43 @@ export default function Home() {
                     })
                 })
             }
+        } else {
+            // No more prefetched images - fetch more and retry
+            console.log('[loadNextUnlimited] Out of prefetched images, fetching more...')
+            getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                if (newImages.length > 0) {
+                    const updatedPrefetched = [...prefetchedImages, ...newImages]
+                    setPrefetchedImages(updatedPrefetched)
+                    // Now load the first new image
+                    const row = newImages[0]
+                    const nextImageIndex = prefetchedImages.length
+                    setDailyImage(row)
+                    if (row.name) setCorrectAnswer(row.name.toUpperCase())
+                    setCurrentImageIndex(nextImageIndex + 1)
+                    
+                    unlimitedStats.saveGameState({
+                        groupType: row.group_type,
+                        imgBucket: row.img_bucket,
+                        groupCategory: row.group_category,
+                        base64Group: row.base64_group,
+                        base64Idol: row.base64_idol,
+                        encodedIdolName: encodeIdolName(row.name || ''),
+                        groupName: row.group_name,
+                        hintUsed: hintUsed,
+                        hintUsedOnIdol: hintUsedOnIdol || undefined,
+                        skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
+                        guesses: freshGuesses,
+                        savedAt: new Date().toISOString(),
+                        prefetchedImages: updatedPrefetched,
+                        currentImageIndex: nextImageIndex + 1,
+                    })
+                    
+                    // Mark new images as seen
+                    newImages.forEach(img => {
+                        if (img.img_bucket) addSeenIdol(img.img_bucket)
+                    })
+                }
+            })
         }
     }, [
         prefetchedImages,
@@ -490,18 +550,25 @@ export default function Home() {
         gameWon,
         gameLost,
         guesses,
+        hintUsed,
+        hintUsedOnIdol,
+        skipsRemaining,
     ])
 
     const handlePlayAgain = useCallback(() => {
         setShowGameOver(false)
         setSkipsRemaining(3) // Reset skips when playing again
+        setHintUsed(false) // Reset hint when playing again
+        setHintUsedOnIdol(null)
         loadNextUnlimited()
     }, [loadNextUnlimited])
 
     const handleSkip = useCallback(() => {
         if (skipsRemaining > 0) {
-            setSkipsRemaining(prev => prev - 1)
-            loadNextUnlimited()
+            const newSkipsRemaining = skipsRemaining - 1
+            setSkipsRemaining(newSkipsRemaining)
+            // Pass the new skip count so loadNextUnlimited saves with correct value
+            loadNextUnlimited(newSkipsRemaining)
         }
     }, [skipsRemaining, loadNextUnlimited])
 
@@ -565,6 +632,10 @@ export default function Home() {
                                 encodedIdolName: encodeIdolName(
                                     dailyImage.name || ''
                                 ),
+                                groupName: dailyImage.group_name,
+                                hintUsed: hintUsed,
+                                hintUsedOnIdol: hintUsedOnIdol || undefined,
+                                skipsRemaining: skipsRemaining,
                                 guesses: newGuesses,
                                 savedAt: new Date().toISOString(),
                                 prefetchedImages: prefetchedImages,
@@ -691,6 +762,9 @@ export default function Home() {
             unlimitedStats,
             prefetchedImages,
             currentImageIndex,
+            hintUsed,
+            hintUsedOnIdol,
+            skipsRemaining,
         ]
     )
 
@@ -942,6 +1016,14 @@ export default function Home() {
                                     : undefined
                             }
                             skipsRemaining={skipsRemaining}
+                            hintUsed={hintUsed}
+                            hintUsedOnIdol={hintUsedOnIdol}
+                            onHintUse={() => {
+                                setHintUsed(true)
+                                if (dailyImage?.img_bucket) {
+                                    setHintUsedOnIdol(dailyImage.img_bucket)
+                                }
+                            }}
                             showStreakPopup={showStreakPopup}
                             streakMilestone={streakMilestone}
                             onStreakPopupComplete={() =>

@@ -44,6 +44,10 @@ export interface UnlimitedGameState {
     base64Group?: string
     base64Idol?: string
     encodedIdolName: string
+    groupName?: string
+    hintUsed?: boolean
+    hintUsedOnIdol?: string
+    skipsRemaining?: number
     guesses: Array<'correct' | 'incorrect' | 'empty'>
     savedAt: string
     prefetchedImages?: Array<{
@@ -54,6 +58,7 @@ export interface UnlimitedGameState {
         group_category?: string
         base64_group?: string
         base64_idol?: string
+        group_name?: string
     }>
     currentImageIndex?: number
 }
