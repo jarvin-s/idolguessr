@@ -403,6 +403,22 @@ export default function Home() {
                 setCurrentImageIndex(0)
                 loadUnlimitedRef.current = false
                 lastStreakMilestoneRef.current = 0
+                setCurrentGuess('')
+                setLastIncorrectGuess('')
+                setGuesses([
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                ])
+                setIsAnimating(false)
+                setShowConfetti(false)
+                setGameWon(false)
+                setGameLost(false)
+                setShowWinModal(false)
+                setShowGameOver(false)
                 void loadUnlimited()
             }
         },
