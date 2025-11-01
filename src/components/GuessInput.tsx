@@ -30,7 +30,7 @@ export default function GuessInput({
 
         if (gameLost) {
             return {
-                text: truncateText(correctAnswer),
+                text: `Nice try! It was ${truncateText(correctAnswer)}`,
                 textColor: 'text-white',
                 bgColor: 'bg-red-400',
             }

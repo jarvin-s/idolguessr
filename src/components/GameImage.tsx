@@ -207,7 +207,7 @@ export default function GameImage({
                                         alt='Daily idol'
                                         width={600}
                                         height={600}
-                                        className='rounded-lg object-cover'
+                                        className='pointer-events-none rounded-lg object-cover'
                                         style={{
                                             width: '100%',
                                             height: '100%',

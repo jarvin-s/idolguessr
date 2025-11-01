@@ -443,7 +443,7 @@ export default function UserStats({
             </div>
             <div className='mb-4 flex items-center justify-center'>
                 <h2 className='text-2xl font-bold text-gray-900 uppercase'>
-                    {isUnlimited ? 'Unlimited Statistics' : 'Statistics'}
+                    {isUnlimited ? 'Infinite Statistics' : 'Statistics'}
                 </h2>
             </div>
 

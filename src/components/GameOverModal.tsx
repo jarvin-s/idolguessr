@@ -17,7 +17,6 @@ export default function GameOverModal({
 
     useEffect(() => {
         if (isOpen) {
-            // Small delay before showing
             setTimeout(() => setIsVisible(true), 100)
         } else {
             setIsVisible(false)
@@ -43,7 +42,7 @@ export default function GameOverModal({
                         Game Over
                     </h2>
                     <p className='text-2xl font-semibold text-white/90'>
-                        Your highest streak:{' '}
+                        Your streak:{' '}
                         <span className='font-black text-white'>
                             {highestStreak} 🔥
                         </span>
