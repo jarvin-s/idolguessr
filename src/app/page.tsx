@@ -1067,8 +1067,8 @@ export default function Home() {
     }, [gameMode, gameWon, gameLost, loadNextUnlimited, showStreakPopup])
 
     return (
-        <div className='fixed inset-0 flex flex-col overflow-hidden bg-white'>
-            <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:shadow-lg'>
+        <div className='fixed inset-0 flex flex-col overflow-hidden bg-white justify-center'>
+            <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:max-h-[900px] sm:border-1 sm:border-gray-200 sm:rounded-[15px] sm:shadow-lg'>
                 <GameHeader
                     timer={timer}
                     onShowStats={() => setShowStats(true)}
