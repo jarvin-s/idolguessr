@@ -309,12 +309,11 @@ export default function Home() {
                 setPrefetchedImages(newImages)
                 setCurrentImageIndex(1)
                 setDailyImage(newImages[0])
-                setSkipsRemaining(3) // Reset skips for fresh game
-                setHintUsed(false) // Reset hint for fresh game
+                setSkipsRemaining(3)
+                setHintUsed(false)
                 setHintUsedOnIdol(null)
                 if (newImages[0].name)
                     setCorrectAnswer(newImages[0].name.toUpperCase())
-                // Mark all prefetched idols as seen immediately
                 newImages.forEach((img) => {
                     if (img.img_bucket) addSeenIdol(img.img_bucket)
                 })
@@ -403,6 +402,22 @@ export default function Home() {
                 setCurrentImageIndex(0)
                 loadUnlimitedRef.current = false
                 lastStreakMilestoneRef.current = 0
+                setCurrentGuess('')
+                setLastIncorrectGuess('')
+                setGuesses([
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                ])
+                setIsAnimating(false)
+                setShowConfetti(false)
+                setGameWon(false)
+                setGameLost(false)
+                setShowWinModal(false)
+                setShowGameOver(false)
                 void loadUnlimited()
             }
         },
@@ -1067,8 +1082,8 @@ export default function Home() {
     }, [gameMode, gameWon, gameLost, loadNextUnlimited, showStreakPopup])
 
     return (
-        <div className='fixed inset-0 flex flex-col overflow-hidden bg-white justify-center'>
-            <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:max-h-[900px] sm:border-1 sm:border-gray-200 sm:rounded-[15px] sm:shadow-lg'>
+        <div className='fixed inset-0 flex flex-col justify-center overflow-hidden bg-white'>
+            <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-h-[900px] sm:max-w-md sm:rounded-[15px] sm:border-1 sm:border-gray-200 sm:shadow-lg'>
                 <GameHeader
                     timer={timer}
                     onShowStats={() => setShowStats(true)}
@@ -1110,7 +1125,8 @@ export default function Home() {
                                     unlimitedStats.saveGameState({
                                         groupType: dailyImage.group_type,
                                         imgBucket: dailyImage.img_bucket,
-                                        groupCategory: dailyImage.group_category,
+                                        groupCategory:
+                                            dailyImage.group_category,
                                         base64Group: dailyImage.base64_group,
                                         base64Idol: dailyImage.base64_idol,
                                         encodedIdolName: encodeIdolName(
@@ -1118,7 +1134,8 @@ export default function Home() {
                                         ),
                                         groupName: dailyImage.group_name,
                                         hintUsed: true,
-                                        hintUsedOnIdol: dailyImage.img_bucket || undefined,
+                                        hintUsedOnIdol:
+                                            dailyImage.img_bucket || undefined,
                                         skipsRemaining: skipsRemaining,
                                         guesses: guesses,
                                         savedAt: new Date().toISOString(),
