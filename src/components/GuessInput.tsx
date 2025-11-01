@@ -24,7 +24,7 @@ export default function GuessInput({
             return {
                 text: truncateText(correctAnswer),
                 textColor: 'text-white',
-                bgColor: 'bg-green-500',
+                bgColor: 'bg-green-400',
             }
         }
 

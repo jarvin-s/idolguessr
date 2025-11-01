@@ -38,7 +38,7 @@ export default function GameHeader({
                             }}
                         >
                             <h1 className='font-bold text-sm text-white uppercase tracking-widest'>
-                                Unlimited
+                                Infinite
                             </h1>
                         </div>
                     </div>
