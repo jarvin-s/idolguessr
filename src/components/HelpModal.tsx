@@ -18,7 +18,7 @@ export default function HelpModal({
     if (!isOpen) return null
 
     return (
-        <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
+        <div className='bg-opacity-50 fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4'>
             <div className='modal-fade-in relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-10'>
                 <h1
                     className={`${proximaNovaBold.className} text-3xl uppercase`}
@@ -30,7 +30,9 @@ export default function HelpModal({
                 <ul className='mt-4 space-y-2 font-bold'>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>
-                        <span>Each guess must be a valid K-pop idol stage name</span>
+                        <span>
+                            Each guess must be a valid K-pop idol stage name
+                        </span>
                     </li>
                     <li className='flex items-start gap-2 text-[16px]'>
                         <span>•</span>
@@ -123,8 +125,8 @@ export default function HelpModal({
 
                 <button
                     onClick={onClose}
-                    className='absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
-                    aria-label='Close Statistics'
+                    className='absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
+                    aria-label='Close Help'
                 >
                     <svg
                         className='h-4 w-4 text-gray-600'

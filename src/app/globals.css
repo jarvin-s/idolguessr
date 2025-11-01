@@ -110,3 +110,19 @@ body {
 .modal-fade-in {
     animation: fadeInScale 0.3s ease-out;
 }
+
+/* Float up animation for -1 when skipping */
+@keyframes float-up {
+    0% {
+        transform: translate(50%, 0) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(50%, -30px) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(50%, -60px) scale(0.8);
+        opacity: 0;
+    }
+}

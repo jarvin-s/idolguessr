@@ -25,6 +25,8 @@ interface WinModalProps {
         maxStreak: number
     }
     guessDistribution: number[]
+    gameMode?: 'daily' | 'unlimited'
+    onNextUnlimited?: () => void
 }
 
 export default function WinModal({
@@ -38,8 +40,9 @@ export default function WinModal({
     guessAttempts,
     stats,
     guessDistribution,
+    gameMode = 'daily',
+    onNextUnlimited,
 }: WinModalProps) {
-    // Prevent body scroll when modal is open
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden'
@@ -57,7 +60,7 @@ export default function WinModal({
     const maxGuessCount = Math.max(...guessDistribution, 1)
 
     return (
-        <div className='fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50'>
+        <div className='fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/50'>
             {/* Modal Content */}
             <div
                 className={`win-modal-slide relative w-full max-w-md bg-white shadow-xl sm:my-8 sm:rounded-2xl ${
@@ -126,17 +129,27 @@ export default function WinModal({
                         </div>
                     </div>
 
-                    {/* Share Button */}
-                    <ShareButton
-                        correctAnswer={idolName}
-                        guessCount={guessCount}
-                        pixelatedImageSrc={pixelatedImageUrl}
-                        isWin={isWin}
-                        className='mb-4'
-                    />
+                    {gameMode === 'daily' ? (
+                        <ShareButton
+                            correctAnswer={idolName}
+                            guessCount={guessCount}
+                            pixelatedImageSrc={pixelatedImageUrl}
+                            isWin={isWin}
+                            className='mb-4'
+                        />
+                    ) : (
+                        <button
+                            onClick={() => {
+                                onClose()
+                                onNextUnlimited?.()
+                            }}
+                            className='mb-4 w-full cursor-pointer rounded-lg bg-green-400 py-3 text-base font-bold text-white transition-colors hover:bg-green-400/60'
+                        >
+                            NEXT IDOL
+                        </button>
+                    )}
 
-                    {/* Guess Attempts Recap */}
-                    {guessAttempts.length > 0 && (
+                    {gameMode === 'daily' && guessAttempts.length > 0 && (
                         <div className='mb-4 w-full'>
                             <div className='space-y-2'>
                                 {guessAttempts.map((attempt, index) => {
@@ -148,8 +161,8 @@ export default function WinModal({
                                             key={index}
                                             className={`flex items-center justify-between rounded-lg px-4 py-3 ${
                                                 isCorrectGuess
-                                                    ? 'bg-green-50 border border-green-200'
-                                                    : 'bg-gray-50 border border-gray-200'
+                                                    ? 'border border-green-200 bg-green-50'
+                                                    : 'border border-red-200 bg-red-50'
                                             }`}
                                         >
                                             <div className='flex items-center gap-3'>
@@ -160,7 +173,7 @@ export default function WinModal({
                                                     className={`${proximaNovaBold.className} font-bold ${
                                                         isCorrectGuess
                                                             ? 'text-green-600'
-                                                            : 'text-gray-400'
+                                                            : 'text-red-400'
                                                     }`}
                                                 >
                                                     {attempt}
@@ -171,7 +184,7 @@ export default function WinModal({
                                                     ✓
                                                 </span>
                                             ) : (
-                                                <span className='text-gray-400'>
+                                                <span className='text-red-400'>
                                                     ✕
                                                 </span>
                                             )}
@@ -182,92 +195,92 @@ export default function WinModal({
                         </div>
                     )}
 
-                    {/* Divider */}
-                    <div className='mb-8 w-full border-t border-gray-200' />
+                    {gameMode === 'daily' && (
+                        <>
+                            <div className='mb-8 w-full border-t border-gray-200' />
 
-                    {/* Statistics Section */}
-                    <div className='mb-8 w-full'>
-                        <h2
-                            className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
-                        >
-                            STATISTICS
-                        </h2>
+                            <div className='mb-8 w-full'>
+                                <h2
+                                    className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
+                                >
+                                    STATISTICS
+                                </h2>
 
-                        {/* Stats Grid */}
-                        <div className='mb-3 grid grid-cols-4 gap-4 text-center'>
-                            <div>
-                                <div className='text-3xl font-bold text-black mb-2.5'>
-                                    {stats.gamesPlayed}
-                                </div>
-                                <div className='text-sm text-gray-500 leading-none'>
-                                    Played
-                                </div>
-                            </div>
-                            <div>
-                                <div className='text-3xl font-bold text-black mb-2.5'>
-                                    {stats.winPercentage}%
-                                </div>
-                                <div className='text-sm text-gray-500 leading-none'>
-                                    Win %
-                                </div>
-                            </div>
-                            <div>
-                                <div className='text-3xl font-bold text-black mb-2.5'>
-                                    {stats.currentStreak}
-                                </div>
-                                <div className='text-sm text-gray-500 leading-none'>
-                                    Current streak
-                                </div>
-                            </div>
-                            <div>
-                                <div className='text-3xl font-bold text-black mb-2.5'>
-                                    {stats.maxStreak}
-                                </div>
-                                <div className='text-sm text-gray-500 leading-none'>
-                                    Max streak
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Guess Distribution */}
-                    <div className='w-full'>
-                        <h2
-                            className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
-                        >
-                            GUESS DISTRIBUTION
-                        </h2>
-
-                        <div className='space-y-2'>
-                            {guessDistribution.map((count, index) => {
-                                const percentage =
-                                    maxGuessCount > 0
-                                        ? (count / maxGuessCount) * 100
-                                        : 0
-
-                                return (
-                                    <div
-                                        key={index}
-                                        className='flex items-center gap-2'
-                                    >
-                                        <div className='w-4 text-sm font-medium text-black'>
-                                            {index + 1}
+                                <div className='mb-3 grid grid-cols-4 gap-4 text-center'>
+                                    <div>
+                                        <div className='mb-2.5 text-3xl font-bold text-black'>
+                                            {stats.gamesPlayed}
                                         </div>
-                                        <div className='relative h-8 flex-1 overflow-hidden rounded-full bg-gray-200'>
-                                            <div
-                                                className='flex h-full items-center justify-end bg-green-400 px-2 text-sm font-bold text-white transition-all duration-500'
-                                                style={{
-                                                    width: `${Math.max(percentage, count > 0 ? 15 : 0)}%`,
-                                                }}
-                                            >
-                                                {count > 0 && count}
-                                            </div>
+                                        <div className='text-sm leading-none text-gray-500'>
+                                            Played
                                         </div>
                                     </div>
-                                )
-                            })}
-                        </div>
-                    </div>
+                                    <div>
+                                        <div className='mb-2.5 text-3xl font-bold text-black'>
+                                            {stats.winPercentage}%
+                                        </div>
+                                        <div className='text-sm leading-none text-gray-500'>
+                                            Win %
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className='mb-2.5 text-3xl font-bold text-black'>
+                                            {stats.currentStreak}
+                                        </div>
+                                        <div className='text-sm leading-none text-gray-500'>
+                                            Current streak
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className='mb-2.5 text-3xl font-bold text-black'>
+                                            {stats.maxStreak}
+                                        </div>
+                                        <div className='text-sm leading-none text-gray-500'>
+                                            Max streak
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className='w-full'>
+                                <h2
+                                    className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
+                                >
+                                    GUESS DISTRIBUTION
+                                </h2>
+
+                                <div className='space-y-2'>
+                                    {guessDistribution.map((count, index) => {
+                                        const percentage =
+                                            maxGuessCount > 0
+                                                ? (count / maxGuessCount) * 100
+                                                : 0
+
+                                        return (
+                                            <div
+                                                key={index}
+                                                className='flex items-center gap-2'
+                                            >
+                                                <div className='w-4 text-sm font-medium text-black'>
+                                                    {index + 1}
+                                                </div>
+                                                <div className='relative h-8 flex-1 overflow-hidden rounded-full bg-gray-200'>
+                                                    <div
+                                                        className='flex h-full items-center justify-end bg-green-400 px-2 text-sm font-bold text-white transition-all duration-500'
+                                                        style={{
+                                                            width: `${Math.max(percentage, count > 0 ? 15 : 0)}%`,
+                                                        }}
+                                                    >
+                                                        {count > 0 && count}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

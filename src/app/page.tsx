@@ -5,15 +5,41 @@ import Confetti from 'react-confetti'
 import OnScreenKeyboard from '@/components/OnScreenKeyboard'
 import GameHeader from '@/components/GameHeader'
 import GameImage from '@/components/GameImage'
-import GuessIndicators from '@/components/GuessIndicators'
+import GuessInput from '@/components/GuessInput'
 import StatsModal from '@/components/StatsModal'
 import HelpModal from '@/components/HelpModal'
 import FeedbackModal from '@/components/FeedbackModal'
 import WinModal from '@/components/WinModal'
-import { getDailyImage, type DailyImage as DailyRow, getImageUrl, trackGuess, resetGuessTimer } from '@/lib/supabase'
+import {
+    getDailyImage,
+    getMultipleRandomUnlimitedImages,
+    type DailyImage as DailyRow,
+    getImageUrl,
+    trackGuess,
+    trackUnlimitedGame,
+    resetGuessTimer,
+    addSeenIdol,
+    clearSeenIdols,
+} from '@/lib/supabase'
 import { useGameProgress } from '@/hooks/useGameProgress'
+import { useUnlimitedStats } from '@/components/UserStats'
+
+function encodeIdolName(name: string): string {
+    const reversed = name.split('').reverse().join('')
+    return btoa(reversed)
+}
+
+function decodeIdolName(encoded: string): string {
+    try {
+        const decoded = atob(encoded)
+        return decoded.split('').reverse().join('')
+    } catch {
+        return ''
+    }
+}
 
 export default function Home() {
+    const [gameMode, setGameMode] = useState<'daily' | 'unlimited'>('daily')
     const [currentGuess, setCurrentGuess] = useState('')
     const [lastIncorrectGuess, setLastIncorrectGuess] = useState('')
     const [dailyImage, setDailyImage] = useState<DailyRow | null>(null)
@@ -29,6 +55,17 @@ export default function Home() {
         width: 0,
         height: 0,
     })
+    const [prefetchedImages, setPrefetchedImages] = useState<DailyRow[]>([])
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
+    const [showStreakPopup, setShowStreakPopup] = useState(false)
+    const [streakMilestone, setStreakMilestone] = useState(0)
+    const lastStreakMilestoneRef = useRef(0)
+    const [showGameOver, setShowGameOver] = useState(false)
+    const isSwitchingModeRef = useRef(false)
+    const [skipsRemaining, setSkipsRemaining] = useState(3)
+    const [hintUsed, setHintUsed] = useState(false)
+    const [hintUsedOnIdol, setHintUsedOnIdol] = useState<string | null>(null)
+    const hasTrackedCurrentGame = useRef(false)
 
     const {
         guesses,
@@ -47,6 +84,8 @@ export default function Home() {
         saveGuessAttempt,
         loadGuessAttempts,
     } = useGameProgress(dailyImage, correctAnswer)
+
+    const unlimitedStats = useUnlimitedStats()
 
     const [timer, setTimer] = useState('00:00:00')
     const serverOffsetRef = useRef<number>(0)
@@ -137,50 +176,522 @@ export default function Home() {
         scheduleCountdownAndFlip(row.end_at)
     }, [scheduleCountdownAndFlip])
 
+    const loadUnlimitedRef = useRef(false)
+
+    const loadUnlimited = useCallback(async () => {
+        if (loadUnlimitedRef.current) return
+        loadUnlimitedRef.current = true
+
+        const currentStreak = unlimitedStats.stats.currentStreak
+        const milestones = [1, 10, 25, 50, 75, 100]
+        const lastMilestone =
+            milestones.filter((m) => m <= currentStreak).pop() || 0
+        lastStreakMilestoneRef.current = lastMilestone
+
+        const savedGameState = unlimitedStats.loadGameState()
+
+        if (savedGameState) {
+            // Validate saved game state has all required fields
+            const isValidSavedState =
+                savedGameState.encodedIdolName &&
+                savedGameState.groupCategory &&
+                savedGameState.base64Group
+
+            if (!isValidSavedState) {
+                console.warn(
+                    '[loadUnlimited] Invalid saved game state detected, clearing and starting fresh:',
+                    {
+                        hasEncodedName: !!savedGameState.encodedIdolName,
+                        hasGroupCategory: !!savedGameState.groupCategory,
+                        hasBase64Group: !!savedGameState.base64Group,
+                    }
+                )
+                unlimitedStats.clearGameState()
+                const newImages = await getMultipleRandomUnlimitedImages(5)
+                setIsLoading(false)
+
+                if (newImages.length > 0) {
+                    setPrefetchedImages(newImages)
+                    setCurrentImageIndex(1)
+                    setDailyImage(newImages[0])
+                    setSkipsRemaining(3) // Reset skips for new game
+                    setHintUsed(false) // Reset hint for new game
+                    setHintUsedOnIdol(null)
+                    if (newImages[0].name)
+                        setCorrectAnswer(newImages[0].name.toUpperCase())
+                    if (newImages[0].img_bucket) {
+                        addSeenIdol(newImages[0].img_bucket)
+                    }
+                }
+                loadUnlimitedRef.current = false
+                return
+            }
+
+            const decodedName = decodeIdolName(savedGameState.encodedIdolName)
+
+            const savedImage: DailyRow = {
+                id: 0,
+                name: decodedName,
+                group_type: savedGameState.groupType,
+                img_bucket: savedGameState.imgBucket,
+                group_category: savedGameState.groupCategory,
+                base64_group: savedGameState.base64Group,
+                base64_idol: savedGameState.base64Idol,
+                group_name: savedGameState.groupName,
+            }
+
+            setDailyImage(savedImage)
+            setCorrectAnswer(decodedName.toUpperCase())
+            setGuesses(savedGameState.guesses)
+            setHintUsed(savedGameState.hintUsed || false)
+            setHintUsedOnIdol(savedGameState.hintUsedOnIdol || null)
+            setSkipsRemaining(savedGameState.skipsRemaining ?? 3)
+
+            const hasWon = savedGameState.guesses.includes('correct')
+            const hasLost =
+                savedGameState.guesses.filter((g) => g === 'incorrect')
+                    .length === 6
+            setGameWon(hasWon)
+            setGameLost(hasLost)
+
+            setCurrentGuess('')
+            setLastIncorrectGuess('')
+            setIsAnimating(false)
+            setShowConfetti(false)
+            setShowWinModal(false)
+            setIsLoading(false)
+
+            if (
+                savedGameState.prefetchedImages &&
+                savedGameState.prefetchedImages.length > 0
+            ) {
+                // Validate that ALL prefetched images have required fields
+                const allImagesValid = savedGameState.prefetchedImages.every(
+                    (img) => img.group_category && img.base64_group
+                )
+
+                if (allImagesValid) {
+                    // console.log(
+                    //     '♻️ Restored prefetch pool from saved state:',
+                    //     savedGameState.prefetchedImages.length,
+                    //     'idols'
+                    // )
+                    setPrefetchedImages(savedGameState.prefetchedImages)
+                    setCurrentImageIndex(savedGameState.currentImageIndex || 0)
+                } else {
+                    console.warn(
+                        '⚠️ Saved prefetch pool has invalid images, fetching fresh...'
+                    )
+                    getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                        setPrefetchedImages(newImages)
+                        setCurrentImageIndex(0)
+                        newImages.forEach((img) => {
+                            if (img.img_bucket) addSeenIdol(img.img_bucket)
+                        })
+                    })
+                }
+            } else {
+                // console.log('🔄 No saved prefetch pool, fetching fresh...')
+                getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                    setPrefetchedImages(newImages)
+                    setCurrentImageIndex(0)
+                    newImages.forEach((img) => {
+                        if (img.img_bucket) addSeenIdol(img.img_bucket)
+                    })
+                })
+            }
+        } else {
+            setIsLoading(true)
+            const newImages = await getMultipleRandomUnlimitedImages(5)
+            setIsLoading(false)
+
+            if (newImages.length > 0) {
+                setPrefetchedImages(newImages)
+                setCurrentImageIndex(1)
+                setDailyImage(newImages[0])
+                setSkipsRemaining(3) // Reset skips for fresh game
+                setHintUsed(false) // Reset hint for fresh game
+                setHintUsedOnIdol(null)
+                if (newImages[0].name)
+                    setCorrectAnswer(newImages[0].name.toUpperCase())
+                // Mark all prefetched idols as seen immediately
+                newImages.forEach((img) => {
+                    if (img.img_bucket) addSeenIdol(img.img_bucket)
+                })
+            }
+        }
+
+        loadUnlimitedRef.current = false
+    }, [
+        unlimitedStats,
+        setGuesses,
+        setGameWon,
+        setGameLost,
+        setCurrentGuess,
+        setLastIncorrectGuess,
+        setIsAnimating,
+        setShowConfetti,
+        setShowWinModal,
+    ])
+
+    const handleGameModeChange = useCallback(
+        (mode: 'daily' | 'unlimited') => {
+            if (mode === gameMode) return
+
+            // CRITICAL: Prevent multiple simultaneous mode switches
+            if (isSwitchingModeRef.current) {
+                // console.log('[Mode Switch] Already switching, ignoring request')
+                return
+            }
+
+            isSwitchingModeRef.current = true
+
+            if (
+                gameMode === 'unlimited' &&
+                dailyImage &&
+                !gameWon &&
+                !gameLost
+            ) {
+                unlimitedStats.saveGameState({
+                    groupType: dailyImage.group_type,
+                    imgBucket: dailyImage.img_bucket,
+                    groupCategory: dailyImage.group_category,
+                    base64Group: dailyImage.base64_group,
+                    base64Idol: dailyImage.base64_idol,
+                    encodedIdolName: encodeIdolName(dailyImage.name || ''),
+                    groupName: dailyImage.group_name,
+                    hintUsed: hintUsed,
+                    hintUsedOnIdol: hintUsedOnIdol || undefined,
+                    skipsRemaining: skipsRemaining,
+                    guesses: guesses,
+                    savedAt: new Date().toISOString(),
+                    prefetchedImages: prefetchedImages,
+                    currentImageIndex: currentImageIndex,
+                })
+            }
+
+            localStorage.setItem('idol-guessr-game-mode', mode)
+
+            setDailyImage(null)
+            setIsLoading(true)
+
+            setTimeout(() => {
+                setGameMode(mode)
+            }, 0)
+
+            if (mode === 'daily') {
+                setCurrentGuess('')
+                setLastIncorrectGuess('')
+                setGuesses([
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                    'empty',
+                ])
+                setIsAnimating(false)
+                setShowConfetti(false)
+                setGameWon(false)
+                setGameLost(false)
+                setShowWinModal(false)
+                setShowGameOver(false) // Clear game over modal when switching to daily
+                void loadCurrent()
+            } else {
+                clearTimers()
+                setPrefetchedImages([])
+                setCurrentImageIndex(0)
+                loadUnlimitedRef.current = false
+                lastStreakMilestoneRef.current = 0
+                void loadUnlimited()
+            }
+        },
+        [
+            gameMode,
+            loadCurrent,
+            loadUnlimited,
+            clearTimers,
+            setGuesses,
+            setGameWon,
+            setGameLost,
+            dailyImage,
+            guesses,
+            gameWon,
+            gameLost,
+            unlimitedStats,
+            prefetchedImages,
+            currentImageIndex,
+            hintUsed,
+            hintUsedOnIdol,
+            skipsRemaining,
+        ]
+    )
+
+    const loadNextUnlimited = useCallback(
+        (overrideSkipsRemaining?: number) => {
+            if (!gameWon && !gameLost) {
+                const hasGuesses = guesses.some(
+                    (g) => g === 'incorrect' || g === 'correct'
+                )
+                if (hasGuesses) {
+                    const currentStreak = unlimitedStats.stats.currentStreak
+
+                    if (
+                        currentStreak >= 1 &&
+                        dailyImage?.id &&
+                        !hasTrackedCurrentGame.current
+                    ) {
+                        const guessCount = guesses.filter(
+                            (g) => g === 'incorrect' || g === 'correct'
+                        ).length
+                        void trackUnlimitedGame(
+                            dailyImage.id,
+                            guessCount,
+                            currentStreak
+                        )
+                        hasTrackedCurrentGame.current = true
+                    }
+
+                    unlimitedStats.updateStats(false, true)
+                }
+                lastStreakMilestoneRef.current = 0
+            }
+
+            hasTrackedCurrentGame.current = false
+
+            setCurrentGuess('')
+            setLastIncorrectGuess('')
+            const freshGuesses: Array<'correct' | 'incorrect' | 'empty'> = [
+                'empty',
+                'empty',
+                'empty',
+                'empty',
+                'empty',
+                'empty',
+            ]
+            setGuesses(freshGuesses)
+            setIsAnimating(false)
+            setShowConfetti(false)
+            setGameWon(false)
+            setGameLost(false)
+            setShowWinModal(false)
+            resetGuessTimer()
+
+            if (prefetchedImages.length > currentImageIndex) {
+                const row = prefetchedImages[currentImageIndex]
+                const nextImageIndex = currentImageIndex + 1
+                setDailyImage(row)
+                if (row.name) setCorrectAnswer(row.name.toUpperCase())
+                setCurrentImageIndex(nextImageIndex)
+
+                unlimitedStats.saveGameState({
+                    groupType: row.group_type,
+                    imgBucket: row.img_bucket,
+                    groupCategory: row.group_category,
+                    base64Group: row.base64_group,
+                    base64Idol: row.base64_idol,
+                    encodedIdolName: encodeIdolName(row.name || ''),
+                    groupName: row.group_name,
+                    hintUsed: hintUsed,
+                    hintUsedOnIdol: hintUsedOnIdol || undefined,
+                    skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
+                    guesses: freshGuesses,
+                    savedAt: new Date().toISOString(),
+                    prefetchedImages: prefetchedImages,
+                    currentImageIndex: nextImageIndex,
+                })
+
+                if (prefetchedImages.length > nextImageIndex) {
+                    const nextRow = prefetchedImages[nextImageIndex]
+                    if (nextRow) {
+                        // Preload all 6 images for the next idol
+                        const imagesToPreload = [1, 2, 3, 4, 5, 'clear'].map(
+                            (num) =>
+                                getImageUrl(
+                                    nextRow.group_type,
+                                    nextRow.img_bucket,
+                                    num as number | 'clear',
+                                    'unlimited',
+                                    nextRow.group_category,
+                                    nextRow.base64_group
+                                )
+                        )
+
+                        // Preload images in background
+                        imagesToPreload.forEach((url) => {
+                            const img = new window.Image()
+                            img.src = url
+                        })
+                    }
+                }
+
+                // Fetch more idols when running low
+                if (nextImageIndex >= prefetchedImages.length - 2) {
+                    getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                        setPrefetchedImages((prev) => [...prev, ...newImages])
+                        // Mark all prefetched idols as seen immediately
+                        newImages.forEach((img) => {
+                            if (img.img_bucket) addSeenIdol(img.img_bucket)
+                        })
+                    })
+                }
+            } else {
+                // No more prefetched images - fetch more and retry
+                // console.log(
+                //     '[loadNextUnlimited] Out of prefetched images, fetching more...'
+                // )
+                getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                    if (newImages.length > 0) {
+                        const updatedPrefetched = [
+                            ...prefetchedImages,
+                            ...newImages,
+                        ]
+                        setPrefetchedImages(updatedPrefetched)
+                        // Now load the first new image
+                        const row = newImages[0]
+                        const nextImageIndex = prefetchedImages.length
+                        setDailyImage(row)
+                        if (row.name) setCorrectAnswer(row.name.toUpperCase())
+                        setCurrentImageIndex(nextImageIndex + 1)
+
+                        unlimitedStats.saveGameState({
+                            groupType: row.group_type,
+                            imgBucket: row.img_bucket,
+                            groupCategory: row.group_category,
+                            base64Group: row.base64_group,
+                            base64Idol: row.base64_idol,
+                            encodedIdolName: encodeIdolName(row.name || ''),
+                            groupName: row.group_name,
+                            hintUsed: hintUsed,
+                            hintUsedOnIdol: hintUsedOnIdol || undefined,
+                            skipsRemaining:
+                                overrideSkipsRemaining ?? skipsRemaining,
+                            guesses: freshGuesses,
+                            savedAt: new Date().toISOString(),
+                            prefetchedImages: updatedPrefetched,
+                            currentImageIndex: nextImageIndex + 1,
+                        })
+
+                        // Mark new images as seen
+                        newImages.forEach((img) => {
+                            if (img.img_bucket) addSeenIdol(img.img_bucket)
+                        })
+                    }
+                })
+            }
+        },
+        [
+            prefetchedImages,
+            currentImageIndex,
+            setGuesses,
+            setGameWon,
+            setGameLost,
+            unlimitedStats,
+            gameWon,
+            gameLost,
+            guesses,
+            hintUsed,
+            hintUsedOnIdol,
+            skipsRemaining,
+            dailyImage,
+        ]
+    )
+
+    const handlePlayAgain = useCallback(() => {
+        setShowGameOver(false)
+        setSkipsRemaining(3)
+        setHintUsed(false)
+        setHintUsedOnIdol(null)
+        loadNextUnlimited()
+    }, [loadNextUnlimited])
+
+    const handleSkip = useCallback(() => {
+        if (skipsRemaining > 0) {
+            const newSkipsRemaining = skipsRemaining - 1
+            setSkipsRemaining(newSkipsRemaining)
+            loadNextUnlimited(newSkipsRemaining)
+        }
+    }, [skipsRemaining, loadNextUnlimited])
+
     const handleKeyPress = useCallback(
         (key: string) => {
-            if (todayCompleted) return
+            if (gameMode === 'daily' && todayCompleted) return
 
-        if (key === 'ENTER') {
+            if (key === 'ENTER') {
                 if (
                     currentGuess.trim() &&
                     guesses.some((g) => g === 'empty') &&
-                    !isAnimating
+                    !isAnimating &&
+                    !gameWon &&
+                    !gameLost
                 ) {
                     const normalizedGuess = currentGuess.toUpperCase().trim()
                     const isCorrect = normalizedGuess === correctAnswer
                     const guessNumber = 6 - remainingGuesses + 1
 
-                    // Save the guess attempt to localStorage
-                    saveGuessAttempt(normalizedGuess)
+                    if (gameMode === 'daily') {
+                        saveGuessAttempt(normalizedGuess)
 
-                    if (dailyImage?.id) {
-                        void trackGuess(
-                            dailyImage.id,
-                            normalizedGuess,
-                            isCorrect,
-                            guessNumber
-                        )
+                        if (dailyImage?.id) {
+                            void trackGuess(
+                                dailyImage.id,
+                                normalizedGuess,
+                                isCorrect,
+                                guessNumber
+                            )
+                        }
                     }
 
                     setIsAnimating(true)
 
                     if (!isCorrect) {
-                        // Save the incorrect guess to display it
                         setLastIncorrectGuess(normalizedGuess)
-                        
-                        // Clear current guess immediately so lastIncorrectGuess shows
+
                         setCurrentGuess('')
-                        
-                        // Wait for shake animation to complete (500ms)
+
+                        const emptyIndex = guesses.findIndex(
+                            (g) => g === 'empty'
+                        )
+                        const newGuesses = [...guesses]
+                        newGuesses[emptyIndex] = 'incorrect'
+
+                        const remainingAfterThis = newGuesses.filter(
+                            (g) => g === 'empty'
+                        ).length
+
+                        if (
+                            gameMode === 'unlimited' &&
+                            dailyImage &&
+                            remainingAfterThis > 0
+                        ) {
+                            unlimitedStats.saveGameState({
+                                groupType: dailyImage.group_type,
+                                imgBucket: dailyImage.img_bucket,
+                                groupCategory: dailyImage.group_category,
+                                base64Group: dailyImage.base64_group,
+                                base64Idol: dailyImage.base64_idol,
+                                encodedIdolName: encodeIdolName(
+                                    dailyImage.name || ''
+                                ),
+                                groupName: dailyImage.group_name,
+                                hintUsed: hintUsed,
+                                hintUsedOnIdol: hintUsedOnIdol || undefined,
+                                skipsRemaining: skipsRemaining,
+                                guesses: newGuesses,
+                                savedAt: new Date().toISOString(),
+                                prefetchedImages: prefetchedImages,
+                                currentImageIndex: currentImageIndex,
+                            })
+                        }
+
                         setTimeout(() => {
                             setIsAnimating(false)
 
-                            const emptyIndex = guesses.findIndex(
-                                (g) => g === 'empty'
-                            )
                             setGuesses((prev) => {
                                 const newGuesses = [...prev]
+                                const emptyIndex = newGuesses.findIndex(
+                                    (g) => g === 'empty'
+                                )
                                 newGuesses[emptyIndex] = 'incorrect'
 
                                 const remainingAfterThis = newGuesses.filter(
@@ -189,14 +700,46 @@ export default function Home() {
                                 if (remainingAfterThis === 0) {
                                     setTimeout(() => {
                                         setGameLost(true)
-                                        handleGameLoss()
-                                        
-                                        setTimeout(() => {
-                                            setShowWinModal(true)
-                                        }, 2000)
+
+                                        if (gameMode === 'daily') {
+                                            handleGameLoss()
+                                            setTimeout(() => {
+                                                setShowWinModal(true)
+                                            }, 2000)
+                                        } else {
+                                            const currentStreak =
+                                                unlimitedStats.stats
+                                                    .currentStreak
+
+                                            // Only track game if user had a streak (won at least once)
+                                            if (
+                                                currentStreak >= 1 &&
+                                                dailyImage?.id &&
+                                                !hasTrackedCurrentGame.current
+                                            ) {
+                                                const guessCount = 6 // They used all guesses
+                                                void trackUnlimitedGame(
+                                                    dailyImage.id,
+                                                    guessCount,
+                                                    currentStreak
+                                                )
+                                                hasTrackedCurrentGame.current =
+                                                    true
+                                            }
+
+                                            unlimitedStats.updateStats(
+                                                false,
+                                                true
+                                            )
+                                            unlimitedStats.clearGameState()
+                                            lastStreakMilestoneRef.current = 0
+                                            clearSeenIdols()
+                                        }
                                     }, 300)
                                 } else {
-                                    saveProgress(newGuesses)
+                                    if (gameMode === 'daily') {
+                                        saveProgress(newGuesses)
+                                    }
                                 }
 
                                 return newGuesses
@@ -208,39 +751,54 @@ export default function Home() {
                         )
 
                         setGameWon(true)
-                        setShowConfetti(true)
+                        if (gameMode === 'daily') {
+                            setShowConfetti(true)
+                        }
                         setIsAnimating(false)
+                        setCurrentGuess('')
                         setGuesses((prev) => {
                             const newGuesses = [...prev]
                             newGuesses[emptyIndex] = 'correct'
                             return newGuesses
                         })
 
-                        handleGameWin(guessNumber)
+                        if (gameMode === 'daily') {
+                            handleGameWin(guessNumber)
+                            setTimeout(() => {
+                                setShowWinModal(true)
+                            }, 2000)
+                        } else {
+                            const currentStreak =
+                                unlimitedStats.stats.currentStreak
+                            const newStreak = currentStreak + 1
 
-                        setTimeout(() => {
-                            setShowWinModal(true)
-                        }, 2000)
+                            if (newStreak % 5 === 0) {
+                                setStreakMilestone(newStreak)
+                                setShowStreakPopup(true)
+                            }
+
+                            unlimitedStats.updateStats(true, false)
+                            unlimitedStats.clearGameState()
+                        }
                     }
                 }
-        } else if (key === '✕') {
+            } else if (key === '✕') {
                 if (!gameWon && !gameLost) {
-            setCurrentGuess((prev) => prev.slice(0, -1))
+                    setCurrentGuess((prev) => prev.slice(0, -1))
                 }
-        } else {
+            } else {
                 if (
                     guesses.some((g) => g === 'empty') &&
                     !isAnimating &&
                     !gameWon &&
                     !gameLost
                 ) {
-            // Clear the last incorrect guess when starting to type a new guess
-            if (lastIncorrectGuess) {
-                setLastIncorrectGuess('')
+                    if (lastIncorrectGuess) {
+                        setLastIncorrectGuess('')
+                    }
+                    setCurrentGuess((prev) => prev + key)
+                }
             }
-            setCurrentGuess((prev) => prev + key)
-        }
-    }
         },
         [
             currentGuess,
@@ -260,6 +818,13 @@ export default function Home() {
             dailyImage,
             saveGuessAttempt,
             lastIncorrectGuess,
+            gameMode,
+            unlimitedStats,
+            prefetchedImages,
+            currentImageIndex,
+            hintUsed,
+            hintUsedOnIdol,
+            skipsRemaining,
         ]
     )
 
@@ -295,14 +860,57 @@ export default function Home() {
             window.removeEventListener('keydown', handlePhysicalKeyPress)
     }, [handleKeyPress])
 
+    const gameModeRef = useRef(gameMode)
+    gameModeRef.current = gameMode
+    const hasLoadedInitialRef = useRef(false)
+
     useEffect(() => {
-        let mounted = true
-        ;(async () => mounted && (await loadCurrent()))()
-        const onFocus = () => {
-            void loadCurrent()
+        const savedMode = localStorage.getItem('idol-guessr-game-mode')
+        if (savedMode === 'unlimited') {
+            setGameMode('unlimited')
+        } else {
+            hasLoadedInitialRef.current = true
         }
-        window.addEventListener('focus', onFocus)
-        document.addEventListener('visibilitychange', onFocus)
+    }, [])
+
+    useEffect(() => {
+        if (!hasLoadedInitialRef.current && gameMode === 'daily') {
+            return
+        }
+        hasLoadedInitialRef.current = true
+
+        let mounted = true
+        const loadGame = async () => {
+            if (!mounted) return
+
+            setDailyImage(null)
+            setIsLoading(true)
+
+            if (gameMode === 'daily') {
+                await loadCurrent()
+            } else {
+                await loadUnlimited()
+            }
+
+            if (isSwitchingModeRef.current) {
+                setTimeout(() => {
+                    isSwitchingModeRef.current = false
+                }, 100)
+            }
+        }
+        void loadGame()
+
+        const onFocus = () => {
+            if (gameModeRef.current === 'daily') {
+                void loadCurrent()
+            }
+        }
+
+        if (gameMode === 'daily') {
+            window.addEventListener('focus', onFocus)
+            document.addEventListener('visibilitychange', onFocus)
+        }
+
         resetGuessTimer()
         return () => {
             mounted = false
@@ -310,7 +918,8 @@ export default function Home() {
             window.removeEventListener('focus', onFocus)
             document.removeEventListener('visibilitychange', onFocus)
         }
-    }, [loadCurrent, clearTimers])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gameMode])
 
     useEffect(() => {
         const update = () =>
@@ -323,7 +932,6 @@ export default function Home() {
         return () => window.removeEventListener('resize', update)
     }, [])
 
-    // Auto-open help modal for first-time visitors
     useEffect(() => {
         try {
             const hasVisited = localStorage.getItem('idol-guessr-has-visited')
@@ -336,55 +944,234 @@ export default function Home() {
         }
     }, [])
 
-    // Auto-open win modal if game was already completed today (win or loss)
     useEffect(() => {
-        if (todayCompleted && todayCompletionData && statsLoaded) {
+        const handleEmergencyRecovery = () => {
+            //console.error(
+            //    '[Emergency Recovery] Invalid data detected, restoring from saved state...'
+            //)
+
+            if (gameMode === 'unlimited') {
+                const savedGameState = unlimitedStats.loadGameState()
+
+                const isValidSavedState =
+                    savedGameState &&
+                    savedGameState.encodedIdolName &&
+                    savedGameState.groupCategory &&
+                    savedGameState.base64Group
+
+                if (isValidSavedState) {
+                    // console.log(
+                    //     '[Emergency Recovery] Restoring saved unlimited game state:',
+                    //     savedGameState
+                    // )
+
+                    const decodedName = decodeIdolName(
+                        savedGameState.encodedIdolName
+                    )
+                    const savedImage: DailyRow = {
+                        id: 0,
+                        name: decodedName,
+                        group_type: savedGameState.groupType,
+                        img_bucket: savedGameState.imgBucket,
+                        group_category: savedGameState.groupCategory,
+                        base64_group: savedGameState.base64Group,
+                        base64_idol: savedGameState.base64Idol,
+                    }
+
+                    setDailyImage(savedImage)
+                    setCorrectAnswer(decodedName.toUpperCase())
+                    setGuesses(savedGameState.guesses)
+                    setIsLoading(false)
+
+                    // console.log(
+                    //     '[Emergency Recovery] Successfully restored game state!'
+                    // )
+                } else {
+                    console.error(
+                        '[Emergency Recovery] Invalid or missing saved state, clearing and re-triggering unlimited flow'
+                    )
+
+                    unlimitedStats.clearGameState()
+
+                    setDailyImage(null)
+                    setIsLoading(true)
+                    setGuesses([
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                        'empty',
+                    ])
+                    setGameWon(false)
+                    setGameLost(false)
+                    setCurrentGuess('')
+                    setLastIncorrectGuess('')
+
+                    void loadUnlimited()
+
+                    // console.log(
+                    //     '[Emergency Recovery] Re-triggered unlimited mode loading!'
+                    // )
+                }
+            }
+        }
+
+        window.addEventListener(
+            'idol-guessr-emergency-recovery',
+            handleEmergencyRecovery
+        )
+        return () =>
+            window.removeEventListener(
+                'idol-guessr-emergency-recovery',
+                handleEmergencyRecovery
+            )
+    }, [
+        gameMode,
+        unlimitedStats,
+        setGuesses,
+        setIsLoading,
+        loadUnlimited,
+        setGameWon,
+        setGameLost,
+    ])
+
+    useEffect(() => {
+        if (
+            gameMode === 'daily' &&
+            todayCompleted &&
+            todayCompletionData &&
+            statsLoaded
+        ) {
             setTimeout(() => {
                 setShowWinModal(true)
             }, 2000)
         }
-    }, [todayCompleted, todayCompletionData, statsLoaded])
+    }, [todayCompleted, todayCompletionData, statsLoaded, gameMode])
+
+    useEffect(() => {
+        if (gameMode === 'unlimited' && (gameWon || gameLost)) {
+            if (gameLost) {
+                const timer = setTimeout(() => {
+                    setShowGameOver(true)
+                }, 2000)
+                return () => clearTimeout(timer)
+            } else {
+                const delay = showStreakPopup ? 2400 : 2000
+                const timer = setTimeout(() => {
+                    loadNextUnlimited()
+                }, delay)
+                return () => clearTimeout(timer)
+            }
+        }
+    }, [gameMode, gameWon, gameLost, loadNextUnlimited, showStreakPopup])
 
     return (
-        <div className='fixed inset-0 flex flex-col overflow-hidden bg-white'>
-            <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:shadow-lg'>
+        <div className='fixed inset-0 flex flex-col overflow-hidden bg-white justify-center'>
+            <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-w-md sm:max-h-[900px] sm:border-1 sm:border-gray-200 sm:rounded-[15px] sm:shadow-lg'>
                 <GameHeader
                     timer={timer}
                     onShowStats={() => setShowStats(true)}
-                    onShowHelp={() => setShowHelp(true)}
+                    gameMode={gameMode}
+                    onGameModeChange={handleGameModeChange}
                 />
 
-                <div className='flex w-full flex-1 flex-col px-4 min-h-0'>
-                    <div className='flex w-full flex-1 flex-col items-center min-h-0'>
+                <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
+                    <div className='flex min-h-0 w-full flex-1 flex-col items-center'>
                         <GameImage
                             isLoading={isLoading}
                             dailyImage={dailyImage}
                             remainingGuesses={remainingGuesses}
-                            currentGuess={currentGuess}
-                            lastIncorrectGuess={lastIncorrectGuess}
-                            correctAnswer={correctAnswer}
                             gameWon={gameWon}
                             gameLost={gameLost}
-                            todayCompleted={todayCompleted}
-                            todayCompletionData={todayCompletionData}
-                            isAnimating={isAnimating}
+                            gameMode={gameMode}
+                            onPass={
+                                gameMode === 'unlimited' &&
+                                !gameWon &&
+                                !gameLost &&
+                                skipsRemaining > 0
+                                    ? handleSkip
+                                    : undefined
+                            }
+                            skipsRemaining={skipsRemaining}
+                            hintUsed={hintUsed}
+                            hintUsedOnIdol={hintUsedOnIdol}
+                            onHintUse={() => {
+                                setHintUsed(true)
+                                if (dailyImage?.img_bucket) {
+                                    setHintUsedOnIdol(dailyImage.img_bucket)
+                                }
+                                if (
+                                    gameMode === 'unlimited' &&
+                                    dailyImage &&
+                                    !gameWon &&
+                                    !gameLost
+                                ) {
+                                    unlimitedStats.saveGameState({
+                                        groupType: dailyImage.group_type,
+                                        imgBucket: dailyImage.img_bucket,
+                                        groupCategory: dailyImage.group_category,
+                                        base64Group: dailyImage.base64_group,
+                                        base64Idol: dailyImage.base64_idol,
+                                        encodedIdolName: encodeIdolName(
+                                            dailyImage.name || ''
+                                        ),
+                                        groupName: dailyImage.group_name,
+                                        hintUsed: true,
+                                        hintUsedOnIdol: dailyImage.img_bucket || undefined,
+                                        skipsRemaining: skipsRemaining,
+                                        guesses: guesses,
+                                        savedAt: new Date().toISOString(),
+                                        prefetchedImages: prefetchedImages,
+                                        currentImageIndex: currentImageIndex,
+                                    })
+                                }
+                            }}
+                            showStreakPopup={showStreakPopup}
+                            streakMilestone={streakMilestone}
+                            onStreakPopupComplete={() =>
+                                setShowStreakPopup(false)
+                            }
+                            currentStreak={
+                                gameMode === 'unlimited'
+                                    ? unlimitedStats.stats.currentStreak
+                                    : 0
+                            }
+                            showGameOver={showGameOver}
+                            highestStreak={unlimitedStats.stats.maxStreak}
+                            onPlayAgain={handlePlayAgain}
+                            guesses={guesses}
                         />
+                    </div>
 
-                        <GuessIndicators guesses={guesses} />
-            </div>
+                    <GuessInput
+                        currentGuess={currentGuess}
+                        correctAnswer={correctAnswer}
+                        gameWon={gameWon}
+                        gameLost={gameLost}
+                        lastIncorrectGuess={lastIncorrectGuess}
+                        isAnimating={isAnimating}
+                    />
 
                     <OnScreenKeyboard
                         onKeyPress={handleKeyPress}
                         className='flex-shrink-0 pb-4'
-                            />
-                        </div>
-                    </div>
+                    />
+                </div>
+            </div>
 
             <StatsModal
                 isOpen={showStats}
                 onClose={() => setShowStats(false)}
-                stats={stats}
-                statsLoaded={statsLoaded}
+                onShowHelp={() => {
+                    setShowStats(false)
+                    setShowHelp(true)
+                }}
+                stats={gameMode === 'daily' ? stats : unlimitedStats.stats}
+                statsLoaded={
+                    gameMode === 'daily' ? statsLoaded : unlimitedStats.isLoaded
+                }
+                gameMode={gameMode}
             />
 
             <HelpModal
@@ -405,45 +1192,69 @@ export default function Home() {
                 }}
             />
 
-            <WinModal
-                isOpen={showWinModal}
-                onClose={() => setShowWinModal(false)}
-                idolName={correctAnswer}
-                imageUrl={
-                    dailyImage
-                        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, 'clear')
-                        : ''
-                }
-                pixelatedImageUrl={
-                    dailyImage
-                        ? getImageUrl(dailyImage.group_type, dailyImage.img_bucket, 1)
-                        : ''
-                }
-                guessCount={
-                    todayCompletionData?.guessCount ||
-                    6 - guesses.filter((g) => g === 'empty').length
-                }
-                isWin={todayCompletionData ? todayCompletionData.won : gameWon}
-                guessAttempts={
-                    todayCompletionData?.guessAttempts || loadGuessAttempts()
-                }
-                stats={{
-                    gamesPlayed: stats.totalGames,
-                    winPercentage: stats.totalGames > 0 
-                        ? Math.round((stats.totalWins / stats.totalGames) * 100)
-                        : 0,
-                    currentStreak: stats.currentStreak,
-                    maxStreak: stats.maxStreak,
-                }}
-                guessDistribution={[
-                    stats.guessDistribution[1] || 0,
-                    stats.guessDistribution[2] || 0,
-                    stats.guessDistribution[3] || 0,
-                    stats.guessDistribution[4] || 0,
-                    stats.guessDistribution[5] || 0,
-                    stats.guessDistribution[6] || 0,
-                ]}
-            />
+            {gameMode === 'daily' && (
+                <WinModal
+                    isOpen={showWinModal}
+                    onClose={() => setShowWinModal(false)}
+                    idolName={correctAnswer}
+                    imageUrl={
+                        dailyImage
+                            ? getImageUrl(
+                                  dailyImage.group_type,
+                                  dailyImage.img_bucket,
+                                  'clear',
+                                  gameMode,
+                                  dailyImage.group_category,
+                                  dailyImage.base64_group
+                              )
+                            : ''
+                    }
+                    pixelatedImageUrl={
+                        dailyImage
+                            ? getImageUrl(
+                                  dailyImage.group_type,
+                                  dailyImage.img_bucket,
+                                  1,
+                                  gameMode,
+                                  dailyImage.group_category,
+                                  dailyImage.base64_group
+                              )
+                            : ''
+                    }
+                    guessCount={
+                        todayCompletionData?.guessCount ||
+                        6 - guesses.filter((g) => g === 'empty').length
+                    }
+                    isWin={
+                        todayCompletionData ? todayCompletionData.won : gameWon
+                    }
+                    guessAttempts={
+                        todayCompletionData?.guessAttempts ||
+                        loadGuessAttempts()
+                    }
+                    stats={{
+                        gamesPlayed: stats.totalGames,
+                        winPercentage:
+                            stats.totalGames > 0
+                                ? Math.round(
+                                      (stats.totalWins / stats.totalGames) * 100
+                                  )
+                                : 0,
+                        currentStreak: stats.currentStreak,
+                        maxStreak: stats.maxStreak,
+                    }}
+                    guessDistribution={[
+                        stats.guessDistribution[1] || 0,
+                        stats.guessDistribution[2] || 0,
+                        stats.guessDistribution[3] || 0,
+                        stats.guessDistribution[4] || 0,
+                        stats.guessDistribution[5] || 0,
+                        stats.guessDistribution[6] || 0,
+                    ]}
+                    gameMode={gameMode}
+                    onNextUnlimited={loadNextUnlimited}
+                />
+            )}
 
             {showConfetti && windowDimensions.width > 0 && (
                 <Confetti
