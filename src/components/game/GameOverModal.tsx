@@ -31,12 +31,8 @@ export default function GameOverModal({
                 isVisible ? 'opacity-100' : 'opacity-0'
             }`}
         >
-            {/* Dark overlay */}
             <div className='absolute inset-0 bg-black/70 backdrop-blur-md' />
-
-            {/* Content */}
             <div className='relative z-10 flex flex-col items-center gap-6 px-8'>
-                {/* Game Over Text */}
                 <div className='text-center'>
                     <h2 className='mb-4 text-6xl font-black text-white uppercase'>
                         Game Over
@@ -48,8 +44,6 @@ export default function GameOverModal({
                         </span>
                     </p>
                 </div>
-
-                {/* Play Again Button */}
                 <button
                     onClick={onPlayAgain}
                     className='pointer-events-auto mt-2 cursor-pointer rounded-xl bg-white px-6 py-3 text-lg font-bold text-black transition-transform hover:scale-105 active:scale-95'
@@ -60,3 +54,5 @@ export default function GameOverModal({
         </div>
     )
 }
+
+
