@@ -44,6 +44,7 @@ export interface UnlimitedGameState {
     base64Group?: string
     base64Idol?: string
     encodedIdolName: string
+    encodedAltName?: string
     groupName?: string
     hintUsed?: boolean
     hintUsedOnIdol?: string
@@ -53,6 +54,7 @@ export interface UnlimitedGameState {
     prefetchedImages?: Array<{
         id: number
         name: string
+        alt_name?: string
         group_type: string
         img_bucket: string
         group_category?: string

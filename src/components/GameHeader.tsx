@@ -1,10 +1,12 @@
 import Image from 'next/image'
+import { useState } from 'react'
+import FilterModal from './FilterModal'
 
 interface GameHeaderProps {
     timer: string
     onShowStats: () => void
     gameMode: 'daily' | 'unlimited'
-    onGameModeChange: (mode: 'daily' | 'unlimited') => void
+    onGameModeChange: (mode: 'daily' | 'unlimited', filter?: 'boy-group' | 'girl-group' | null) => void
 }
 
 const meshGradient =
@@ -16,77 +18,92 @@ export default function GameHeader({
     gameMode,
     onGameModeChange,
 }: GameHeaderProps) {
+    const [showFilterModal, setShowFilterModal] = useState(false)
+
     return (
-        <div className='flex w-full flex-shrink-0 flex-col gap-3 p-4'>
-            <div className='flex w-full items-center justify-between'>
-                <div className='flex items-center justify-start'>
-                    <Image
-                        src='/images/idolguessr-logo.png'
-                        alt='IdolGuessr Logo'
-                        width={150}
-                        height={50}
-                        className='h-10 w-auto'
-                    />
-                </div>
-
-                {gameMode === 'unlimited' && (
-                    <div className='flex items-center justify-end'>
-                        <div
-                            className='rounded-full px-3.5 py-1.5'
-                            style={{
-                                background: meshGradient,
-                            }}
-                        >
-                            <h1 className='font-bold text-sm text-white uppercase tracking-widest'>
-                                Infinite
-                            </h1>
-                        </div>
+        <>
+            <div className='flex w-full flex-shrink-0 flex-col gap-3 p-4'>
+                <div className='flex w-full items-center justify-between'>
+                    <div className='flex items-center justify-start'>
+                        <Image
+                            src='/images/idolguessr-logo.png'
+                            alt='IdolGuessr Logo'
+                            width={150}
+                            height={50}
+                            className='h-10 w-auto'
+                        />
                     </div>
-                )}
 
-                <div className='flex items-center gap-3'>
-                    {gameMode === 'daily' && (
-                        <div className='flex flex-col items-end text-right'>
-                            <div className='text-xs font-medium text-gray-400'>
-                                NEXT IDOL
-                            </div>
-                            <div className='font-mono text-lg leading-none font-bold text-black'>
-                                {timer}
+                    {gameMode === 'unlimited' && (
+                        <div className='flex items-center justify-end'>
+                            <div
+                                className='rounded-full px-3.5 py-1.5'
+                                style={{
+                                    background: meshGradient,
+                                }}
+                            >
+                                <h1 className='font-bold text-sm text-white uppercase tracking-widest'>
+                                    Infinite
+                                </h1>
                             </div>
                         </div>
                     )}
 
-                    <button
-                        onClick={onShowStats}
-                        className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
-                        aria-label='View Statistics'
-                    >
-                        <StatsIcon />
-                    </button>
+                    <div className='flex items-center gap-3'>
+                        {gameMode === 'daily' && (
+                            <div className='flex flex-col items-end text-right'>
+                                <div className='text-xs font-medium text-gray-400'>
+                                    NEXT IDOL
+                                </div>
+                                <div className='font-mono text-lg leading-none font-bold text-black'>
+                                    {timer}
+                                </div>
+                            </div>
+                        )}
 
-                    <button
-                        onClick={() =>
-                            onGameModeChange(
-                                gameMode === 'daily' ? 'unlimited' : 'daily'
-                            )
-                        }
-                        className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors'
-                        aria-label='View Game Mode'
-                        style={
-                            gameMode === 'daily'
-                                ? {
-                                      background: meshGradient,
-                                  }
-                                : {
-                                      background: 'black',
-                                  }
-                        }
-                    >
-                        <GameModeIcon gameMode={gameMode} />
-                    </button>
+                        <button
+                            onClick={onShowStats}
+                            className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+                            aria-label='View Statistics'
+                        >
+                            <StatsIcon />
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                if (gameMode === 'daily') {
+                                    setShowFilterModal(true)
+                                } else {
+                                    onGameModeChange('daily')
+                                }
+                            }}
+                            className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors'
+                            aria-label='View Game Mode'
+                            style={
+                                gameMode === 'daily'
+                                    ? {
+                                          background: meshGradient,
+                                      }
+                                    : {
+                                          background: 'black',
+                                      }
+                            }
+                        >
+                            <GameModeIcon gameMode={gameMode} />
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <FilterModal
+                isOpen={showFilterModal}
+                onClose={() => setShowFilterModal(false)}
+                onConfirm={(filter) => {
+                    setShowFilterModal(false)
+                    onGameModeChange('unlimited', filter)
+                }}
+            />
+        </>
     )
 }
 

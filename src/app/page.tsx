@@ -66,6 +66,7 @@ export default function Home() {
     const [hintUsed, setHintUsed] = useState(false)
     const [hintUsedOnIdol, setHintUsedOnIdol] = useState<string | null>(null)
     const hasTrackedCurrentGame = useRef(false)
+    const [groupFilter, setGroupFilter] = useState<'boy-group' | 'girl-group' | null>(null)
 
     const {
         guesses,
@@ -178,10 +179,11 @@ export default function Home() {
 
     const loadUnlimitedRef = useRef(false)
 
-    const loadUnlimited = useCallback(async () => {
+    const loadUnlimited = useCallback(async (filterOverride?: 'boy-group' | 'girl-group' | null) => {
         if (loadUnlimitedRef.current) return
         loadUnlimitedRef.current = true
 
+        const currentFilter = filterOverride !== undefined ? filterOverride : groupFilter
         const currentStreak = unlimitedStats.stats.currentStreak
         const milestones = [1, 10, 25, 50, 75, 100]
         const lastMilestone =
@@ -207,14 +209,14 @@ export default function Home() {
                     }
                 )
                 unlimitedStats.clearGameState()
-                const newImages = await getMultipleRandomUnlimitedImages(5)
+                const newImages = await getMultipleRandomUnlimitedImages(5, currentFilter)
                 setIsLoading(false)
 
                 if (newImages.length > 0) {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(1)
                     setDailyImage(newImages[0])
-                    setSkipsRemaining(3) // Reset skips for new game
+                    setSkipsRemaining(500) // Reset skips for new game
                     setHintUsed(false) // Reset hint for new game
                     setHintUsedOnIdol(null)
                     if (newImages[0].name)
@@ -228,16 +230,42 @@ export default function Home() {
             }
 
             const decodedName = decodeIdolName(savedGameState.encodedIdolName)
+            const decodedAltName = savedGameState.encodedAltName 
+                ? decodeIdolName(savedGameState.encodedAltName) 
+                : undefined
 
             const savedImage: DailyRow = {
                 id: 0,
                 name: decodedName,
+                alt_name: decodedAltName,
                 group_type: savedGameState.groupType,
                 img_bucket: savedGameState.imgBucket,
                 group_category: savedGameState.groupCategory,
                 base64_group: savedGameState.base64Group,
                 base64_idol: savedGameState.base64Idol,
                 group_name: savedGameState.groupName,
+            }
+
+            if (currentFilter && savedImage.group_category !== currentFilter) {
+                unlimitedStats.clearGameState()
+                const newImages = await getMultipleRandomUnlimitedImages(5, currentFilter)
+                setIsLoading(false)
+
+                if (newImages.length > 0) {
+                    setPrefetchedImages(newImages)
+                    setCurrentImageIndex(1)
+                    setDailyImage(newImages[0])
+                    setSkipsRemaining(500)
+                    setHintUsed(false)
+                    setHintUsedOnIdol(null)
+                    if (newImages[0].name)
+                        setCorrectAnswer(newImages[0].name.toUpperCase())
+                    if (newImages[0].img_bucket) {
+                        addSeenIdol(newImages[0].img_bucket)
+                    }
+                }
+                loadUnlimitedRef.current = false
+                return
             }
 
             setDailyImage(savedImage)
@@ -271,18 +299,29 @@ export default function Home() {
                 )
 
                 if (allImagesValid) {
-                    // console.log(
-                    //     '♻️ Restored prefetch pool from saved state:',
-                    //     savedGameState.prefetchedImages.length,
-                    //     'idols'
-                    // )
-                    setPrefetchedImages(savedGameState.prefetchedImages)
-                    setCurrentImageIndex(savedGameState.currentImageIndex || 0)
+                    const filteredPrefetched = currentFilter
+                        ? savedGameState.prefetchedImages.filter(
+                              (img) => img.group_category === currentFilter
+                          )
+                        : savedGameState.prefetchedImages
+
+                    if (filteredPrefetched.length > 0) {
+                        setPrefetchedImages(filteredPrefetched)
+                        setCurrentImageIndex(savedGameState.currentImageIndex || 0)
+                    } else {
+                        getMultipleRandomUnlimitedImages(5, currentFilter).then((newImages) => {
+                            setPrefetchedImages(newImages)
+                            setCurrentImageIndex(0)
+                            newImages.forEach((img) => {
+                                if (img.img_bucket) addSeenIdol(img.img_bucket)
+                            })
+                        })
+                    }
                 } else {
                     console.warn(
                         '⚠️ Saved prefetch pool has invalid images, fetching fresh...'
                     )
-                    getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                    getMultipleRandomUnlimitedImages(5, currentFilter).then((newImages) => {
                         setPrefetchedImages(newImages)
                         setCurrentImageIndex(0)
                         newImages.forEach((img) => {
@@ -292,7 +331,7 @@ export default function Home() {
                 }
             } else {
                 // console.log('🔄 No saved prefetch pool, fetching fresh...')
-                getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                getMultipleRandomUnlimitedImages(5, currentFilter).then((newImages) => {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(0)
                     newImages.forEach((img) => {
@@ -302,14 +341,14 @@ export default function Home() {
             }
         } else {
             setIsLoading(true)
-            const newImages = await getMultipleRandomUnlimitedImages(5)
+            const newImages = await getMultipleRandomUnlimitedImages(5, currentFilter)
             setIsLoading(false)
 
             if (newImages.length > 0) {
                 setPrefetchedImages(newImages)
                 setCurrentImageIndex(1)
                 setDailyImage(newImages[0])
-                setSkipsRemaining(3)
+                setSkipsRemaining(500)
                 setHintUsed(false)
                 setHintUsedOnIdol(null)
                 if (newImages[0].name)
@@ -331,10 +370,11 @@ export default function Home() {
         setIsAnimating,
         setShowConfetti,
         setShowWinModal,
+        groupFilter,
     ])
 
     const handleGameModeChange = useCallback(
-        (mode: 'daily' | 'unlimited') => {
+        (mode: 'daily' | 'unlimited', filter?: 'boy-group' | 'girl-group' | null) => {
             if (mode === gameMode) return
 
             // CRITICAL: Prevent multiple simultaneous mode switches
@@ -358,6 +398,9 @@ export default function Home() {
                     base64Group: dailyImage.base64_group,
                     base64Idol: dailyImage.base64_idol,
                     encodedIdolName: encodeIdolName(dailyImage.name || ''),
+                    encodedAltName: dailyImage.alt_name 
+                        ? encodeIdolName(dailyImage.alt_name) 
+                        : undefined,
                     groupName: dailyImage.group_name,
                     hintUsed: hintUsed,
                     hintUsedOnIdol: hintUsedOnIdol || undefined,
@@ -370,6 +413,15 @@ export default function Home() {
             }
 
             localStorage.setItem('idol-guessr-game-mode', mode)
+            
+            if (filter !== undefined) {
+                setGroupFilter(filter as 'boy-group' | 'girl-group' | null)
+                if (filter !== null) {
+                    localStorage.setItem('idol-guessr-group-filter', filter)
+                } else {
+                    localStorage.removeItem('idol-guessr-group-filter')
+                }
+            }
 
             setDailyImage(null)
             setIsLoading(true)
@@ -394,7 +446,7 @@ export default function Home() {
                 setGameWon(false)
                 setGameLost(false)
                 setShowWinModal(false)
-                setShowGameOver(false) // Clear game over modal when switching to daily
+                setShowGameOver(false)
                 void loadCurrent()
             } else {
                 clearTimers()
@@ -418,7 +470,7 @@ export default function Home() {
                 setGameLost(false)
                 setShowWinModal(false)
                 setShowGameOver(false)
-                void loadUnlimited()
+                void loadUnlimited(filter)
             }
         },
         [
@@ -506,6 +558,9 @@ export default function Home() {
                     base64Group: row.base64_group,
                     base64Idol: row.base64_idol,
                     encodedIdolName: encodeIdolName(row.name || ''),
+                    encodedAltName: row.alt_name 
+                        ? encodeIdolName(row.alt_name) 
+                        : undefined,
                     groupName: row.group_name,
                     hintUsed: hintUsed,
                     hintUsedOnIdol: hintUsedOnIdol || undefined,
@@ -542,7 +597,7 @@ export default function Home() {
 
                 // Fetch more idols when running low
                 if (nextImageIndex >= prefetchedImages.length - 2) {
-                    getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                    getMultipleRandomUnlimitedImages(5, groupFilter).then((newImages) => {
                         setPrefetchedImages((prev) => [...prev, ...newImages])
                         // Mark all prefetched idols as seen immediately
                         newImages.forEach((img) => {
@@ -555,7 +610,7 @@ export default function Home() {
                 // console.log(
                 //     '[loadNextUnlimited] Out of prefetched images, fetching more...'
                 // )
-                getMultipleRandomUnlimitedImages(5).then((newImages) => {
+                getMultipleRandomUnlimitedImages(5, groupFilter).then((newImages) => {
                     if (newImages.length > 0) {
                         const updatedPrefetched = [
                             ...prefetchedImages,
@@ -609,12 +664,13 @@ export default function Home() {
             hintUsedOnIdol,
             skipsRemaining,
             dailyImage,
+            groupFilter,
         ]
     )
 
     const handlePlayAgain = useCallback(() => {
         setShowGameOver(false)
-        setSkipsRemaining(3)
+        setSkipsRemaining(500)
         setHintUsed(false)
         setHintUsedOnIdol(null)
         loadNextUnlimited()
@@ -641,7 +697,20 @@ export default function Home() {
                     !gameLost
                 ) {
                     const normalizedGuess = currentGuess.toUpperCase().trim()
-                    const isCorrect = normalizedGuess === correctAnswer
+                    const normalizedName = dailyImage?.name?.toUpperCase().trim() || ''
+                    const normalizedAltName = dailyImage?.alt_name?.toUpperCase().trim() || ''
+                    let isCorrect = normalizedGuess === normalizedName
+                    let matchedAnswer = normalizedName
+                    if (
+                        gameMode === 'unlimited' &&
+                        normalizedAltName &&
+                        !isCorrect
+                    ) {
+                        isCorrect = normalizedGuess === normalizedAltName
+                        if (isCorrect) {
+                            matchedAnswer = normalizedAltName
+                        }
+                    }
                     const guessNumber = 6 - remainingGuesses + 1
 
                     if (gameMode === 'daily') {
@@ -688,6 +757,9 @@ export default function Home() {
                                 encodedIdolName: encodeIdolName(
                                     dailyImage.name || ''
                                 ),
+                                encodedAltName: dailyImage.alt_name 
+                                    ? encodeIdolName(dailyImage.alt_name) 
+                                    : undefined,
                                 groupName: dailyImage.group_name,
                                 hintUsed: hintUsed,
                                 hintUsedOnIdol: hintUsedOnIdol || undefined,
@@ -766,6 +838,9 @@ export default function Home() {
                         )
 
                         setGameWon(true)
+                        if (gameMode === 'unlimited') {
+                            setCorrectAnswer(matchedAnswer)
+                        }
                         if (gameMode === 'daily') {
                             setShowConfetti(true)
                         }
@@ -886,6 +961,11 @@ export default function Home() {
         } else {
             hasLoadedInitialRef.current = true
         }
+        
+        const savedFilter = localStorage.getItem('idol-guessr-group-filter')
+        if (savedFilter === 'boy-group' || savedFilter === 'girl-group') {
+            setGroupFilter(savedFilter as 'boy-group' | 'girl-group' | null)
+        }
     }, [])
 
     useEffect(() => {
@@ -983,14 +1063,39 @@ export default function Home() {
                     const decodedName = decodeIdolName(
                         savedGameState.encodedIdolName
                     )
+                    const decodedAltName = savedGameState.encodedAltName 
+                        ? decodeIdolName(savedGameState.encodedAltName) 
+                        : undefined
                     const savedImage: DailyRow = {
                         id: 0,
                         name: decodedName,
+                        alt_name: decodedAltName,
                         group_type: savedGameState.groupType,
                         img_bucket: savedGameState.imgBucket,
                         group_category: savedGameState.groupCategory,
                         base64_group: savedGameState.base64Group,
                         base64_idol: savedGameState.base64Idol,
+                    }
+
+                    if (groupFilter && savedImage.group_category !== groupFilter) {
+                        unlimitedStats.clearGameState()
+                        setDailyImage(null)
+                        setIsLoading(true)
+                        setGuesses([
+                            'empty',
+                            'empty',
+                            'empty',
+                            'empty',
+                            'empty',
+                            'empty',
+                        ])
+                        setGameWon(false)
+                        setGameLost(false)
+                        setCurrentGuess('')
+                        setLastIncorrectGuess('')
+
+                        void loadUnlimited()
+                        return
                     }
 
                     setDailyImage(savedImage)
@@ -1049,6 +1154,7 @@ export default function Home() {
         loadUnlimited,
         setGameWon,
         setGameLost,
+        groupFilter,
     ])
 
     useEffect(() => {
@@ -1088,7 +1194,7 @@ export default function Home() {
                     timer={timer}
                     onShowStats={() => setShowStats(true)}
                     gameMode={gameMode}
-                    onGameModeChange={handleGameModeChange}
+                    onGameModeChange={handleGameModeChange} 
                 />
 
                 <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
@@ -1132,6 +1238,9 @@ export default function Home() {
                                         encodedIdolName: encodeIdolName(
                                             dailyImage.name || ''
                                         ),
+                                        encodedAltName: dailyImage.alt_name 
+                                            ? encodeIdolName(dailyImage.alt_name) 
+                                            : undefined,
                                         groupName: dailyImage.group_name,
                                         hintUsed: true,
                                         hintUsedOnIdol:

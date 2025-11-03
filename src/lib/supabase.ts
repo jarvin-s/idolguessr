@@ -8,6 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export interface DailyImage {
   id: number  // int4 in database
   name: string
+  alt_name?: string
   group_type: string
   play_date?: string
   img_bucket: string
@@ -88,7 +89,10 @@ export function clearSeenIdols(): void {
   }
 }
 
-export async function getMultipleRandomUnlimitedImages(count: number): Promise<DailyImage[]> {
+export async function getMultipleRandomUnlimitedImages(
+  count: number,
+  groupFilter?: 'boy-group' | 'girl-group' | null
+): Promise<DailyImage[]> {
   const seenIdols = getSeenIdols();
 
   // console.log('[DB Request] Fetching unlimited idols:',
@@ -101,7 +105,7 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
 
   // Try to fetch with exclusions first (3x count to ensure we get enough after deduplication)
   const fetchCount = count * 3;
-  const { data, error } = await supabase.rpc('get_multiple_random_unlimited', {
+  const { data, error } = await supabase.rpc('get_multiple_random_unlimited_test', {
     excluded_buckets: seenIdols,
     row_count: fetchCount
   });
@@ -121,7 +125,7 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
     clearSeenIdols();
 
     // Retry without exclusions
-    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
+    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited_test', {
       excluded_buckets: [],
       row_count: count
     });
@@ -142,6 +146,9 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
         });
         return false;
       }
+      if (groupFilter && img.group_category !== groupFilter) {
+        return false;
+      }
       return true;
     });
 
@@ -154,14 +161,11 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
   const seenBuckets = new Set<string>();
 
   for (const image of data) {
-    // Skip images missing required fields for unlimited mode
     if (!image.group_category || !image.base64_group) {
-      // console.warn('[Prefetch] Skipping image with missing data:', {
-      //   name: image.name,
-      //   img_bucket: image.img_bucket,
-      //   has_group_category: !!image.group_category,
-      //   has_base64_group: !!image.base64_group,
-      // });
+      continue;
+    }
+
+    if (groupFilter && image.group_category !== groupFilter) {
       continue;
     }
 
@@ -202,6 +206,9 @@ export async function getMultipleRandomUnlimitedImages(count: number): Promise<D
         //   has_group_category: !!img.group_category,
         //   has_base64_group: !!img.base64_group,
         // });
+        return false;
+      }
+      if (groupFilter && img.group_category !== groupFilter) {
         return false;
       }
       return true;
