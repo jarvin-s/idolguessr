@@ -1,8 +1,7 @@
 {
     "git": {
         "deploymentEnabled": {
-            "feat/unlimited-mode": false,
-            "feat/feedback": false,
+            "feature/*": false,
             "refactor-codebase": false
         }
     }
