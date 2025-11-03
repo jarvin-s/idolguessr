@@ -15,8 +15,7 @@ export default function FilterModal({
 
     if (!isOpen) return null
 
-    const meshGradient =
-        'linear-gradient(115deg, #fc67fa 0%, #f4c4f3 43%,#7fd6fb 67%, #7f53ac 100%)'
+    const meshGradient = 'linear-gradient(115deg, #fc67fa 0%, #f4c4f3 43%,#7fd6fb 67%, #7f53ac 100%)'
 
     const handleConfirm = () => {
         onConfirm(selectedFilter === null ? null : selectedFilter)
@@ -34,18 +33,8 @@ export default function FilterModal({
                         className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
                         aria-label='Close Filter'
                     >
-                        <svg
-                            className='h-4 w-4 text-gray-600'
-                            fill='none'
-                            stroke='currentColor'
-                            viewBox='0 0 24 24'
-                        >
-                            <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M6 18L18 6M6 6l12 12'
-                            />
+                        <svg className='h-4 w-4 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
                         </svg>
                     </button>
                 </div>
@@ -63,13 +52,7 @@ export default function FilterModal({
                                     ? 'border-transparent text-white'
                                     : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'
                             }`}
-                            style={
-                                selectedFilter === 'boy-group'
-                                    ? {
-                                          background: meshGradient,
-                                      }
-                                    : {}
-                            }
+                            style={selectedFilter === 'boy-group' ? { background: meshGradient } : {}}
                         >
                             Boy Group
                         </button>
@@ -81,13 +64,7 @@ export default function FilterModal({
                                     ? 'border-transparent text-white'
                                     : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'
                             }`}
-                            style={
-                                selectedFilter === 'girl-group'
-                                    ? {
-                                          background: meshGradient,
-                                      }
-                                    : {}
-                            }
+                            style={selectedFilter === 'girl-group' ? { background: meshGradient } : {}}
                         >
                             Girl Group
                         </button>
@@ -99,13 +76,7 @@ export default function FilterModal({
                                     ? 'border-transparent text-white'
                                     : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'
                             }`}
-                            style={
-                                selectedFilter === null
-                                    ? {
-                                          background: meshGradient,
-                                      }
-                                    : {}
-                            }
+                            style={selectedFilter === null ? { background: meshGradient } : {}}
                         >
                             Both
                         </button>
@@ -121,10 +92,7 @@ export default function FilterModal({
                         <button
                             onClick={handleConfirm}
                             className='flex-1 rounded-lg border-2 px-4 py-3 font-medium text-white transition-all'
-                            style={{
-                                background: meshGradient,
-                                borderColor: 'transparent',
-                            }}
+                            style={{ background: meshGradient, borderColor: 'transparent' }}
                         >
                             Start
                         </button>
@@ -134,4 +102,5 @@ export default function FilterModal({
         </div>
     )
 }
+
 

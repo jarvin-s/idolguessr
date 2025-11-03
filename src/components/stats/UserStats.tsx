@@ -10,7 +10,7 @@ export interface DailyCompletion {
     won: boolean
     guessCount: number
     correctAnswer: string
-    guessAttempts?: string[] // Array of actual guess attempts
+    guessAttempts?: string[]
 }
 
 export interface DailyProgress {
@@ -93,18 +93,14 @@ export function useUserStats() {
                 const savedStats = localStorage.getItem('idol-guessr-stats')
                 if (savedStats) {
                     const parsedStats = JSON.parse(savedStats)
-
                     const today = new Date().toDateString()
                     const lastPlayed = parsedStats.lastPlayedDate
-
                     if (lastPlayed !== today) {
                         parsedStats.todayCompleted = false
                     }
-
                     if (!parsedStats.dailyCompletions) {
                         parsedStats.dailyCompletions = {}
                     }
-
                     setStats(parsedStats)
                 }
             } catch (error) {
@@ -114,7 +110,6 @@ export function useUserStats() {
                 setIsLoaded(true)
             }
         }
-
         loadStats()
     }, [])
 
@@ -136,23 +131,18 @@ export function useUserStats() {
         guessAttempts?: string[]
     ) => {
         const today = new Date().toDateString()
-
         setStats((prevStats) => {
-            // Check if today's game was already completed - prevent double counting
             if (prevStats.dailyCompletions[today]?.completed) {
                 return prevStats
             }
-
             const newStats = {
                 ...prevStats,
                 guessDistribution: { ...prevStats.guessDistribution },
                 dailyCompletions: { ...prevStats.dailyCompletions },
             }
-
             newStats.totalGames += 1
             newStats.lastPlayedDate = today
             newStats.todayCompleted = true
-
             if (imageId && correctAnswer) {
                 newStats.dailyCompletions[today] = {
                     date: today,
@@ -164,29 +154,21 @@ export function useUserStats() {
                     guessAttempts: guessAttempts || [],
                 }
             }
-
             if (won) {
                 newStats.totalWins += 1
                 newStats.guessDistribution[guessCount] += 1
-
                 if (
                     prevStats.lastPlayedDate === today ||
-                    new Date(prevStats.lastPlayedDate).getTime() ===
-                        new Date(today).getTime() - 86400000
+                    new Date(prevStats.lastPlayedDate).getTime() === new Date(today).getTime() - 86400000
                 ) {
                     newStats.currentStreak += 1
                 } else {
                     newStats.currentStreak = 1
                 }
-
-                newStats.maxStreak = Math.max(
-                    newStats.maxStreak,
-                    newStats.currentStreak
-                )
+                newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak)
             } else {
                 newStats.currentStreak = 0
             }
-
             return newStats
         })
     }
@@ -201,38 +183,22 @@ export function useUserStats() {
         return stats.dailyCompletions[today]?.completed || false
     }, [stats.dailyCompletions])
 
-    const saveDailyProgress = useCallback(
-        (
-            imageId: number,
-            guesses: Array<'correct' | 'incorrect' | 'empty'>
-        ) => {
-            try {
-                const today = new Date().toDateString()
-                const progress: DailyProgress = {
-                    date: today,
-                    imageId,
-                    guesses,
-                }
-                localStorage.setItem(
-                    'idol-guessr-daily-progress',
-                    JSON.stringify(progress)
-                )
-            } catch (error) {
-                console.error('Error saving daily progress:', error)
-            }
-        },
-        []
-    )
+    const saveDailyProgress = useCallback((imageId: number, guesses: Array<'correct' | 'incorrect' | 'empty'>) => {
+        try {
+            const today = new Date().toDateString()
+            const progress: DailyProgress = { date: today, imageId, guesses }
+            localStorage.setItem('idol-guessr-daily-progress', JSON.stringify(progress))
+        } catch (error) {
+            console.error('Error saving daily progress:', error)
+        }
+    }, [])
 
     const loadDailyProgress = useCallback((): DailyProgress | null => {
         try {
             const today = new Date().toDateString()
-            const savedProgress = localStorage.getItem(
-                'idol-guessr-daily-progress'
-            )
+            const savedProgress = localStorage.getItem('idol-guessr-daily-progress')
             if (savedProgress) {
                 const progress: DailyProgress = JSON.parse(savedProgress)
-                // Only return progress if it's from today
                 if (progress.date === today) {
                     return progress
                 }
@@ -256,9 +222,7 @@ export function useUserStats() {
             const today = new Date().toDateString()
             const key = `idol-guessr-guess-attempts-${today}`
             const existingAttempts = localStorage.getItem(key)
-            const attempts = existingAttempts
-                ? JSON.parse(existingAttempts)
-                : []
+            const attempts = existingAttempts ? JSON.parse(existingAttempts) : []
             attempts.push(guess)
             localStorage.setItem(key, JSON.stringify(attempts))
         } catch (error) {
@@ -299,9 +263,7 @@ export function useUnlimitedStats() {
     useEffect(() => {
         const loadStats = () => {
             try {
-                const savedStats = localStorage.getItem(
-                    'idol-guessr-unlimited-stats'
-                )
+                const savedStats = localStorage.getItem('idol-guessr-unlimited-stats')
                 if (savedStats) {
                     setStats(JSON.parse(savedStats))
                 } else {
@@ -314,17 +276,13 @@ export function useUnlimitedStats() {
                 setIsLoaded(true)
             }
         }
-
         loadStats()
     }, [])
 
     useEffect(() => {
         if (isLoaded) {
             try {
-                localStorage.setItem(
-                    'idol-guessr-unlimited-stats',
-                    JSON.stringify(stats)
-                )
+                localStorage.setItem('idol-guessr-unlimited-stats', JSON.stringify(stats))
             } catch (error) {
                 console.error('Error saving unlimited stats:', error)
             }
@@ -333,35 +291,24 @@ export function useUnlimitedStats() {
 
     const updateStats = (won: boolean, incrementTotalGames: boolean = true) => {
         setStats((prevStats) => {
-            const newStats = {
-                ...prevStats,
-            }
-
+            const newStats = { ...prevStats }
             if (incrementTotalGames) {
                 newStats.totalGames += 1
             }
-
             if (won) {
                 newStats.totalWins += 1
                 newStats.currentStreak += 1
-                newStats.maxStreak = Math.max(
-                    newStats.maxStreak,
-                    newStats.currentStreak
-                )
+                newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak)
             } else {
                 newStats.currentStreak = 0
             }
-
             return newStats
         })
     }
 
     const saveGameState = useCallback((gameState: UnlimitedGameState) => {
         try {
-            localStorage.setItem(
-                'idol-guessr-unlimited-game-state',
-                JSON.stringify(gameState)
-            )
+            localStorage.setItem('idol-guessr-unlimited-game-state', JSON.stringify(gameState))
         } catch (error) {
             console.error('Error saving unlimited game state:', error)
         }
@@ -369,9 +316,7 @@ export function useUnlimitedStats() {
 
     const loadGameState = useCallback((): UnlimitedGameState | null => {
         try {
-            const savedState = localStorage.getItem(
-                'idol-guessr-unlimited-game-state'
-            )
+            const savedState = localStorage.getItem('idol-guessr-unlimited-game-state')
             if (savedState) {
                 return JSON.parse(savedState) as UnlimitedGameState
             }
@@ -389,14 +334,7 @@ export function useUnlimitedStats() {
         }
     }, [])
 
-    return {
-        stats,
-        isLoaded,
-        updateStats,
-        saveGameState,
-        loadGameState,
-        clearGameState,
-    }
+    return { stats, isLoaded, updateStats, saveGameState, loadGameState, clearGameState }
 }
 
 interface UserStatsProps {
@@ -406,12 +344,7 @@ interface UserStatsProps {
     gameMode?: 'daily' | 'unlimited'
 }
 
-export default function UserStats({
-    stats,
-    isLoaded,
-    className = '',
-    gameMode = 'daily',
-}: UserStatsProps) {
+export default function UserStats({ stats, isLoaded, className = '', gameMode = 'daily' }: UserStatsProps) {
     if (!isLoaded) {
         return (
             <div className={`animate-pulse ${className}`}>
@@ -423,104 +356,51 @@ export default function UserStats({
             </div>
         )
     }
-
-    const winPercentage =
-        stats.totalGames > 0
-            ? Math.round((stats.totalWins / stats.totalGames) * 100)
-            : 0
-
+    const winPercentage = stats.totalGames > 0 ? Math.round((stats.totalWins / stats.totalGames) * 100) : 0
     const isUnlimited = gameMode === 'unlimited'
     const hasGuessDistribution = 'guessDistribution' in stats
-
     return (
         <div className={`rounded-lg bg-white p-10 shadow-lg ${className}`}>
             <div className='mb-10 flex items-center justify-center'>
-                <Image
-                    src='/images/idolguessr-logo.png'
-                    alt='IdolGuessr Logo'
-                    width={150}
-                    height={50}
-                    className='h-20 w-auto'
-                />
+                <Image src='/images/idolguessr-logo.png' alt='IdolGuessr Logo' width={150} height={50} className='h-20 w-auto' />
             </div>
             <div className='mb-4 flex items-center justify-center'>
                 <h2 className='text-2xl font-bold text-gray-900 uppercase'>
                     {isUnlimited ? 'Infinite Statistics' : 'Statistics'}
                 </h2>
             </div>
-
-            {/* Main Stats Grid */}
             <div className='mb-6 flex flex-row justify-center gap-4'>
                 <div className='text-center'>
-                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
-                        {stats.totalGames}
-                    </div>
-                    <div className='text-sm leading-none text-gray-600'>
-                        Played
-                    </div>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>{stats.totalGames}</div>
+                    <div className='text-sm leading-none text-gray-600'>Played</div>
                 </div>
                 {!isUnlimited && (
                     <div className='text-center'>
-                        <div className='mb-2.5 text-2xl font-bold text-gray-900'>
-                            {winPercentage}%
-                        </div>
-                        <div className='text-sm leading-none text-gray-600'>
-                            Win %
-                        </div>
+                        <div className='mb-2.5 text-2xl font-bold text-gray-900'>{winPercentage}%</div>
+                        <div className='text-sm leading-none text-gray-600'>Win %</div>
                     </div>
                 )}
                 <div className='text-center'>
-                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
-                        {stats.currentStreak}
-                    </div>
-                    <div className='text-sm leading-none text-gray-600'>
-                        Current streak
-                    </div>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>{stats.currentStreak}</div>
+                    <div className='text-sm leading-none text-gray-600'>Current streak</div>
                 </div>
                 <div className='text-center'>
-                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>
-                        {stats.maxStreak}
-                    </div>
-                    <div className='text-sm leading-none text-gray-600'>
-                        Max streak
-                    </div>
+                    <div className='mb-2.5 text-2xl font-bold text-gray-900'>{stats.maxStreak}</div>
+                    <div className='text-sm leading-none text-gray-600'>Max streak</div>
                 </div>
             </div>
-
-            {/* Guess Distribution - Only for daily mode */}
             {!isUnlimited && hasGuessDistribution && stats.totalWins > 0 && (
                 <>
-                    <h3 className='mb-3 text-lg font-semibold text-gray-900 uppercase'>
-                        Guess distribution
-                    </h3>
+                    <h3 className='mb-3 text-lg font-semibold text-gray-900 uppercase'>Guess distribution</h3>
                     <div className='space-y-2'>
-                        {Object.entries(
-                            (stats as UserStats).guessDistribution
-                        ).map(([guesses, count]) => {
-                            const percentage =
-                                stats.totalWins > 0
-                                    ? (count / stats.totalWins) * 100
-                                    : 0
+                        {Object.entries((stats as UserStats).guessDistribution).map(([guesses, count]) => {
+                            const percentage = stats.totalWins > 0 ? (count / stats.totalWins) * 100 : 0
                             return (
-                                <div
-                                    key={guesses}
-                                    className='flex items-center'
-                                >
-                                    <div className='w-4 text-sm font-medium text-black'>
-                                        {guesses}
-                                    </div>
+                                <div key={guesses} className='flex items-center'>
+                                    <div className='w-4 text-sm font-medium text-black'>{guesses}</div>
                                     <div className='relative mx-2 h-6 flex-1 rounded-full bg-gray-200'>
-                                        <div
-                                            className='flex h-6 items-center justify-end rounded-full bg-green-400 pr-2'
-                                            style={{
-                                                width: `${Math.min(Math.max(percentage, 8), 100)}%`,
-                                            }}
-                                        >
-                                            {count > 0 && (
-                                                <span className='text-xs font-bold text-white'>
-                                                    {count}
-                                                </span>
-                                            )}
+                                        <div className='flex h-6 items-center justify-end rounded-full bg-green-400 pr-2' style={{ width: `${Math.min(Math.max(percentage, 8), 100)}%` }}>
+                                            {count > 0 && <span className='text-xs font-bold text-white'>{count}</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -532,3 +412,5 @@ export default function UserStats({
         </div>
     )
 }
+
+

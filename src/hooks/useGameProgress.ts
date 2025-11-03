@@ -5,7 +5,7 @@ import { DailyImage } from '@/lib/supabase'
 import {
     useUserStats,
     DailyCompletion,
-} from '@/components/UserStats'
+} from '@/components/stats/UserStats'
 
 interface GameProgressHook {
     guesses: Array<'correct' | 'incorrect' | 'empty'>

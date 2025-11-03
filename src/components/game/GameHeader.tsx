@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { useState } from 'react'
-import FilterModal from './FilterModal'
+import FilterModal from '../filters/FilterModal'
 
 interface GameHeaderProps {
     timer: string
@@ -127,7 +127,6 @@ function StatsIcon() {
 
 function GameModeIcon({ gameMode }: { gameMode: 'daily' | 'unlimited' }) {
     if (gameMode === 'unlimited') {
-        // Show clock icon when on unlimited page (to switch back to daily)
         return (
             <svg
                 xmlns='http://www.w3.org/2000/svg'
@@ -142,8 +141,6 @@ function GameModeIcon({ gameMode }: { gameMode: 'daily' | 'unlimited' }) {
             </svg>
         )
     }
-
-    // Show infinity icon when on daily page (to switch to unlimited)
     return (
         <svg
             xmlns='http://www.w3.org/2000/svg'
@@ -158,3 +155,5 @@ function GameModeIcon({ gameMode }: { gameMode: 'daily' | 'unlimited' }) {
         </svg>
     )
 }
+
+
