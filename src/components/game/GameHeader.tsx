@@ -6,7 +6,11 @@ interface GameHeaderProps {
     timer: string
     onShowStats: () => void
     gameMode: 'daily' | 'unlimited'
-    onGameModeChange: (mode: 'daily' | 'unlimited', filter?: 'boy-group' | 'girl-group' | null) => void
+    onGameModeChange: (
+        mode: 'daily' | 'unlimited',
+        filter?: 'boy-group' | 'girl-group' | null
+    ) => void
+    showModeToggle?: boolean
 }
 
 const meshGradient =
@@ -17,6 +21,7 @@ export default function GameHeader({
     onShowStats,
     gameMode,
     onGameModeChange,
+    showModeToggle = true,
 }: GameHeaderProps) {
     const [showFilterModal, setShowFilterModal] = useState(false)
 
@@ -42,7 +47,7 @@ export default function GameHeader({
                                     background: meshGradient,
                                 }}
                             >
-                                <h1 className='font-bold text-sm text-white uppercase tracking-widest'>
+                                <h1 className='text-sm font-bold tracking-widest text-white uppercase'>
                                     Infinite
                                 </h1>
                             </div>
@@ -69,40 +74,40 @@ export default function GameHeader({
                             <StatsIcon />
                         </button>
 
-                        <button
-                            onClick={() => {
-                                if (gameMode === 'daily') {
-                                    setShowFilterModal(true)
-                                } else {
-                                    onGameModeChange('daily')
+                        {showModeToggle && (
+                            <button
+                                onClick={() => {
+                                    if (gameMode === 'daily') {
+                                        setShowFilterModal(true)
+                                    } else {
+                                        onGameModeChange('daily')
+                                    }
+                                }}
+                                className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors'
+                                aria-label='View Game Mode'
+                                style={
+                                    gameMode === 'daily'
+                                        ? { background: meshGradient }
+                                        : { background: 'black' }
                                 }
-                            }}
-                            className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors'
-                            aria-label='View Game Mode'
-                            style={
-                                gameMode === 'daily'
-                                    ? {
-                                          background: meshGradient,
-                                      }
-                                    : {
-                                          background: 'black',
-                                      }
-                            }
-                        >
-                            <GameModeIcon gameMode={gameMode} />
-                        </button>
+                            >
+                                <GameModeIcon gameMode={gameMode} />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
 
-            <FilterModal
-                isOpen={showFilterModal}
-                onClose={() => setShowFilterModal(false)}
-                onConfirm={(filter) => {
-                    setShowFilterModal(false)
-                    onGameModeChange('unlimited', filter)
-                }}
-            />
+            {showModeToggle && (
+                <FilterModal
+                    isOpen={showFilterModal}
+                    onClose={() => setShowFilterModal(false)}
+                    onConfirm={(filter) => {
+                        setShowFilterModal(false)
+                        onGameModeChange('unlimited', filter)
+                    }}
+                />
+            )}
         </>
     )
 }
@@ -155,5 +160,3 @@ function GameModeIcon({ gameMode }: { gameMode: 'daily' | 'unlimited' }) {
         </svg>
     )
 }
-
-

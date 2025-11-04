@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface FilterModalProps {
     isOpen: boolean
@@ -12,6 +12,21 @@ export default function FilterModal({
     onConfirm,
 }: FilterModalProps) {
     const [selectedFilter, setSelectedFilter] = useState<'boy-group' | 'girl-group' | null>(null)
+
+    useEffect(() => {
+        if (isOpen) {
+            try {
+                const savedFilter = localStorage.getItem('idol-guessr-group-filter')
+                if (savedFilter === 'boy-group' || savedFilter === 'girl-group') {
+                    setSelectedFilter(savedFilter)
+                } else {
+                    setSelectedFilter(null)
+                }
+            } catch {
+                setSelectedFilter(null)
+            }
+        }
+    }, [isOpen])
 
     if (!isOpen) return null
 
@@ -54,7 +69,7 @@ export default function FilterModal({
                             }`}
                             style={selectedFilter === 'boy-group' ? { background: meshGradient } : {}}
                         >
-                            Boy Group
+                            Boy groups
                         </button>
 
                         <button
@@ -66,7 +81,7 @@ export default function FilterModal({
                             }`}
                             style={selectedFilter === 'girl-group' ? { background: meshGradient } : {}}
                         >
-                            Girl Group
+                            Girl groups
                         </button>
 
                         <button

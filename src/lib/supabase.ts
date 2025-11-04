@@ -9,7 +9,7 @@ export interface DailyImage {
   id: number  // int4 in database
   name: string
   alt_name?: string
-  group_type: string
+  group_type?: string
   play_date?: string
   img_bucket: string
   created_at?: string
@@ -124,7 +124,6 @@ export async function getMultipleRandomUnlimitedImages(
     // console.log('[Prefetch] No unseen idols available, clearing seen history...');
     clearSeenIdols();
 
-    // Retry without exclusions
     const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited_test', {
       excluded_buckets: [],
       row_count: count
@@ -135,7 +134,6 @@ export async function getMultipleRandomUnlimitedImages(
       return [];
     }
 
-    // Filter out invalid data from retry results
     const validRetryData = retryData.filter((img: DailyImage) => {
       if (!img.group_category || !img.base64_group) {
         console.warn('[Prefetch] Skipping image with missing data in retry:', {
@@ -187,7 +185,7 @@ export async function getMultipleRandomUnlimitedImages(
     // console.log('[Prefetch] Insufficient unique images, clearing seen history...');
     clearSeenIdols();
 
-    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
+    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited_test', {
       excluded_buckets: [],
       row_count: count
     });
@@ -244,14 +242,15 @@ export function getImageUrl(
 
   if (mode === 'unlimited') {
     if (!groupCategory || !base64Group || !imgBucket) {
-      console.error('[getImageUrl] Missing required fields for unlimited mode:', {
-        groupCategory,
-        base64Group,
-        imgBucket,
-        groupType
-      })
-      // Fallback to prevent broken URLs, but this shouldn't happen
-      return `${supabaseUrl}/storage/v1/object/public/images/unlimited/error/missing-data/${fileName}`
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[getImageUrl] Missing required fields for unlimited mode:', {
+          groupCategory,
+          base64Group,
+          imgBucket,
+          groupType
+        })
+      }
+      return ''
     }
     return `${supabaseUrl}/storage/v1/object/public/images/unlimited/${groupCategory}/${base64Group}/${imgBucket}/${fileName}`
   }
@@ -366,7 +365,7 @@ export async function trackUnlimitedGame(
       session_id: getOrCreateSessionId(),
       unlimited_id: unlimitedId,
       amount_of_guesses: amountOfGuesses,
-      streak: streak,
+      streak: streak
     }
 
     const { error } = await supabase.from('unlimited_game_tracking').insert(gameData)
@@ -379,3 +378,19 @@ export async function trackUnlimitedGame(
   }
 }
 
+export async function getDailyCount(): Promise<number> {
+  const now = new Date();
+  const gmtPlus1 = new Date(now.getTime() + (60 * 60 * 1000));
+  const today = gmtPlus1.toISOString().split('T')[0];
+
+  const { count, error } = await supabase
+    .from('dailies')
+    .select('*', { count: 'exact' })
+    .lte('play_date', today);
+
+  if (error) {
+    console.error('Error getting daily count:', error);
+    return 0;
+  }
+  return (count || 0) + 1;
+}

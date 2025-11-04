@@ -325,7 +325,7 @@ export function useGameController() {
 
             if (gameMode === 'unlimited' && dailyImage && !gameWon && !gameLost) {
                 unlimitedStats.saveGameState({
-                    groupType: dailyImage.group_type,
+                    groupType: dailyImage.group_type || '',
                     imgBucket: dailyImage.img_bucket,
                     groupCategory: dailyImage.group_category,
                     base64Group: dailyImage.base64_group,
@@ -338,7 +338,17 @@ export function useGameController() {
                     skipsRemaining: skipsRemaining,
                     guesses: guesses,
                     savedAt: new Date().toISOString(),
-                    prefetchedImages: prefetchedImages,
+                    prefetchedImages: prefetchedImages.map((img) => ({
+                        id: img.id,
+                        name: img.name,
+                        alt_name: img.alt_name,
+                        group_type: img.group_type || '',
+                        img_bucket: img.img_bucket,
+                        group_category: img.group_category,
+                        base64_group: img.base64_group,
+                        base64_idol: img.base64_idol,
+                        group_name: img.group_name,
+                    })),
                     currentImageIndex: currentImageIndex,
                 })
             }
@@ -448,7 +458,7 @@ export function useGameController() {
                 setCurrentImageIndex(nextImageIndex)
 
                 unlimitedStats.saveGameState({
-                    groupType: row.group_type,
+                    groupType: row.group_type || '',
                     imgBucket: row.img_bucket,
                     groupCategory: row.group_category,
                     base64Group: row.base64_group,
@@ -461,16 +471,26 @@ export function useGameController() {
                     skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
                     guesses: freshGuesses,
                     savedAt: new Date().toISOString(),
-                    prefetchedImages: prefetchedImages,
+                    prefetchedImages: prefetchedImages.map((img) => ({
+                        id: img.id,
+                        name: img.name,
+                        alt_name: img.alt_name,
+                        group_type: img.group_type || '',
+                        img_bucket: img.img_bucket,
+                        group_category: img.group_category,
+                        base64_group: img.base64_group,
+                        base64_idol: img.base64_idol,
+                        group_name: img.group_name,
+                    })),
                     currentImageIndex: nextImageIndex,
                 })
 
                 if (prefetchedImages.length > nextImageIndex) {
                     const nextRow = prefetchedImages[nextImageIndex]
-                    if (nextRow) {
+                    if (nextRow && nextRow.group_category && nextRow.base64_group) {
                         const imagesToPreload = [1, 2, 3, 4, 5, 'clear'].map((num) =>
                             getImageUrl(
-                                nextRow.group_type,
+                                nextRow.group_type || '',
                                 nextRow.img_bucket,
                                 num as number | 'clear',
                                 'unlimited',
@@ -505,7 +525,7 @@ export function useGameController() {
                         setCurrentImageIndex(nextImageIndex + 1)
 
                         unlimitedStats.saveGameState({
-                            groupType: row.group_type,
+                            groupType: row.group_type || '',
                             imgBucket: row.img_bucket,
                             groupCategory: row.group_category,
                             base64Group: row.base64_group,
@@ -517,7 +537,17 @@ export function useGameController() {
                             skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
                             guesses: freshGuesses,
                             savedAt: new Date().toISOString(),
-                            prefetchedImages: updatedPrefetched,
+                            prefetchedImages: updatedPrefetched.map((img) => ({
+                                id: img.id,
+                                name: img.name,
+                                alt_name: img.alt_name,
+                                group_type: img.group_type || '',
+                                img_bucket: img.img_bucket,
+                                group_category: img.group_category,
+                                base64_group: img.base64_group,
+                                base64_idol: img.base64_idol,
+                                group_name: img.group_name,
+                            })),
                             currentImageIndex: nextImageIndex + 1,
                         })
 
@@ -613,7 +643,7 @@ export function useGameController() {
 
                         if (gameMode === 'unlimited' && dailyImage && remainingAfterThis > 0) {
                             unlimitedStats.saveGameState({
-                                groupType: dailyImage.group_type,
+                                groupType: dailyImage.group_type || '',
                                 imgBucket: dailyImage.img_bucket,
                                 groupCategory: dailyImage.group_category,
                                 base64Group: dailyImage.base64_group,
@@ -626,7 +656,17 @@ export function useGameController() {
                                 skipsRemaining: skipsRemaining,
                                 guesses: newGuesses,
                                 savedAt: new Date().toISOString(),
-                                prefetchedImages: prefetchedImages,
+                                prefetchedImages: prefetchedImages.map((img) => ({
+                                    id: img.id,
+                                    name: img.name,
+                                    alt_name: img.alt_name,
+                                    group_type: img.group_type || '',
+                                    img_bucket: img.img_bucket,
+                                    group_category: img.group_category,
+                                    base64_group: img.base64_group,
+                                    base64_idol: img.base64_idol,
+                                    group_name: img.group_name,
+                                })),
                                 currentImageIndex: currentImageIndex,
                             })
                         }
@@ -710,7 +750,6 @@ export function useGameController() {
         [
             currentGuess,
             guesses,
-            correctAnswer,
             isAnimating,
             gameWon,
             gameLost,
@@ -732,6 +771,7 @@ export function useGameController() {
             hintUsed,
             hintUsedOnIdol,
             skipsRemaining,
+
         ]
     )
 

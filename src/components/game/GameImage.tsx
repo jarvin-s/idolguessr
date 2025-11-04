@@ -30,6 +30,7 @@ interface GameImageProps {
     showGameOver?: boolean
     highestStreak?: number
     onPlayAgain?: () => void
+    onChangeFilters?: () => void
     guesses?: Array<'empty' | 'correct' | 'incorrect'>
 }
 
@@ -52,6 +53,7 @@ export default function GameImage({
     showGameOver = false,
     highestStreak = 0,
     onPlayAgain,
+    onChangeFilters,
     guesses = [],
 }: GameImageProps) {
     const [isEntering, setIsEntering] = useState(false)
@@ -62,13 +64,16 @@ export default function GameImage({
 
     useEffect(() => {
         if (dailyImage?.img_bucket) {
-            const isNewIdol = prevIdolBucketRef.current !== dailyImage.img_bucket
+            const isNewIdol =
+                prevIdolBucketRef.current !== dailyImage.img_bucket
             prevIdolBucketRef.current = dailyImage.img_bucket
             setIsEntering(true)
             if (isNewIdol) {
                 setGroupNameRevealed(false)
             } else {
-                setGroupNameRevealed(hintUsed && hintUsedOnIdol === dailyImage.img_bucket)
+                setGroupNameRevealed(
+                    hintUsed && hintUsedOnIdol === dailyImage.img_bucket
+                )
             }
             const timer = setTimeout(() => setIsEntering(false), 50)
             return () => clearTimeout(timer)
@@ -76,13 +81,22 @@ export default function GameImage({
     }, [dailyImage?.img_bucket, hintUsed, hintUsedOnIdol])
 
     useEffect(() => {
-        if (hintUsed && hintUsedOnIdol && dailyImage?.img_bucket === hintUsedOnIdol) {
+        if (
+            hintUsed &&
+            hintUsedOnIdol &&
+            dailyImage?.img_bucket === hintUsedOnIdol
+        ) {
             setGroupNameRevealed(true)
         }
     }, [hintUsed, hintUsedOnIdol, dailyImage?.img_bucket])
 
     const getImageNumber = (): number | 'clear' => {
-        if (gameWon || gameLost || remainingGuesses === 0 || remainingGuesses === 1) {
+        if (
+            gameWon ||
+            gameLost ||
+            remainingGuesses === 0 ||
+            remainingGuesses === 1
+        ) {
             return 'clear'
         }
         if (remainingGuesses === 6) return 1
@@ -94,31 +108,16 @@ export default function GameImage({
     }
 
     const imageNumber = getImageNumber()
-    const hasValidData = !dailyImage || gameMode === 'daily' || (dailyImage.group_category && dailyImage.base64_group)
-
-    useEffect(() => {
-        if (!hasValidData && dailyImage && gameMode === 'unlimited') {
-            console.error('[GameImage] CRITICAL: Invalid data detected! Will trigger emergency recovery...', {
-                gameMode,
-                img_bucket: dailyImage.img_bucket,
-                group_category: dailyImage.group_category,
-                base64_group: dailyImage.base64_group,
-            })
-            const emergencyTimer = setTimeout(() => {
-                if (!hasValidData && dailyImage && gameMode === 'unlimited') {
-                    console.error('[GameImage] Triggering emergency recovery event')
-                    window.dispatchEvent(new CustomEvent('idol-guessr-emergency-recovery'))
-                }
-            }, 500)
-            return () => clearTimeout(emergencyTimer)
-        }
-    }, [hasValidData, dailyImage, gameMode])
+    const hasValidData =
+        !dailyImage ||
+        gameMode === 'daily' ||
+        (dailyImage.group_category && dailyImage.base64_group)
 
     const allImageUrls =
         dailyImage && hasValidData
             ? [1, 2, 3, 4, 5, 'clear'].map((num) =>
                   getImageUrl(
-                      dailyImage.group_type,
+                      dailyImage.group_type || '',
                       dailyImage.img_bucket,
                       num as number | 'clear',
                       gameMode,
@@ -139,7 +138,9 @@ export default function GameImage({
                     <div
                         className='absolute inset-0 transition-transform duration-[1500ms] ease-out'
                         style={{
-                            transform: isEntering ? 'translateY(-100%)' : 'translateY(0)',
+                            transform: isEntering
+                                ? 'translateY(-100%)'
+                                : 'translateY(0)',
                             zIndex: isEntering ? 100 : 10,
                         }}
                         key={dailyImage.img_bucket}
@@ -147,7 +148,10 @@ export default function GameImage({
                         {allImageUrls.map((url, index) => {
                             const imageNum = index === 5 ? 'clear' : index + 1
                             const isVisible = imageNumber === imageNum
-                            const currentIndex = typeof imageNumber === 'number' ? imageNumber - 1 : 5
+                            const currentIndex =
+                                typeof imageNumber === 'number'
+                                    ? imageNumber - 1
+                                    : 5
                             const isPastImage = index < currentIndex
                             return (
                                 <div
@@ -160,7 +164,9 @@ export default function GameImage({
                                             : isPastImage
                                               ? 'translateX(-150%) rotate(-15deg)'
                                               : 'translateX(150%) rotate(15deg)',
-                                        pointerEvents: isVisible ? 'auto' : 'none',
+                                        pointerEvents: isVisible
+                                            ? 'auto'
+                                            : 'none',
                                     }}
                                 >
                                     <Image
@@ -169,7 +175,10 @@ export default function GameImage({
                                         width={600}
                                         height={600}
                                         className='pointer-events-none rounded-lg object-cover'
-                                        style={{ width: '100%', height: '100%' }}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                        }}
                                         unoptimized
                                         priority={index === 0}
                                     />
@@ -192,34 +201,49 @@ export default function GameImage({
                                         if (
                                             !groupNameRevealed &&
                                             dailyImage?.img_bucket &&
-                                            !(hintUsed && hintUsedOnIdol === dailyImage.img_bucket)
+                                            !(
+                                                hintUsed &&
+                                                hintUsedOnIdol ===
+                                                    dailyImage.img_bucket
+                                            )
                                         ) {
                                             setGroupNameRevealed(true)
                                             onHintUse?.()
                                         }
                                     }}
                                     className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
-                                        hintUsed && hintUsedOnIdol !== dailyImage.img_bucket
+                                        hintUsed &&
+                                        hintUsedOnIdol !== dailyImage.img_bucket
                                             ? 'cursor-not-allowed bg-gray-200 text-gray-500'
                                             : 'text-black hover:scale-105 active:scale-95'
                                     }`}
                                     style={{
                                         backgroundColor:
-                                            hintUsed && hintUsedOnIdol !== dailyImage.img_bucket
+                                            hintUsed &&
+                                            hintUsedOnIdol !==
+                                                dailyImage.img_bucket
                                                 ? 'rgb(229, 229, 229)'
                                                 : 'rgb(255, 249, 127)',
                                         border: '1px solid #00000012',
                                         cursor:
-                                            hintUsed && hintUsedOnIdol !== dailyImage.img_bucket
+                                            hintUsed &&
+                                            hintUsedOnIdol !==
+                                                dailyImage.img_bucket
                                                 ? 'not-allowed'
                                                 : 'pointer',
                                     }}
-                                    disabled={hintUsed && hintUsedOnIdol !== dailyImage.img_bucket}
+                                    disabled={
+                                        hintUsed &&
+                                        hintUsedOnIdol !== dailyImage.img_bucket
+                                    }
                                 >
                                     <HintButton />
-                                    {hintUsed && hintUsedOnIdol !== dailyImage.img_bucket
+                                    {hintUsed &&
+                                    hintUsedOnIdol !== dailyImage.img_bucket
                                         ? 'HINT (0)'
-                                        : hintUsed && hintUsedOnIdol === dailyImage.img_bucket
+                                        : hintUsed &&
+                                            hintUsedOnIdol ===
+                                                dailyImage.img_bucket
                                           ? dailyImage.group_name
                                           : groupNameRevealed
                                             ? dailyImage.group_name
@@ -247,7 +271,10 @@ export default function GameImage({
                                 onClick={() => {
                                     if (skipsRemaining > 0 && onPass) {
                                         setShowMinusOne(true)
-                                        setTimeout(() => setShowMinusOne(false), 1000)
+                                        setTimeout(
+                                            () => setShowMinusOne(false),
+                                            1000
+                                        )
                                         onPass()
                                     }
                                 }}
@@ -260,12 +287,16 @@ export default function GameImage({
                                 disabled={skipsRemaining === 0}
                             >
                                 <SkipButton />
-                                SKIP ({skipsRemaining === 0 ? 0 : skipsRemaining})
+                                SKIP (
+                                {skipsRemaining === 0 ? 0 : skipsRemaining})
                             </button>
                             {showMinusOne && (
                                 <div
                                     className='pointer-events-none absolute top-0 right-1/2 translate-x-1/2 text-2xl font-bold text-red-500'
-                                    style={{ animation: 'float-up 1s ease-out forwards' }}
+                                    style={{
+                                        animation:
+                                            'float-up 1s ease-out forwards',
+                                    }}
                                 >
                                     -1
                                 </div>
@@ -274,9 +305,14 @@ export default function GameImage({
                     </>
                 )}
 
-                {showStreakPopup && streakMilestone && onStreakPopupComplete && (
-                    <StreakPopup streak={streakMilestone} onComplete={onStreakPopupComplete} />
-                )}
+                {showStreakPopup &&
+                    streakMilestone &&
+                    onStreakPopupComplete && (
+                        <StreakPopup
+                            streak={streakMilestone}
+                            onComplete={onStreakPopupComplete}
+                        />
+                    )}
 
                 {/* Traffic Light Indicators */}
                 <div className='pointer-events-none absolute inset-0 z-[200] flex items-end justify-center pb-4'>
@@ -298,7 +334,12 @@ export default function GameImage({
 
                 {/* Game Over Modal */}
                 {showGameOver && onPlayAgain && (
-                    <GameOverModal isOpen={showGameOver} highestStreak={highestStreak} onPlayAgain={onPlayAgain} />
+                    <GameOverModal
+                        isOpen={showGameOver}
+                        highestStreak={highestStreak}
+                        onPlayAgain={onPlayAgain}
+                        onChangeFilters={onChangeFilters}
+                    />
                 )}
             </div>
         </div>
@@ -307,9 +348,20 @@ export default function GameImage({
 
 function HintButton() {
     return (
-        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'>
+        <svg
+            xmlns='http://www.w3.org/2000/svg'
+            width='16'
+            height='16'
+            viewBox='0 0 24 24'
+        >
             <g fill='none'>
-                <path stroke='currentColor' strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='m3 3l18 18' />
+                <path
+                    stroke='currentColor'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth='2'
+                    d='m3 3l18 18'
+                />
                 <path
                     fill='currentColor'
                     fillRule='evenodd'
@@ -323,11 +375,14 @@ function HintButton() {
 
 function SkipButton() {
     return (
-        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 512 512'>
+        <svg
+            xmlns='http://www.w3.org/2000/svg'
+            width='16'
+            height='16'
+            viewBox='0 0 512 512'
+        >
             <path d='M64 64v384l277.3-192L64 64z' fill='currentColor' />
             <path d='M384 64h64v384h-64z' fill='currentColor' />
         </svg>
     )
 }
-
-
