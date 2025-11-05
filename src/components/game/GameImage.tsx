@@ -320,7 +320,7 @@ export default function GameImage({
                         {guesses.map((guess, index) => (
                             <div
                                 key={`${index}-${guess}`}
-                                className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 ${
+                                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 ${
                                     guess === 'correct'
                                         ? 'bg-green-400'
                                         : guess === 'incorrect'

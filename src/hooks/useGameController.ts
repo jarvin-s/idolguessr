@@ -422,7 +422,7 @@ export function useGameController() {
     )
 
     const loadNextUnlimited = useCallback(
-        (overrideSkipsRemaining?: number) => {
+        (overrideSkipsRemaining?: number, overrideHintUsed?: boolean, overrideHintUsedOnIdol?: string | null) => {
             if (!gameWon && !gameLost) {
                 const hasGuesses = guesses.some((g) => g === 'incorrect' || g === 'correct')
                 if (hasGuesses) {
@@ -450,6 +450,42 @@ export function useGameController() {
             setShowWinModal(false)
             resetGuessTimer()
 
+            const finalSkipsRemaining = overrideSkipsRemaining ?? skipsRemaining
+            const finalHintUsed = overrideHintUsed ?? hintUsed
+            const finalHintUsedOnIdol = overrideHintUsedOnIdol !== undefined ? overrideHintUsedOnIdol : hintUsedOnIdol
+
+            if (overrideSkipsRemaining !== undefined) setSkipsRemaining(overrideSkipsRemaining)
+            if (overrideHintUsed !== undefined) setHintUsed(overrideHintUsed)
+            if (overrideHintUsedOnIdol !== undefined) setHintUsedOnIdol(overrideHintUsedOnIdol)
+
+            const buildGameState = (row: DailyRow, nextImageIndex: number, images: DailyRow[]) => ({
+                groupType: row.group_type || '',
+                imgBucket: row.img_bucket,
+                groupCategory: row.group_category,
+                base64Group: row.base64_group,
+                base64Idol: row.base64_idol,
+                encodedIdolName: encodeIdolName(row.name || ''),
+                encodedAltName: row.alt_name ? encodeIdolName(row.alt_name) : undefined,
+                groupName: row.group_name,
+                hintUsed: finalHintUsed,
+                hintUsedOnIdol: finalHintUsedOnIdol || undefined,
+                skipsRemaining: finalSkipsRemaining,
+                guesses: freshGuesses,
+                savedAt: new Date().toISOString(),
+                prefetchedImages: images.map((img) => ({
+                    id: img.id,
+                    name: img.name,
+                    alt_name: img.alt_name,
+                    group_type: img.group_type || '',
+                    img_bucket: img.img_bucket,
+                    group_category: img.group_category,
+                    base64_group: img.base64_group,
+                    base64_idol: img.base64_idol,
+                    group_name: img.group_name,
+                })),
+                currentImageIndex: nextImageIndex,
+            })
+
             if (prefetchedImages.length > currentImageIndex) {
                 const row = prefetchedImages[currentImageIndex]
                 const nextImageIndex = currentImageIndex + 1
@@ -457,33 +493,7 @@ export function useGameController() {
                 if (row.name) setCorrectAnswer(row.name.toUpperCase())
                 setCurrentImageIndex(nextImageIndex)
 
-                unlimitedStats.saveGameState({
-                    groupType: row.group_type || '',
-                    imgBucket: row.img_bucket,
-                    groupCategory: row.group_category,
-                    base64Group: row.base64_group,
-                    base64Idol: row.base64_idol,
-                    encodedIdolName: encodeIdolName(row.name || ''),
-                    encodedAltName: row.alt_name ? encodeIdolName(row.alt_name) : undefined,
-                    groupName: row.group_name,
-                    hintUsed: hintUsed,
-                    hintUsedOnIdol: hintUsedOnIdol || undefined,
-                    skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
-                    guesses: freshGuesses,
-                    savedAt: new Date().toISOString(),
-                    prefetchedImages: prefetchedImages.map((img) => ({
-                        id: img.id,
-                        name: img.name,
-                        alt_name: img.alt_name,
-                        group_type: img.group_type || '',
-                        img_bucket: img.img_bucket,
-                        group_category: img.group_category,
-                        base64_group: img.base64_group,
-                        base64_idol: img.base64_idol,
-                        group_name: img.group_name,
-                    })),
-                    currentImageIndex: nextImageIndex,
-                })
+                unlimitedStats.saveGameState(buildGameState(row, nextImageIndex, prefetchedImages))
 
                 if (prefetchedImages.length > nextImageIndex) {
                     const nextRow = prefetchedImages[nextImageIndex]
@@ -524,32 +534,7 @@ export function useGameController() {
                         if (row.name) setCorrectAnswer(row.name.toUpperCase())
                         setCurrentImageIndex(nextImageIndex + 1)
 
-                        unlimitedStats.saveGameState({
-                            groupType: row.group_type || '',
-                            imgBucket: row.img_bucket,
-                            groupCategory: row.group_category,
-                            base64Group: row.base64_group,
-                            base64Idol: row.base64_idol,
-                            encodedIdolName: encodeIdolName(row.name || ''),
-                            groupName: row.group_name,
-                            hintUsed: hintUsed,
-                            hintUsedOnIdol: hintUsedOnIdol || undefined,
-                            skipsRemaining: overrideSkipsRemaining ?? skipsRemaining,
-                            guesses: freshGuesses,
-                            savedAt: new Date().toISOString(),
-                            prefetchedImages: updatedPrefetched.map((img) => ({
-                                id: img.id,
-                                name: img.name,
-                                alt_name: img.alt_name,
-                                group_type: img.group_type || '',
-                                img_bucket: img.img_bucket,
-                                group_category: img.group_category,
-                                base64_group: img.base64_group,
-                                base64_idol: img.base64_idol,
-                                group_name: img.group_name,
-                            })),
-                            currentImageIndex: nextImageIndex + 1,
-                        })
+                        unlimitedStats.saveGameState(buildGameState(row, nextImageIndex + 1, updatedPrefetched))
 
                         newImages.forEach((img) => {
                             if (img.img_bucket) addSeenIdol(img.img_bucket)
@@ -578,10 +563,7 @@ export function useGameController() {
 
     const handlePlayAgain = useCallback(() => {
         setShowGameOver(false)
-        setSkipsRemaining(3)
-        setHintUsed(false)
-        setHintUsedOnIdol(null)
-        loadNextUnlimited()
+        loadNextUnlimited(3, false, null)
     }, [loadNextUnlimited])
 
     const handleSkip = useCallback(() => {
