@@ -29,7 +29,8 @@ interface GameProgressHook {
 
 export function useGameProgress(
     dailyImage: DailyImage | null,
-    correctAnswer: string
+    correctAnswer: string,
+    gameMode: 'daily' | 'unlimited' = 'daily'
 ): GameProgressHook {
     const [guesses, setGuesses] = useState<
         Array<'correct' | 'incorrect' | 'empty'>
@@ -54,7 +55,18 @@ export function useGameProgress(
     } = useUserStats()
 
     useEffect(() => {
+        if (gameMode !== 'daily') {
+            setTodayCompleted(false)
+            setTodayCompletionData(null)
+            return
+        }
+
         if (statsLoaded && dailyImage) {
+            setGameWon(false)
+            setGameLost(false)
+            setTodayCompleted(false)
+            setTodayCompletionData(null)
+
             const completed = isTodayCompleted()
             const completionData = getTodayCompletion()
 
@@ -95,17 +107,16 @@ export function useGameProgress(
                     ])
                 }
             } else {
-                // Game not completed, try to load progress
                 const progress = loadDailyProgress()
                 if (progress && progress.imageId === dailyImage.id) {
                     setGuesses(progress.guesses)
                 } else {
-                    setTodayCompleted(false)
-                    setTodayCompletionData(null)
+                    setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
                 }
             }
         }
     }, [
+        gameMode,
         statsLoaded,
         dailyImage,
         isTodayCompleted,

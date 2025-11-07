@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import {
     getDailyImage,
     getMultipleRandomUnlimitedImages,
@@ -17,6 +18,7 @@ import { useUnlimitedStats } from '@/components/stats/UserStats'
 import { encodeIdolName, decodeIdolName } from '@/utils/encoding'
 
 export function useGameController() {
+    const pathname = usePathname()
     const [gameMode, setGameMode] = useState<'daily' | 'unlimited'>('daily')
     const [currentGuess, setCurrentGuess] = useState('')
     const [lastIncorrectGuess, setLastIncorrectGuess] = useState('')
@@ -62,7 +64,7 @@ export function useGameController() {
         saveProgress,
         saveGuessAttempt,
         loadGuessAttempts,
-    } = useGameProgress(dailyImage, correctAnswer)
+    } = useGameProgress(dailyImage, correctAnswer, gameMode)
 
     const unlimitedStats = useUnlimitedStats()
 
@@ -183,7 +185,7 @@ export function useGameController() {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(1)
                     setDailyImage(newImages[0])
-                    setSkipsRemaining(3)
+                    setSkipsRemaining(500)
                     setHintUsed(false)
                     setHintUsedOnIdol(null)
                     if (newImages[0].name) setCorrectAnswer(newImages[0].name.toUpperCase())
@@ -217,7 +219,7 @@ export function useGameController() {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(1)
                     setDailyImage(newImages[0])
-                    setSkipsRemaining(3)
+                    setSkipsRemaining(500)
                     setHintUsed(false)
                     setHintUsedOnIdol(null)
                     if (newImages[0].name) setCorrectAnswer(newImages[0].name.toUpperCase())
@@ -293,7 +295,7 @@ export function useGameController() {
                 setPrefetchedImages(newImages)
                 setCurrentImageIndex(1)
                 setDailyImage(newImages[0])
-                setSkipsRemaining(3)
+                setSkipsRemaining(500)
                 setHintUsed(false)
                 setHintUsedOnIdol(null)
                 if (newImages[0].name) setCorrectAnswer(newImages[0].name.toUpperCase())
@@ -319,7 +321,8 @@ export function useGameController() {
 
     const handleGameModeChange = useCallback(
         (mode: 'daily' | 'unlimited', filter?: 'boy-group' | 'girl-group' | null) => {
-            if (mode === gameMode) return
+            const shouldLoadAnyway = pathname === '/infinite' && mode === 'unlimited' && !dailyImage
+            if (mode === gameMode && !shouldLoadAnyway) return
             if (isSwitchingModeRef.current) return
             isSwitchingModeRef.current = true
 
@@ -418,6 +421,7 @@ export function useGameController() {
             hintUsed,
             hintUsedOnIdol,
             skipsRemaining,
+            pathname,
         ]
     )
 
@@ -789,6 +793,16 @@ export function useGameController() {
     const hasLoadedInitialRef = useRef(false)
 
     useEffect(() => {
+        // If we're on the infinite page, don't set mode here - let the page handle it
+        // This prevents the hook from loading daily mode before the page can switch to unlimited
+        if (pathname === '/infinite') {
+            const savedFilter = localStorage.getItem('idol-guessr-group-filter')
+            if (savedFilter === 'boy-group' || savedFilter === 'girl-group') {
+                setGroupFilter(savedFilter as 'boy-group' | 'girl-group' | null)
+            }
+            return
+        }
+        
         const savedMode = localStorage.getItem('idol-guessr-game-mode')
         if (savedMode === 'unlimited') {
             setGameMode('unlimited')
@@ -799,9 +813,12 @@ export function useGameController() {
         if (savedFilter === 'boy-group' || savedFilter === 'girl-group') {
             setGroupFilter(savedFilter as 'boy-group' | 'girl-group' | null)
         }
-    }, [])
+    }, [pathname])
 
     useEffect(() => {
+        // Don't auto-load on infinite page - let the page handle it via handleGameModeChange
+        if (pathname === '/infinite') return
+        
         if (!hasLoadedInitialRef.current && gameMode === 'daily') return
         hasLoadedInitialRef.current = true
         let mounted = true
@@ -838,7 +855,7 @@ export function useGameController() {
             window.removeEventListener('focus', onFocus)
             document.removeEventListener('visibilitychange', onFocus)
         }
-    }, [gameMode])
+    }, [gameMode, pathname])
 
     useEffect(() => {
         const update = () =>
