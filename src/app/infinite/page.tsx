@@ -96,6 +96,7 @@ export default function InfinitePage() {
                         /* disabled in infinite */
                     }}
                     showModeToggle={false}
+                    currentStreak={unlimitedCurrentStreak}
                 />
 
                 <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
@@ -134,7 +135,6 @@ export default function InfinitePage() {
                             onStreakPopupComplete={() =>
                                 setShowStreakPopup(false)
                             }
-                            currentStreak={unlimitedCurrentStreak}
                             showGameOver={showGameOver}
                             highestStreak={unlimitedMaxStreak}
                             onPlayAgain={handlePlayAgain}

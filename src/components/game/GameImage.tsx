@@ -26,7 +26,6 @@ interface GameImageProps {
     showStreakPopup?: boolean
     streakMilestone?: number
     onStreakPopupComplete?: () => void
-    currentStreak?: number
     showGameOver?: boolean
     highestStreak?: number
     onPlayAgain?: () => void
@@ -49,7 +48,6 @@ export default function GameImage({
     showStreakPopup,
     streakMilestone,
     onStreakPopupComplete,
-    currentStreak = 0,
     showGameOver = false,
     highestStreak = 0,
     onPlayAgain,
@@ -250,21 +248,6 @@ export default function GameImage({
                                             : 'HINT (1)'}
                                 </button>
                             )}
-
-                            {currentStreak >= 5 && (
-                                <div className='flex items-center gap-1.5'>
-                                    <span className='text-2xl'>🔥</span>
-                                    <span
-                                        className='text-2xl font-bold text-white'
-                                        style={{
-                                            textShadow:
-                                                '2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5)',
-                                        }}
-                                    >
-                                        {currentStreak}
-                                    </span>
-                                </div>
-                            )}
                         </div>
                         <div className='absolute top-3 right-3 z-10'>
                             <button
@@ -320,7 +303,7 @@ export default function GameImage({
                         {guesses.map((guess, index) => (
                             <div
                                 key={`${index}-${guess}`}
-                                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 ${
+                                className={`flex h-9 w-9 md:h-12 md:w-12 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 ${
                                     guess === 'correct'
                                         ? 'bg-green-400'
                                         : guess === 'incorrect'

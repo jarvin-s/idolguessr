@@ -82,6 +82,7 @@ export default function Home() {
                     gameMode={gameMode}
                     onGameModeChange={handleGameModeChange}
                     showModeToggle={false}
+                    currentStreak={gameMode === 'unlimited' ? unlimitedCurrentStreak : undefined}
                 />
 
                 <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
@@ -122,11 +123,6 @@ export default function Home() {
                             streakMilestone={streakMilestone}
                             onStreakPopupComplete={() =>
                                 setShowStreakPopup(false)
-                            }
-                            currentStreak={
-                                gameMode === 'unlimited'
-                                    ? unlimitedCurrentStreak
-                                    : 0
                             }
                             showGameOver={showGameOver}
                             highestStreak={unlimitedMaxStreak}

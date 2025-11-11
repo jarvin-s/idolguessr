@@ -58,17 +58,19 @@ export default function GuessInput({
     const display = getDisplayContent()
 
     return (
-        <div className={`mb-3 w-full flex-shrink-0 rounded-md ${display.bgColor}`}>
+        <div
+            className={`mb-3 w-full flex-shrink-0 rounded-md ${display.bgColor}`}
+        >
             <div
                 className={`flex items-center justify-center rounded-lg px-4 py-3 text-center font-bold tracking-wider transition-all duration-300 ${
                     isAnimating && !gameWon ? 'shake-animation' : ''
                 }`}
                 style={{ minHeight: '3rem' }}
             >
-                <span className={`text-lg ${display.textColor}`}>{display.text}</span>
+                <span className={`text-lg select-none ${display.textColor}`}>
+                    {display.text}
+                </span>
             </div>
         </div>
     )
 }
-
-
