@@ -72,6 +72,7 @@ export function useGameController() {
     const serverOffsetRef = useRef<number>(0)
     const tickIntervalRef = useRef<number | null>(null)
     const flipTimeoutRef = useRef<number | null>(null)
+    const flipNowRef = useRef<(() => Promise<void>) | null>(null)
 
     const remainingGuesses = guesses.filter((g) => g === 'empty').length
 
@@ -95,6 +96,30 @@ export function useGameController() {
         }
     }, [])
 
+    const scheduleCountdownAndFlip = useCallback(
+        (endAtISO: string) => {
+            clearTimers()
+            const endAtMs = new Date(endAtISO).getTime()
+
+            tickIntervalRef.current = window.setInterval(() => {
+                const approxServerNow = Date.now() + serverOffsetRef.current
+                const remaining = endAtMs - approxServerNow
+                setTimer(formatMs(remaining))
+                if (remaining <= 0 && flipNowRef.current) {
+                    void flipNowRef.current()
+                }
+            }, 1000)
+
+            const delayMs = Math.max(0, endAtMs - (Date.now() + serverOffsetRef.current))
+            flipTimeoutRef.current = window.setTimeout(() => {
+                if (flipNowRef.current) {
+                    void flipNowRef.current()
+                }
+            }, delayMs)
+        },
+        [clearTimers]
+    )
+
     const flipNow = useCallback(async () => {
         clearTimers()
 
@@ -113,32 +138,9 @@ export function useGameController() {
         if (next.name) setCorrectAnswer(next.name.toUpperCase())
 
         scheduleCountdownAndFlip(next.end_at)
-    }, [clearTimers, setGuesses, setGameWon])
+    }, [clearTimers, scheduleCountdownAndFlip, setGuesses, setGameWon])
 
-    const scheduleCountdownAndFlip = useCallback(
-        (endAtISO: string) => {
-            clearTimers()
-            const endAtMs = new Date(endAtISO).getTime()
-
-            tickIntervalRef.current = window.setInterval(() => {
-                const approxServerNow = Date.now() + serverOffsetRef.current
-                const remaining = endAtMs - approxServerNow
-                setTimer(formatMs(remaining))
-                if (remaining <= 0) {
-                    void flipNow()
-                }
-            }, 1000)
-
-            const delayMs = Math.max(
-                0,
-                endAtMs - (Date.now() + serverOffsetRef.current)
-            )
-            flipTimeoutRef.current = window.setTimeout(() => {
-                void flipNow()
-            }, delayMs)
-        },
-        [clearTimers, flipNow]
-    )
+    flipNowRef.current = flipNow
 
     const loadCurrent = useCallback(async () => {
         setIsLoading(true)
@@ -185,7 +187,7 @@ export function useGameController() {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(1)
                     setDailyImage(newImages[0])
-                    setSkipsRemaining(500)
+                    setSkipsRemaining(3)
                     setHintUsed(false)
                     setHintUsedOnIdol(null)
                     if (newImages[0].name) setCorrectAnswer(newImages[0].name.toUpperCase())
@@ -219,7 +221,7 @@ export function useGameController() {
                     setPrefetchedImages(newImages)
                     setCurrentImageIndex(1)
                     setDailyImage(newImages[0])
-                    setSkipsRemaining(500)
+                    setSkipsRemaining(3)
                     setHintUsed(false)
                     setHintUsedOnIdol(null)
                     if (newImages[0].name) setCorrectAnswer(newImages[0].name.toUpperCase())
@@ -295,7 +297,7 @@ export function useGameController() {
                 setPrefetchedImages(newImages)
                 setCurrentImageIndex(1)
                 setDailyImage(newImages[0])
-                setSkipsRemaining(500)
+                setSkipsRemaining(3)
                 setHintUsed(false)
                 setHintUsedOnIdol(null)
                 if (newImages[0].name) setCorrectAnswer(newImages[0].name.toUpperCase())
@@ -696,7 +698,7 @@ export function useGameController() {
                                 }
                                 return newGuesses
                             })
-                        }, 500)
+                        }, 3)
                     } else {
                         const emptyIndex = guesses.findIndex((g) => g === 'empty')
                         setGameWon(true)
@@ -802,7 +804,7 @@ export function useGameController() {
             }
             return
         }
-        
+
         const savedMode = localStorage.getItem('idol-guessr-game-mode')
         if (savedMode === 'unlimited') {
             setGameMode('unlimited')
@@ -818,7 +820,7 @@ export function useGameController() {
     useEffect(() => {
         // Don't auto-load on infinite page - let the page handle it via handleGameModeChange
         if (pathname === '/infinite') return
-        
+
         if (!hasLoadedInitialRef.current && gameMode === 'daily') return
         hasLoadedInitialRef.current = true
         let mounted = true
@@ -855,7 +857,7 @@ export function useGameController() {
             window.removeEventListener('focus', onFocus)
             document.removeEventListener('visibilitychange', onFocus)
         }
-    }, [gameMode, pathname])
+    }, [gameMode, pathname, clearTimers, loadCurrent, loadUnlimited])
 
     useEffect(() => {
         const update = () =>
