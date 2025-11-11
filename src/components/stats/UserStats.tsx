@@ -289,7 +289,7 @@ export function useUnlimitedStats() {
         }
     }, [stats, isLoaded])
 
-    const updateStats = (won: boolean, incrementTotalGames: boolean = true) => {
+    const updateStats = (won: boolean, incrementTotalGames: boolean = true, preserveStreak: boolean = false) => {
         setStats((prevStats) => {
             const newStats = { ...prevStats }
             if (incrementTotalGames) {
@@ -300,7 +300,9 @@ export function useUnlimitedStats() {
                 newStats.currentStreak += 1
                 newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak)
             } else {
-                newStats.currentStreak = 0
+                if (!preserveStreak) {
+                    newStats.currentStreak = 0
+                }
             }
             return newStats
         })

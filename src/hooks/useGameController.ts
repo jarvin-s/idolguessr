@@ -436,7 +436,7 @@ export function useGameController() {
                         void trackUnlimitedGame(dailyImage.id, guessCount, currentStreak)
                         hasTrackedCurrentGame.current = true
                     }
-                    unlimitedStats.updateStats(false, true)
+                    unlimitedStats.updateStats(false, true, true)
                 }
                 lastStreakMilestoneRef.current = 0
             }
