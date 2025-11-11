@@ -209,7 +209,7 @@ export default function GameImage({
                                             onHintUse?.()
                                         }
                                     }}
-                                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all md:text-sm ${
                                         hintUsed &&
                                         hintUsedOnIdol !== dailyImage.img_bucket
                                             ? 'cursor-not-allowed bg-gray-200 text-gray-500'
@@ -261,7 +261,7 @@ export default function GameImage({
                                         onPass()
                                     }
                                 }}
-                                className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-transform ${
+                                className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-transform md:text-sm ${
                                     skipsRemaining === 0
                                         ? 'cursor-not-allowed bg-gray-200 text-gray-500'
                                         : 'cursor-pointer bg-white text-black hover:scale-105 hover:bg-gray-100 active:scale-95'
@@ -303,7 +303,7 @@ export default function GameImage({
                         {guesses.map((guess, index) => (
                             <div
                                 key={`${index}-${guess}`}
-                                className={`flex h-9 w-9 md:h-12 md:w-12 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 ${
+                                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 md:h-12 md:w-12 ${
                                     guess === 'correct'
                                         ? 'bg-green-400'
                                         : guess === 'incorrect'
