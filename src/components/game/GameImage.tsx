@@ -26,10 +26,10 @@ interface GameImageProps {
     showStreakPopup?: boolean
     streakMilestone?: number
     onStreakPopupComplete?: () => void
-    currentStreak?: number
     showGameOver?: boolean
     highestStreak?: number
     onPlayAgain?: () => void
+    onChangeFilters?: () => void
     guesses?: Array<'empty' | 'correct' | 'incorrect'>
 }
 
@@ -48,10 +48,10 @@ export default function GameImage({
     showStreakPopup,
     streakMilestone,
     onStreakPopupComplete,
-    currentStreak = 0,
     showGameOver = false,
     highestStreak = 0,
     onPlayAgain,
+    onChangeFilters,
     guesses = [],
 }: GameImageProps) {
     const [isEntering, setIsEntering] = useState(false)
@@ -65,9 +65,7 @@ export default function GameImage({
             const isNewIdol =
                 prevIdolBucketRef.current !== dailyImage.img_bucket
             prevIdolBucketRef.current = dailyImage.img_bucket
-
             setIsEntering(true)
-
             if (isNewIdol) {
                 setGroupNameRevealed(false)
             } else {
@@ -75,7 +73,6 @@ export default function GameImage({
                     hintUsed && hintUsedOnIdol === dailyImage.img_bucket
                 )
             }
-
             const timer = setTimeout(() => setIsEntering(false), 50)
             return () => clearTimeout(timer)
         }
@@ -100,55 +97,25 @@ export default function GameImage({
         ) {
             return 'clear'
         }
-
         if (remainingGuesses === 6) return 1
         if (remainingGuesses === 5) return 2
         if (remainingGuesses === 4) return 3
         if (remainingGuesses === 3) return 4
         if (remainingGuesses === 2) return 5
-
         return 1
     }
 
     const imageNumber = getImageNumber()
-
     const hasValidData =
         !dailyImage ||
         gameMode === 'daily' ||
         (dailyImage.group_category && dailyImage.base64_group)
 
-    useEffect(() => {
-        if (!hasValidData && dailyImage && gameMode === 'unlimited') {
-            console.error(
-                '[GameImage] CRITICAL: Invalid data detected! Will trigger emergency recovery...',
-                {
-                    gameMode,
-                    img_bucket: dailyImage.img_bucket,
-                    group_category: dailyImage.group_category,
-                    base64_group: dailyImage.base64_group,
-                }
-            )
-
-            const emergencyTimer = setTimeout(() => {
-                if (!hasValidData && dailyImage && gameMode === 'unlimited') {
-                    console.error(
-                        '[GameImage] Triggering emergency recovery event'
-                    )
-                    window.dispatchEvent(
-                        new CustomEvent('idol-guessr-emergency-recovery')
-                    )
-                }
-            }, 500)
-
-            return () => clearTimeout(emergencyTimer)
-        }
-    }, [hasValidData, dailyImage, gameMode])
-
     const allImageUrls =
         dailyImage && hasValidData
             ? [1, 2, 3, 4, 5, 'clear'].map((num) =>
                   getImageUrl(
-                      dailyImage.group_type,
+                      dailyImage.group_type || '',
                       dailyImage.img_bucket,
                       num as number | 'clear',
                       gameMode,
@@ -179,13 +146,11 @@ export default function GameImage({
                         {allImageUrls.map((url, index) => {
                             const imageNum = index === 5 ? 'clear' : index + 1
                             const isVisible = imageNumber === imageNum
-
                             const currentIndex =
                                 typeof imageNumber === 'number'
                                     ? imageNumber - 1
                                     : 5
                             const isPastImage = index < currentIndex
-
                             return (
                                 <div
                                     key={url}
@@ -244,7 +209,7 @@ export default function GameImage({
                                             onHintUse?.()
                                         }
                                     }}
-                                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all md:text-sm ${
                                         hintUsed &&
                                         hintUsedOnIdol !== dailyImage.img_bucket
                                             ? 'cursor-not-allowed bg-gray-200 text-gray-500'
@@ -283,21 +248,6 @@ export default function GameImage({
                                             : 'HINT (1)'}
                                 </button>
                             )}
-
-                            {currentStreak >= 5 && (
-                                <div className='flex items-center gap-1.5'>
-                                    <span className='text-2xl'>🔥</span>
-                                    <span
-                                        className='text-2xl font-bold text-white'
-                                        style={{
-                                            textShadow:
-                                                '2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5)',
-                                        }}
-                                    >
-                                        {currentStreak}
-                                    </span>
-                                </div>
-                            )}
                         </div>
                         <div className='absolute top-3 right-3 z-10'>
                             <button
@@ -311,14 +261,12 @@ export default function GameImage({
                                         onPass()
                                     }
                                 }}
-                                className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-transform ${
+                                className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-transform md:text-sm ${
                                     skipsRemaining === 0
                                         ? 'cursor-not-allowed bg-gray-200 text-gray-500'
                                         : 'cursor-pointer bg-white text-black hover:scale-105 hover:bg-gray-100 active:scale-95'
                                 }`}
-                                style={{
-                                    border: '1px solid #00000012',
-                                }}
+                                style={{ border: '1px solid #00000012' }}
                                 disabled={skipsRemaining === 0}
                             >
                                 <SkipButton />
@@ -355,7 +303,7 @@ export default function GameImage({
                         {guesses.map((guess, index) => (
                             <div
                                 key={`${index}-${guess}`}
-                                className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 ${
+                                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 md:h-12 md:w-12 ${
                                     guess === 'correct'
                                         ? 'bg-green-400'
                                         : guess === 'incorrect'
@@ -373,6 +321,7 @@ export default function GameImage({
                         isOpen={showGameOver}
                         highestStreak={highestStreak}
                         onPlayAgain={onPlayAgain}
+                        onChangeFilters={onChangeFilters}
                     />
                 )}
             </div>

@@ -27,7 +27,6 @@ export default function GuessInput({
                 bgColor: 'bg-green-400',
             }
         }
-
         if (gameLost) {
             return {
                 text: `Nice try! It was ${truncateText(correctAnswer)}`,
@@ -35,7 +34,6 @@ export default function GuessInput({
                 bgColor: 'bg-red-400',
             }
         }
-
         if (lastIncorrectGuess) {
             return {
                 text: truncateText(lastIncorrectGuess),
@@ -43,7 +41,6 @@ export default function GuessInput({
                 bgColor: 'bg-red-400',
             }
         }
-
         if (currentGuess) {
             return {
                 text: truncateText(currentGuess),
@@ -51,7 +48,6 @@ export default function GuessInput({
                 bgColor: 'bg-gray-200',
             }
         }
-
         return {
             text: "WHAT'S YOUR GUESS?",
             textColor: 'text-black/30',
@@ -69,11 +65,9 @@ export default function GuessInput({
                 className={`flex items-center justify-center rounded-lg px-4 py-3 text-center font-bold tracking-wider transition-all duration-300 ${
                     isAnimating && !gameWon ? 'shake-animation' : ''
                 }`}
-                style={{
-                    minHeight: '3rem',
-                }}
+                style={{ minHeight: '3rem' }}
             >
-                <span className={`text-lg ${display.textColor}`}>
+                <span className={`text-lg select-none ${display.textColor}`}>
                     {display.text}
                 </span>
             </div>

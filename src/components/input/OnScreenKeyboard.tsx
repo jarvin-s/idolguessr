@@ -23,53 +23,34 @@ export default function OnScreenKeyboard({
         onKeyPress(key)
     }
     
-    // Smart touch detection - finds nearest key when touching gaps
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        // Immediately find the target or nearest button
         const target = e.target as HTMLElement
-        
-        // If clicked directly on a button or its child (SVG icon), handle it
         const button = target.closest('button')
         if (button) {
-            // Let the button's own handler deal with it
             return
         }
-        
-        // Clicked on gap/whitespace - find nearest button FAST
         e.preventDefault()
         e.stopPropagation()
-        
         const touch = { x: e.clientX, y: e.clientY }
         const buttons = keyboardRef.current?.querySelectorAll('button')
-        
         if (!buttons || buttons.length === 0) return
-        
         let nearestButton: Element | null = null
         let nearestDistance = Infinity
-        
-        // Fast iteration - use for loop instead of forEach
         for (let i = 0; i < buttons.length; i++) {
             const button = buttons[i]
             const rect = button.getBoundingClientRect()
-            
-            // Use center point for distance calculation
             const centerX = rect.left + rect.width / 2
             const centerY = rect.top + rect.height / 2
-            
             const dx = touch.x - centerX
             const dy = touch.y - centerY
-            const distance = dx * dx + dy * dy  // Skip sqrt for performance
-            
+            const distance = dx * dx + dy * dy
             if (distance < nearestDistance) {
                 nearestDistance = distance
                 nearestButton = button
             }
         }
-        
-        // Immediately trigger the nearest button's handler
         if (nearestButton) {
             const btn = nearestButton as HTMLButtonElement
-            // Get the key from the button's text content or data attribute
             const key = btn.textContent?.trim() || btn.getAttribute('data-key') || ''
             if (key) {
                 onKeyPress(key)
@@ -161,3 +142,5 @@ export function BackspaceIcon() {
         </svg>
     )
 }
+
+
