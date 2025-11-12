@@ -713,7 +713,7 @@ export function useGameController() {
                                 }
                                 return newGuesses
                             })
-                        }, 3)
+                        }, 500)
                     } else {
                         const emptyIndex = guesses.findIndex((g) => g === 'empty')
                         setGameWon(true)
