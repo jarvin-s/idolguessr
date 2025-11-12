@@ -36,7 +36,7 @@ export default function GameOverModal({
             <div className='absolute inset-0 bg-black/70 backdrop-blur-md' />
             <div className='relative z-10 flex flex-col items-center gap-6 px-8'>
                 <div className='text-center'>
-                    <h2 className='mb-4 text-6xl font-black text-white uppercase'>
+                    <h2 className='mb-4 text-5xl font-black text-white uppercase'>
                         Game Over
                     </h2>
                     <p className='text-2xl font-semibold text-white/90'>
