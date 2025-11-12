@@ -73,6 +73,9 @@ export function useGameController() {
     const tickIntervalRef = useRef<number | null>(null)
     const flipTimeoutRef = useRef<number | null>(null)
     const flipNowRef = useRef<(() => Promise<void>) | null>(null)
+    const scheduleCountdownAndFlipRef = useRef<((endAtISO: string) => void) | null>(null)
+    const loadCurrentRef = useRef<(() => Promise<void>) | null>(null)
+    const loadUnlimitedRefFunc = useRef<((filterOverride?: 'boy-group' | 'girl-group' | null) => Promise<void>) | null>(null)
 
     const remainingGuesses = guesses.filter((g) => g === 'empty').length
 
@@ -120,6 +123,8 @@ export function useGameController() {
         [clearTimers]
     )
 
+    scheduleCountdownAndFlipRef.current = scheduleCountdownAndFlip
+
     const flipNow = useCallback(async () => {
         clearTimers()
 
@@ -137,8 +142,10 @@ export function useGameController() {
         setDailyImage(next)
         if (next.name) setCorrectAnswer(next.name.toUpperCase())
 
-        scheduleCountdownAndFlip(next.end_at)
-    }, [clearTimers, scheduleCountdownAndFlip, setGuesses, setGameWon])
+        if (scheduleCountdownAndFlipRef.current) {
+            scheduleCountdownAndFlipRef.current(next.end_at)
+        }
+    }, [clearTimers, setGuesses, setGameWon])
 
     flipNowRef.current = flipNow
 
@@ -155,8 +162,12 @@ export function useGameController() {
         const serverNowMs = new Date(row.server_now).getTime()
         serverOffsetRef.current = serverNowMs - Date.now()
 
-        scheduleCountdownAndFlip(row.end_at)
-    }, [scheduleCountdownAndFlip])
+        if (scheduleCountdownAndFlipRef.current) {
+            scheduleCountdownAndFlipRef.current(row.end_at)
+        }
+    }, [])
+
+    loadCurrentRef.current = loadCurrent
 
     const loadUnlimitedRef = useRef(false)
 
@@ -321,6 +332,8 @@ export function useGameController() {
         groupFilter,
     ])
 
+    loadUnlimitedRefFunc.current = loadUnlimited
+
     const handleGameModeChange = useCallback(
         (mode: 'daily' | 'unlimited', filter?: 'boy-group' | 'girl-group' | null) => {
             const shouldLoadAnyway = pathname === '/infinite' && mode === 'unlimited' && !dailyImage
@@ -386,7 +399,9 @@ export function useGameController() {
                 setGameLost(false)
                 setShowWinModal(false)
                 setShowGameOver(false)
-                void loadCurrent()
+                if (loadCurrentRef.current) {
+                    void loadCurrentRef.current()
+                }
             } else {
                 clearTimers()
                 setPrefetchedImages([])
@@ -402,13 +417,13 @@ export function useGameController() {
                 setGameLost(false)
                 setShowWinModal(false)
                 setShowGameOver(false)
-                void loadUnlimited(filter)
+                if (loadUnlimitedRefFunc.current) {
+                    void loadUnlimitedRefFunc.current(filter)
+                }
             }
         },
         [
             gameMode,
-            loadCurrent,
-            loadUnlimited,
             clearTimers,
             setGuesses,
             setGameWon,
@@ -829,9 +844,13 @@ export function useGameController() {
             setDailyImage(null)
             setIsLoading(true)
             if (gameMode === 'daily') {
-                await loadCurrent()
+                if (loadCurrentRef.current) {
+                    await loadCurrentRef.current()
+                }
             } else {
-                await loadUnlimited()
+                if (loadUnlimitedRefFunc.current) {
+                    await loadUnlimitedRefFunc.current()
+                }
             }
             if (isSwitchingModeRef.current) {
                 setTimeout(() => {
@@ -842,8 +861,8 @@ export function useGameController() {
         void loadGame()
 
         const onFocus = () => {
-            if (gameModeRef.current === 'daily') {
-                void loadCurrent()
+            if (gameModeRef.current === 'daily' && loadCurrentRef.current) {
+                void loadCurrentRef.current()
             }
         }
         if (gameMode === 'daily') {
@@ -857,7 +876,7 @@ export function useGameController() {
             window.removeEventListener('focus', onFocus)
             document.removeEventListener('visibilitychange', onFocus)
         }
-    }, [gameMode, pathname, clearTimers, loadCurrent, loadUnlimited])
+    }, [gameMode, pathname, clearTimers])
 
     useEffect(() => {
         const update = () =>
@@ -913,7 +932,9 @@ export function useGameController() {
                         setGameLost(false)
                         setCurrentGuess('')
                         setLastIncorrectGuess('')
-                        void loadUnlimited()
+                        if (loadUnlimitedRefFunc.current) {
+                            void loadUnlimitedRefFunc.current()
+                        }
                         return
                     }
                     setDailyImage(savedImage)
@@ -930,7 +951,9 @@ export function useGameController() {
                     setGameLost(false)
                     setCurrentGuess('')
                     setLastIncorrectGuess('')
-                    void loadUnlimited()
+                    if (loadUnlimitedRefFunc.current) {
+                        void loadUnlimitedRefFunc.current()
+                    }
                 }
             }
         }
@@ -941,7 +964,6 @@ export function useGameController() {
         unlimitedStats,
         setGuesses,
         setIsLoading,
-        loadUnlimited,
         setGameWon,
         setGameLost,
         groupFilter,
