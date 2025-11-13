@@ -298,8 +298,8 @@ export default function GameImage({
                     )}
 
                 {/* Traffic Light Indicators */}
-                <div className='pointer-events-none absolute inset-0 z-[200] flex items-end justify-center pb-4'>
-                    <div className='flex gap-2.5'>
+                <div className='pointer-events-none absolute inset-0 z-[200] flex items-end justify-center px-12 pb-4'>
+                    {/* <div className='flex gap-2.5'>
                         {guesses.map((guess, index) => (
                             <div
                                 key={`${index}-${guess}`}
@@ -312,6 +312,25 @@ export default function GameImage({
                                 }`}
                             ></div>
                         ))}
+                    </div> */}
+                    <div className='flex h-12 w-full items-center justify-evenly rounded-lg bg-black'>
+                        <h1 className='text-xl font-bold text-white uppercase'>
+                            Guess {remainingGuesses}/6
+                        </h1>
+                        <div className='flex gap-2.5'>
+                            {guesses.map((guess, index) => (
+                                <div
+                                    key={index}
+                                    className={`h-4 w-4 rounded-full ${
+                                        guess === 'correct'
+                                            ? 'bg-green-400'
+                                            : guess === 'incorrect'
+                                              ? 'bg-red-400/75'
+                                              : 'bg-white'
+                                    }`}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
 
