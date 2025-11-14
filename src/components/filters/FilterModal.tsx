@@ -104,16 +104,10 @@ export default function FilterModal({
                     </button>
                 </div>
 
-                <div className='mt-6 flex gap-3'>
-                    <button
-                        onClick={onClose}
-                        className='flex-1 cursor-pointer rounded-full border-2 border-gray-200 bg-white px-4 py-1.5 text-gray-900 transition-colors hover:bg-gray-200'
-                    >
-                        Cancel
-                    </button>
+                <div className='mt-6'>
                     <button
                         onClick={handleConfirm}
-                        className='flex-1 cursor-pointer rounded-full bg-black px-4 py-1.5 text-white transition-all hover:bg-black/80'
+                        className='w-full cursor-pointer rounded-full bg-black px-4 py-1.5 text-white transition-all hover:bg-black/80'
                     >
                         Start
                     </button>

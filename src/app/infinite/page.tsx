@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Confetti from 'react-confetti'
 import GameHeader from '@/components/game/GameHeader'
 import GameImage from '@/components/game/GameImage'
@@ -18,6 +19,7 @@ import { getImageUrl } from '@/lib/supabase'
 type GroupFilter = 'boy-group' | 'girl-group' | null
 
 export default function InfinitePage() {
+    const router = useRouter()
     const [startOpen, setStartOpen] = useState(false)
     const [showFilterModal, setShowFilterModal] = useState(false)
     const {
@@ -97,6 +99,7 @@ export default function InfinitePage() {
                     }}
                     showModeToggle={false}
                     currentStreak={unlimitedCurrentStreak}
+                    onLogoClick={() => router.push('/', { scroll: false })}
                 />
 
                 <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
@@ -260,13 +263,15 @@ export default function InfinitePage() {
             />
 
             {showConfetti && windowDimensions.width > 0 && (
-                <Confetti
-                    width={windowDimensions.width}
-                    height={windowDimensions.height}
-                    recycle={false}
-                    numberOfPieces={200}
-                    gravity={0.3}
-                />
+                <div className='pointer-events-none fixed inset-0 z-[9999]'>
+                    <Confetti
+                        width={windowDimensions.width}
+                        height={windowDimensions.height}
+                        recycle={false}
+                        numberOfPieces={200}
+                        gravity={0.3}
+                    />
+                </div>
             )}
         </div>
     )

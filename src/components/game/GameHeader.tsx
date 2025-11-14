@@ -12,6 +12,7 @@ interface GameHeaderProps {
     ) => void
     showModeToggle?: boolean
     currentStreak?: number
+    onLogoClick?: () => void
 }
 
 const meshGradient =
@@ -24,6 +25,7 @@ export default function GameHeader({
     onGameModeChange,
     showModeToggle = true,
     currentStreak,
+    onLogoClick,
 }: GameHeaderProps) {
     const [showFilterModal, setShowFilterModal] = useState(false)
 
@@ -32,13 +34,22 @@ export default function GameHeader({
             <div className='flex w-full flex-shrink-0 flex-col gap-3 p-4'>
                 <div className='flex w-full items-center justify-between'>
                     <div className='flex items-center justify-start'>
-                        <Image
-                            src='/images/idolguessr-logo.png'
-                            alt='IdolGuessr Logo'
-                            width={150}
-                            height={50}
-                            className='h-10 w-auto'
-                        />
+                        <button
+                            onClick={() => {
+                                console.log('Logo clicked!')
+                                onLogoClick?.()
+                            }}
+                            className='cursor-pointer transition-opacity hover:opacity-80'
+                            aria-label='Go to home screen'
+                        >
+                            <Image
+                                src='/images/idolguessr-logo.png'
+                                alt='IdolGuessr Logo'
+                                width={150}
+                                height={50}
+                                className='h-10 w-auto'
+                            />
+                        </button>
                     </div>
 
                     {gameMode === 'unlimited' && (
