@@ -297,21 +297,25 @@ export default function GameImage({
                         />
                     )}
 
-                {/* Traffic Light Indicators */}
-                <div className='pointer-events-none absolute inset-0 z-[200] flex items-end justify-center pb-4'>
-                    <div className='flex gap-2.5'>
-                        {guesses.map((guess, index) => (
-                            <div
-                                key={`${index}-${guess}`}
-                                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#f3f3f3]/20 transition-all duration-300 md:h-12 md:w-12 ${
-                                    guess === 'correct'
-                                        ? 'bg-green-400'
-                                        : guess === 'incorrect'
-                                          ? 'bg-red-400/75'
-                                          : 'bg-black/75'
-                                }`}
-                            ></div>
-                        ))}
+                <div className='pointer-events-none absolute inset-0 z-[200] mb-4 flex items-end justify-center px-4 md:px-10'>
+                    <div className='flex h-12 w-full items-center justify-evenly rounded-lg bg-black'>
+                        <h1 className='text-xl font-bold text-white uppercase'>
+                            Guess {6 - remainingGuesses}/6
+                        </h1>
+                        <div className='flex gap-2.5'>
+                            {guesses.map((guess, index) => (
+                                <div
+                                    key={index}
+                                    className={`h-4 w-4 rounded-full ${
+                                        guess === 'correct'
+                                            ? 'bg-green-400'
+                                            : guess === 'incorrect'
+                                              ? 'bg-red-400/75'
+                                              : 'bg-white'
+                                    }`}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
 
