@@ -66,7 +66,7 @@ export default function GameHeader({
                         </div>
                     )}
 
-                    <div className='flex items-center gap-3'>
+                    <div className='flex items-center gap-2'>
                         {gameMode === 'daily' && (
                             <div className='flex flex-col items-end text-right'>
                                 <div className='text-xs font-medium text-gray-400'>
@@ -88,6 +88,15 @@ export default function GameHeader({
                                     </span>
                                 </div>
                             )}
+
+                        <button
+                            onClick={() => {
+                                onLogoClick?.()
+                            }}
+                            className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-gray-100 transition-colors hover:bg-gray-200'
+                        >
+                            <HomeIcon />
+                        </button>
 
                         <button
                             onClick={onShowStats}
@@ -199,6 +208,25 @@ function FireIcon() {
             <path
                 fill='#faeb9f'
                 d='M8 18.444c0 2.62 2.111 3.43 3.417 3.542c.446-.056 0 .099 1.415-.185C13.871 21.434 15 20.492 15 18.444c0-1.297-.819-2.098-1.46-2.473c-.196-.115-.424.03-.441.256c-.056.718-.746 1.29-1.215.744c-.415-.482-.59-1.187-.59-1.638v-.59c0-.354-.357-.59-.663-.408C9.495 15.008 8 16.395 8 18.445'
+            />
+        </svg>
+    )
+}
+
+function HomeIcon() {
+    return (
+        <svg
+            xmlns='http://www.w3.org/2000/svg'
+            className='h-6 w-6'
+            viewBox='0 0 24 24'
+        >
+            <path
+                fill='none'
+                stroke='#4a5565'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth='2'
+                d='m4 12l8-8l8 8M6 10.5V19a1 1 0 0 0 1 1h3v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h3a1 1 0 0 0 1-1v-8.5'
             />
         </svg>
     )
