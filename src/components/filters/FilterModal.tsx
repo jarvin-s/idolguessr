@@ -46,7 +46,7 @@ export default function FilterModal({
             <div className='modal-fade-in relative w-full max-w-md rounded-lg bg-white p-6'>
                 <div className='mb-6 flex items-center justify-between'>
                     <h2 className='text-2xl font-bold uppercase'>
-                        Choose Group Type
+                        Change Group Type
                     </h2>
                     <button
                         onClick={onClose}
@@ -72,7 +72,7 @@ export default function FilterModal({
                 <div className='space-y-4'>
                     <button
                         onClick={() => setSelectedFilter('boy-group')}
-                        className={`w-full cursor-pointer rounded-md border-2 px-3 py-2 text-left font-medium transition-all ${
+                        className={`w-full cursor-pointer border-2 px-3 py-2 text-left font-medium transition-all ${
                             selectedFilter === 'boy-group'
                                 ? 'border-black bg-black text-white'
                                 : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'
@@ -83,7 +83,7 @@ export default function FilterModal({
 
                     <button
                         onClick={() => setSelectedFilter('girl-group')}
-                        className={`w-full cursor-pointer rounded-md border-2 px-3 py-2 text-left font-medium transition-all ${
+                        className={`w-full cursor-pointer border-2 px-3 py-2 text-left font-medium transition-all ${
                             selectedFilter === 'girl-group'
                                 ? 'border-black bg-black text-white'
                                 : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'
@@ -94,7 +94,7 @@ export default function FilterModal({
 
                     <button
                         onClick={() => setSelectedFilter(null)}
-                        className={`w-full cursor-pointer rounded-md border-2 px-3 py-2 text-left font-medium transition-all ${
+                        className={`w-full cursor-pointer border-2 px-3 py-2 text-left font-medium transition-all ${
                             selectedFilter === null
                                 ? 'border-black bg-black text-white'
                                 : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'
@@ -104,10 +104,10 @@ export default function FilterModal({
                     </button>
                 </div>
 
-                <div className='mt-6'>
+                <div className='mt-6 flex justify-center'>
                     <button
                         onClick={handleConfirm}
-                        className='w-full cursor-pointer rounded-full bg-black px-4 py-1.5 text-white transition-all hover:bg-black/80'
+                        className='w-[200px] cursor-pointer rounded-full bg-black px-4 py-1.5 text-white transition-all hover:bg-black/80'
                     >
                         Start
                     </button>
