@@ -280,15 +280,18 @@ export function useGameController() {
 
                 setDailyImage(savedImage)
                 setCorrectAnswer(decodedName.toUpperCase())
-                setGuesses(savedGameState.guesses || ['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
                 setHintUsed(savedGameState.hintUsed || false)
                 setHintUsedOnIdol(savedGameState.hintUsedOnIdol || null)
                 setSkipsRemaining(savedGameState.skipsRemaining ?? 3)
 
-                const hasWon = savedGameState.guesses.includes('correct')
+                const savedGuesses = savedGameState.guesses || ['empty', 'empty', 'empty', 'empty', 'empty', 'empty']
+                setGuesses(savedGuesses)
+                guessesLoadedRef.current = true
+
+                const hasWon = savedGameState.guesses?.includes('correct') || false
                 const hasLost =
-                    savedGameState.guesses.filter((g) => g === 'incorrect')
-                        .length === 6
+                    savedGameState.guesses?.filter((g) => g === 'incorrect')
+                        .length === 6 || false
                 setGameWon(hasWon)
                 setGameLost(hasLost)
 
@@ -1162,7 +1165,9 @@ export function useGameController() {
                     }
                     setDailyImage(savedImage)
                     setCorrectAnswer(decodedName.toUpperCase())
-                    setGuesses(savedGameState.guesses || ['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
+                    const savedGuesses = savedGameState.guesses || ['empty', 'empty', 'empty', 'empty', 'empty', 'empty']
+                    setGuesses(savedGuesses)
+                    guessesLoadedRef.current = true
                     setIsLoading(false)
                 } else {
                     console.error(
@@ -1224,6 +1229,21 @@ export function useGameController() {
             }
         }
     }, [gameMode, gameWon, gameLost, loadNextUnlimited, showStreakPopup])
+
+    const guessesLoadedRef = useRef(false)
+
+    useEffect(() => {
+        if (gameMode === 'unlimited' && dailyImage && !guessesLoadedRef.current) {
+            const savedGameState = unlimitedStats.loadGameState()
+            if (savedGameState && savedGameState.guesses && dailyImage.img_bucket === savedGameState.imgBucket) {
+                setGuesses(savedGameState.guesses)
+                guessesLoadedRef.current = true
+            }
+        }
+        if (!dailyImage) {
+            guessesLoadedRef.current = false
+        }
+    }, [gameMode, dailyImage, unlimitedStats, setGuesses])
 
     useEffect(() => {
         if (
