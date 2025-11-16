@@ -5,11 +5,13 @@ import { useRef } from 'react'
 interface OnScreenKeyboardProps {
     onKeyPress: (key: string) => void
     className?: string
+    disabledLetters?: Set<string>
 }
 
 export default function OnScreenKeyboard({
     onKeyPress,
     className = '',
+    disabledLetters = new Set(),
 }: OnScreenKeyboardProps) {
     const topRowKeys = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
     const middleRowKeys = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
@@ -20,6 +22,8 @@ export default function OnScreenKeyboard({
     const handlePress = (key: string) => (e: React.PointerEvent) => {
         e.preventDefault()
         e.stopPropagation()
+        // Don't allow disabled letters to be pressed
+        if (disabledLetters.has(key)) return
         onKeyPress(key)
     }
     
@@ -52,7 +56,7 @@ export default function OnScreenKeyboard({
         if (nearestButton) {
             const btn = nearestButton as HTMLButtonElement
             const key = btn.textContent?.trim() || btn.getAttribute('data-key') || ''
-            if (key) {
+            if (key && !disabledLetters.has(key)) {
                 onKeyPress(key)
             }
         }
@@ -70,30 +74,46 @@ export default function OnScreenKeyboard({
             }}
         >
             <div className='mb-1 flex gap-1'>
-                {topRowKeys.map((key) => (
-                    <button
-                        key={key}
-                        data-key={key}
-                        className='flex h-12 flex-1 touch-none items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
-                        onPointerDown={handlePress(key)}
-                    >
-                        {key}
-                    </button>
-                ))}
+                {topRowKeys.map((key) => {
+                    const isDisabled = disabledLetters.has(key)
+                    return (
+                        <button
+                            key={key}
+                            data-key={key}
+                            disabled={isDisabled}
+                            className={`flex h-12 flex-1 touch-none items-center justify-center rounded text-sm font-semibold transition-colors ${
+                                isDisabled
+                                    ? 'cursor-not-allowed bg-gray-500 text-gray-700 opacity-40'
+                                    : 'bg-gray-300 text-black hover:bg-gray-400 active:bg-gray-500'
+                            }`}
+                            onPointerDown={handlePress(key)}
+                        >
+                            {key}
+                        </button>
+                    )
+                })}
             </div>
 
             <div className='mb-1 flex gap-1'>
                 <div className='flex-[0.5]'></div>
-                {middleRowKeys.map((key) => (
-                    <button
-                        key={key}
-                        data-key={key}
-                        className='flex h-12 flex-1 touch-none items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
-                        onPointerDown={handlePress(key)}
-                    >
-                        {key}
-                    </button>
-                ))}
+                {middleRowKeys.map((key) => {
+                    const isDisabled = disabledLetters.has(key)
+                    return (
+                        <button
+                            key={key}
+                            data-key={key}
+                            disabled={isDisabled}
+                            className={`flex h-12 flex-1 touch-none items-center justify-center rounded text-sm font-semibold transition-colors ${
+                                isDisabled
+                                    ? 'cursor-not-allowed bg-gray-500 text-gray-700 opacity-40'
+                                    : 'bg-gray-300 text-black hover:bg-gray-400 active:bg-gray-500'
+                            }`}
+                            onPointerDown={handlePress(key)}
+                        >
+                            {key}
+                        </button>
+                    )
+                })}
                 <div className='flex-[0.5]'></div>
             </div>
 
@@ -105,16 +125,24 @@ export default function OnScreenKeyboard({
                 >
                     ENTER
                 </button>
-                {bottomRowKeys.map((key) => (
-                    <button
-                        key={key}
-                        data-key={key}
-                        className='flex h-12 flex-1 touch-none items-center justify-center rounded bg-gray-300 text-sm font-semibold text-black transition-colors hover:bg-gray-400 active:bg-gray-500'
-                        onPointerDown={handlePress(key)}
-                    >
-                        {key}
-                    </button>
-                ))}
+                {bottomRowKeys.map((key) => {
+                    const isDisabled = disabledLetters.has(key)
+                    return (
+                        <button
+                            key={key}
+                            data-key={key}
+                            disabled={isDisabled}
+                            className={`flex h-12 flex-1 touch-none items-center justify-center rounded text-sm font-semibold transition-colors ${
+                                isDisabled
+                                    ? 'cursor-not-allowed bg-gray-500 text-gray-700 opacity-40'
+                                    : 'bg-gray-300 text-black hover:bg-gray-400 active:bg-gray-500'
+                            }`}
+                            onPointerDown={handlePress(key)}
+                        >
+                            {key}
+                        </button>
+                    )
+                })}
                 <button
                     data-key="✕"
                     className='flex h-12 flex-[1.5] touch-none items-center justify-center rounded bg-gray-300 text-black transition-colors hover:bg-gray-400 active:bg-gray-500'

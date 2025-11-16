@@ -17,14 +17,19 @@ export default function IndexModal({
     const [dailyCount, setDailyCount] = useState<number | null>(null)
 
     useEffect(() => {
+        console.log('IndexModal isOpen changed to:', isOpen)
         if (isOpen) {
+            setIsClosing(false)
             getDailyCount()
                 .then(setDailyCount)
                 .catch(() => setDailyCount(0))
         }
     }, [isOpen])
 
-    if (!isOpen) return null
+    if (!isOpen) {
+        console.log('IndexModal not rendering - isOpen is false')
+        return null
+    }
 
     const meshGradient =
         'linear-gradient(115deg, #fc67fa 0%, #f4c4f3 43%,#7fd6fb 67%, #7f53ac 100%)'
@@ -53,11 +58,13 @@ export default function IndexModal({
                         alt='IdolGuessr Logo'
                         width={200}
                         height={200}
-                        className='w-auto h-auto'
+                        className='h-auto w-auto'
                     />
                 </div>
 
-                <p className='text-4xl'>Guess your favorite K-pop idol in 6 tries.</p>
+                <p className='text-4xl'>
+                    Guess your favorite K-pop idol in 6 tries.
+                </p>
 
                 <div className='mt-8 flex w-full flex-col items-center gap-3 sm:flex-row sm:justify-center'>
                     <button

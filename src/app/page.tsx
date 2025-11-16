@@ -13,11 +13,12 @@ import { getImageUrl } from '@/lib/supabase'
 import { useGameController } from '@/hooks/useGameController'
 import IndexModal from '@/components/modals/IndexModal'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export default function Home() {
     const router = useRouter()
     const [showIndexModal, setShowIndexModal] = useState(true)
+    const hasShownWinModalRef = useRef(false)
     const {
         gameMode,
         handleGameModeChange,
@@ -33,6 +34,7 @@ export default function Home() {
         lastIncorrectGuess,
         isAnimating,
         handleKeyPress,
+        disabledLetters,
         showConfetti,
         windowDimensions,
         showStats,
@@ -73,6 +75,22 @@ export default function Home() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gameMode])
 
+    // Auto-show win modal when daily game is already completed (only once on page load)
+    useEffect(() => {
+        if (
+            gameMode === 'daily' &&
+            todayCompletionData &&
+            !showWinModal &&
+            !hasShownWinModalRef.current
+        ) {
+            hasShownWinModalRef.current = true
+            const timer = setTimeout(() => {
+                setShowWinModal(true)
+            }, 1000)
+            return () => clearTimeout(timer)
+        }
+    }, [gameMode, todayCompletionData, showWinModal, setShowWinModal])
+
     return (
         <div className='fixed inset-0 flex flex-col justify-center overflow-hidden bg-white'>
             <div className='mx-auto flex h-full w-full max-w-none flex-col sm:max-h-[900px] sm:max-w-md sm:rounded-[15px] sm:border-1 sm:border-gray-200 sm:shadow-lg'>
@@ -82,7 +100,14 @@ export default function Home() {
                     gameMode={gameMode}
                     onGameModeChange={handleGameModeChange}
                     showModeToggle={false}
-                    currentStreak={gameMode === 'unlimited' ? unlimitedCurrentStreak : undefined}
+                    currentStreak={
+                        gameMode === 'unlimited'
+                            ? unlimitedCurrentStreak
+                            : undefined
+                    }
+                    onLogoClick={() => {
+                        setShowIndexModal(true)
+                    }}
                 />
 
                 <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
@@ -142,6 +167,7 @@ export default function Home() {
 
                     <OnScreenKeyboard
                         onKeyPress={handleKeyPress}
+                        disabledLetters={disabledLetters}
                         className='flex-shrink-0 pb-4'
                     />
                 </div>
@@ -250,13 +276,15 @@ export default function Home() {
             )}
 
             {showConfetti && windowDimensions.width > 0 && (
-                <Confetti
-                    width={windowDimensions.width}
-                    height={windowDimensions.height}
-                    recycle={false}
-                    numberOfPieces={200}
-                    gravity={0.3}
-                />
+                <div className='pointer-events-none fixed inset-0 z-[9999]'>
+                    <Confetti
+                        width={windowDimensions.width}
+                        height={windowDimensions.height}
+                        recycle={false}
+                        numberOfPieces={200}
+                        gravity={0.3}
+                    />
+                </div>
             )}
         </div>
     )
