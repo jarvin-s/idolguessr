@@ -36,7 +36,6 @@ export default function GameHeader({
                     <div className='flex items-center justify-start'>
                         <button
                             onClick={() => {
-                                console.log('Logo clicked!')
                                 onLogoClick?.()
                             }}
                             className='cursor-pointer transition-opacity hover:opacity-80'
