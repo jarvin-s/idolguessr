@@ -197,7 +197,6 @@ export default function GameImage({
                                 <button
                                     onClick={() => {
                                         if (
-                                            !groupNameRevealed &&
                                             dailyImage?.img_bucket &&
                                             !(
                                                 hintUsed &&

@@ -84,8 +84,8 @@ export function useGameController() {
     const loadCurrentRef = useRef<(() => Promise<void>) | null>(null)
     const loadUnlimitedRefFunc = useRef<
         | ((
-              filterOverride?: 'boy-group' | 'girl-group' | null
-          ) => Promise<void>)
+            filterOverride?: 'boy-group' | 'girl-group' | null
+        ) => Promise<void>)
         | null
     >(null)
 
@@ -280,7 +280,7 @@ export function useGameController() {
 
                 setDailyImage(savedImage)
                 setCorrectAnswer(decodedName.toUpperCase())
-                setGuesses(savedGameState.guesses)
+                setGuesses(savedGameState.guesses || ['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
                 setHintUsed(savedGameState.hintUsed || false)
                 setHintUsedOnIdol(savedGameState.hintUsedOnIdol || null)
                 setSkipsRemaining(savedGameState.skipsRemaining ?? 3)
@@ -311,8 +311,8 @@ export function useGameController() {
                     if (allImagesValid) {
                         const filteredPrefetched = currentFilter
                             ? savedGameState.prefetchedImages.filter(
-                                  (img) => img.group_category === currentFilter
-                              )
+                                (img) => img.group_category === currentFilter
+                            )
                             : savedGameState.prefetchedImages
 
                         if (filteredPrefetched.length > 0) {
@@ -1162,7 +1162,7 @@ export function useGameController() {
                     }
                     setDailyImage(savedImage)
                     setCorrectAnswer(decodedName.toUpperCase())
-                    setGuesses(savedGameState.guesses)
+                    setGuesses(savedGameState.guesses || ['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
                     setIsLoading(false)
                 } else {
                     console.error(
@@ -1224,6 +1224,58 @@ export function useGameController() {
             }
         }
     }, [gameMode, gameWon, gameLost, loadNextUnlimited, showStreakPopup])
+
+    useEffect(() => {
+        if (
+            gameMode === 'unlimited' &&
+            dailyImage &&
+            !gameWon &&
+            !gameLost &&
+            guesses.length === 6
+        ) {
+            unlimitedStats.saveGameState({
+                groupType: dailyImage.group_type || '',
+                imgBucket: dailyImage.img_bucket,
+                groupCategory: dailyImage.group_category,
+                base64Group: dailyImage.base64_group,
+                base64Idol: dailyImage.base64_idol,
+                encodedIdolName: encodeIdolName(dailyImage.name || ''),
+                encodedAltName: dailyImage.alt_name
+                    ? encodeIdolName(dailyImage.alt_name)
+                    : undefined,
+                groupName: dailyImage.group_name,
+                hintUsed: hintUsed,
+                hintUsedOnIdol: hintUsedOnIdol || undefined,
+                skipsRemaining: skipsRemaining,
+                guesses: guesses,
+                savedAt: new Date().toISOString(),
+                prefetchedImages: prefetchedImages.map((img) => ({
+                    id: img.id,
+                    name: img.name,
+                    alt_name: img.alt_name,
+                    group_type: img.group_type || '',
+                    img_bucket: img.img_bucket,
+                    group_category: img.group_category,
+                    base64_group: img.base64_group,
+                    base64_idol: img.base64_idol,
+                    group_name: img.group_name,
+                })),
+                currentImageIndex: currentImageIndex,
+            })
+        }
+    }, [
+        gameMode,
+        dailyImage,
+        gameWon,
+        gameLost,
+        guesses,
+        hintUsed,
+        hintUsedOnIdol,
+        skipsRemaining,
+        prefetchedImages,
+        currentImageIndex,
+        unlimitedStats,
+    ])
 
     return {
         // core
