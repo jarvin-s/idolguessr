@@ -56,8 +56,10 @@ export function useGameProgress(
 
     useEffect(() => {
         if (gameMode !== 'daily') {
-            setTodayCompleted(false)
-            setTodayCompletionData(null)
+            return
+        }
+
+        if (!statsLoaded || !dailyImage) {
             return
         }
 
