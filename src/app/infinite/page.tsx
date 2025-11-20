@@ -16,7 +16,7 @@ import FilterModal from '@/components/filters/FilterModal'
 import { useGameController } from '@/hooks/useGameController'
 import { getImageUrl } from '@/lib/supabase'
 
-type GroupFilter = 'boy-group' | 'girl-group' | null
+type GroupFilter = 'boy-group' | 'girl-group' | 'both'
 
 export default function InfinitePage() {
     const router = useRouter()
@@ -75,7 +75,7 @@ export default function InfinitePage() {
     useEffect(() => {
         try {
             const savedFilter = localStorage.getItem('idol-guessr-group-filter')
-            if (savedFilter === 'boy-group' || savedFilter === 'girl-group') {
+            if (savedFilter === 'boy-group' || savedFilter === 'girl-group' || savedFilter === 'both') {
                 handleGameModeChange('unlimited', savedFilter as GroupFilter)
                 setStartOpen(false)
             } else {
@@ -260,6 +260,7 @@ export default function InfinitePage() {
                     setShowFilterModal(false)
                     handleGameModeChange('unlimited', filter)
                 }}
+                onPlayAgain={handlePlayAgain}
             />
 
             {showConfetti && windowDimensions.width > 0 && (

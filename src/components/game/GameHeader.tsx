@@ -8,7 +8,7 @@ interface GameHeaderProps {
     gameMode: 'daily' | 'unlimited'
     onGameModeChange: (
         mode: 'daily' | 'unlimited',
-        filter?: 'boy-group' | 'girl-group' | null
+        filter?: 'boy-group' | 'girl-group' | 'both'
     ) => void
     showModeToggle?: boolean
     currentStreak?: number
