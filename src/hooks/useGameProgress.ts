@@ -56,29 +56,30 @@ export function useGameProgress(
 
     useEffect(() => {
         if (gameMode !== 'daily') {
-            setTodayCompleted(false)
-            setTodayCompletionData(null)
             return
         }
 
-        if (statsLoaded && dailyImage) {
-            setGameWon(false)
-            setGameLost(false)
-            setTodayCompleted(false)
-            setTodayCompletionData(null)
+        if (!statsLoaded || !dailyImage) {
+            return
+        }
 
-            const completed = isTodayCompleted()
-            const completionData = getTodayCompletion()
+        setGameWon(false)
+        setGameLost(false)
+        setTodayCompleted(false)
+        setTodayCompletionData(null)
 
-            if (completed && completionData && completionData.imageId === dailyImage.id) {
-                setTodayCompleted(true)
-                setTodayCompletionData(completionData)
+        const completed = isTodayCompleted()
+        const completionData = getTodayCompletion()
 
-                if (completionData.won) {
-                    setGameWon(true)
-                    const newGuesses: Array<
-                        'correct' | 'incorrect' | 'empty'
-                    > = [
+        if (completed && completionData && completionData.imageId === dailyImage.id) {
+            setTodayCompleted(true)
+            setTodayCompletionData(completionData)
+
+            if (completionData.won) {
+                setGameWon(true)
+                const newGuesses: Array<
+                    'correct' | 'incorrect' | 'empty'
+                > = [
                         'empty',
                         'empty',
                         'empty',
@@ -86,33 +87,32 @@ export function useGameProgress(
                         'empty',
                         'empty',
                     ]
-                    for (
-                        let i = 0;
-                        i < completionData.guessCount - 1;
-                        i++
-                    ) {
-                        newGuesses[i] = 'incorrect'
-                    }
-                    newGuesses[completionData.guessCount - 1] = 'correct'
-                    setGuesses(newGuesses)
-                } else {
-                    setGameLost(true)
-                    setGuesses([
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                    ])
+                for (
+                    let i = 0;
+                    i < completionData.guessCount - 1;
+                    i++
+                ) {
+                    newGuesses[i] = 'incorrect'
                 }
+                newGuesses[completionData.guessCount - 1] = 'correct'
+                setGuesses(newGuesses)
             } else {
-                const progress = loadDailyProgress()
-                if (progress && progress.imageId === dailyImage.id) {
-                    setGuesses(progress.guesses)
-                } else {
-                    setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
-                }
+                setGameLost(true)
+                setGuesses([
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                ])
+            }
+        } else {
+            const progress = loadDailyProgress()
+            if (progress && progress.imageId === dailyImage.id) {
+                setGuesses(progress.guesses)
+            } else {
+                setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
             }
         }
     }, [

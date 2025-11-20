@@ -31,8 +31,6 @@ export default function IndexModal({
         return null
     }
 
-    console.log('IndexModal rendering, isClosing:', isClosing)
-
     const meshGradient =
         'linear-gradient(115deg, #fc67fa 0%, #f4c4f3 43%,#7fd6fb 67%, #7f53ac 100%)'
 
