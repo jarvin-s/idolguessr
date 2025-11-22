@@ -47,8 +47,8 @@ export function useGameController() {
     const [hintUsedOnIdol, setHintUsedOnIdol] = useState<string | null>(null)
     const hasTrackedCurrentGame = useRef(false)
     const [groupFilter, setGroupFilter] = useState<
-        'boy-group' | 'girl-group' | null
-    >(null)
+        'boy-group' | 'girl-group' | 'both'
+    >('both')
     const [disabledLetters, setDisabledLetters] = useState<Set<string>>(
         new Set()
     )
@@ -84,7 +84,7 @@ export function useGameController() {
     const loadCurrentRef = useRef<(() => Promise<void>) | null>(null)
     const loadUnlimitedRefFunc = useRef<
         | ((
-            filterOverride?: 'boy-group' | 'girl-group' | null
+            filterOverride?: 'boy-group' | 'girl-group' | 'both'
         ) => Promise<void>)
         | null
     >(null)
@@ -188,12 +188,12 @@ export function useGameController() {
     const loadUnlimitedRef = useRef(false)
 
     const loadUnlimited = useCallback(
-        async (filterOverride?: 'boy-group' | 'girl-group' | null) => {
+        async (filterOverride?: 'boy-group' | 'girl-group' | 'both') => {
             if (loadUnlimitedRef.current) return
             loadUnlimitedRef.current = true
 
-            const currentFilter =
-                filterOverride !== undefined ? filterOverride : groupFilter
+            const filterForApi = filterOverride !== undefined ? filterOverride : groupFilter
+            const currentFilter = filterForApi === 'both' ? null : filterForApi
             const currentStreak = unlimitedStats.stats.currentStreak
             const milestones = [1, 10, 25, 50, 75, 100]
             const lastMilestone =
@@ -253,7 +253,7 @@ export function useGameController() {
                 }
 
                 if (
-                    currentFilter &&
+                    currentFilter !== null &&
                     savedImage.group_category !== currentFilter
                 ) {
                     unlimitedStats.clearGameState()
@@ -327,7 +327,7 @@ export function useGameController() {
                         )
 
                     if (allImagesValid) {
-                        const filteredPrefetched = currentFilter
+                        const filteredPrefetched = currentFilter !== null
                             ? savedGameState.prefetchedImages.filter(
                                 (img) => img.group_category === currentFilter
                             )
@@ -419,7 +419,7 @@ export function useGameController() {
     const handleGameModeChange = useCallback(
         (
             mode: 'daily' | 'unlimited',
-            filter?: 'boy-group' | 'girl-group' | null
+            filter?: 'boy-group' | 'girl-group' | 'both'
         ) => {
             const shouldLoadAnyway =
                 pathname === '/infinite' && mode === 'unlimited' && !dailyImage
@@ -467,12 +467,8 @@ export function useGameController() {
             localStorage.setItem('idol-guessr-game-mode', mode)
 
             if (filter !== undefined) {
-                setGroupFilter(filter as 'boy-group' | 'girl-group' | null)
-                if (filter !== null) {
-                    localStorage.setItem('idol-guessr-group-filter', filter)
-                } else {
-                    localStorage.removeItem('idol-guessr-group-filter')
-                }
+                setGroupFilter(filter)
+                localStorage.setItem('idol-guessr-group-filter', filter)
             }
 
             setDailyImage(null)
@@ -692,7 +688,8 @@ export function useGameController() {
                 }
 
                 if (nextImageIndex >= prefetchedImages.length - 2) {
-                    getMultipleRandomUnlimitedImages(5, groupFilter).then(
+                    const apiFilter = groupFilter === 'both' ? null : groupFilter
+                    getMultipleRandomUnlimitedImages(5, apiFilter).then(
                         (newImages) => {
                             setPrefetchedImages((prev) => [
                                 ...prev,
@@ -705,7 +702,8 @@ export function useGameController() {
                     )
                 }
             } else {
-                getMultipleRandomUnlimitedImages(5, groupFilter).then(
+                const apiFilter = groupFilter === 'both' ? null : groupFilter
+                getMultipleRandomUnlimitedImages(5, apiFilter).then(
                     (newImages) => {
                         if (newImages.length > 0) {
                             const updatedPrefetched = [
@@ -1000,8 +998,10 @@ export function useGameController() {
         // This prevents the hook from loading daily mode before the page can switch to unlimited
         if (pathname === '/infinite') {
             const savedFilter = localStorage.getItem('idol-guessr-group-filter')
-            if (savedFilter === 'boy-group' || savedFilter === 'girl-group') {
-                setGroupFilter(savedFilter as 'boy-group' | 'girl-group' | null)
+            if (savedFilter === 'boy-group' || savedFilter === 'girl-group' || savedFilter === 'both') {
+                setGroupFilter(savedFilter as 'boy-group' | 'girl-group' | 'both')
+            } else {
+                setGroupFilter('both')
             }
             return
         }
@@ -1013,8 +1013,10 @@ export function useGameController() {
             hasLoadedInitialRef.current = true
         }
         const savedFilter = localStorage.getItem('idol-guessr-group-filter')
-        if (savedFilter === 'boy-group' || savedFilter === 'girl-group') {
-            setGroupFilter(savedFilter as 'boy-group' | 'girl-group' | null)
+        if (savedFilter === 'boy-group' || savedFilter === 'girl-group' || savedFilter === 'both') {
+            setGroupFilter(savedFilter as 'boy-group' | 'girl-group' | 'both')
+        } else {
+            setGroupFilter('both')
         }
     }, [pathname])
 

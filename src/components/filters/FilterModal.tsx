@@ -3,17 +3,19 @@ import { useState, useEffect } from 'react'
 interface FilterModalProps {
     isOpen: boolean
     onClose: () => void
-    onConfirm: (filter: 'boy-group' | 'girl-group' | null) => void
+    onConfirm: (filter: 'boy-group' | 'girl-group' | 'both') => void
+    onPlayAgain?: () => void
 }
 
 export default function FilterModal({
     isOpen,
     onClose,
     onConfirm,
+    onPlayAgain,
 }: FilterModalProps) {
     const [selectedFilter, setSelectedFilter] = useState<
-        'boy-group' | 'girl-group' | null
-    >(null)
+        'boy-group' | 'girl-group' | 'both'
+    >('both')
 
     useEffect(() => {
         if (isOpen) {
@@ -23,14 +25,15 @@ export default function FilterModal({
                 )
                 if (
                     savedFilter === 'boy-group' ||
-                    savedFilter === 'girl-group'
+                    savedFilter === 'girl-group' ||
+                    savedFilter === 'both'
                 ) {
-                    setSelectedFilter(savedFilter)
+                    setSelectedFilter(savedFilter as 'boy-group' | 'girl-group' | 'both')
                 } else {
-                    setSelectedFilter(null)
+                    setSelectedFilter('both')
                 }
             } catch {
-                setSelectedFilter(null)
+                setSelectedFilter('both')
             }
         }
     }, [isOpen])
@@ -38,35 +41,43 @@ export default function FilterModal({
     if (!isOpen) return null
 
     const handleConfirm = () => {
-        onConfirm(selectedFilter === null ? null : selectedFilter)
+        try {
+            localStorage.setItem('idol-guessr-group-filter', selectedFilter)
+        } catch {}
+        onConfirm(selectedFilter)
+        if (onPlayAgain) {
+            onPlayAgain()
+        }
     }
 
     return (
         <div className='fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4'>
-            <div className='modal-fade-in relative w-full max-w-md rounded-lg bg-white p-6'>
-                <div className='mb-6 flex items-center justify-between'>
-                    <h2 className='text-2xl font-bold uppercase'>
+            <div className='modal-fade-in relative w-full max-w-sm rounded-md bg-white p-10'>
+                {/* Close button in top right of modal */}
+                <button
+                    onClick={onClose}
+                    className='absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
+                    aria-label='Close Change Group Type'
+                >
+                    <svg
+                        className='h-4 w-4 text-gray-600'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                    >
+                        <path
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                            strokeWidth={2}
+                            d='M6 18L18 6M6 6l12 12'
+                        />
+                    </svg>
+                </button>
+
+                <div className='mb-6 flex items-center justify-center'>
+                    <h2 className='text-xl font-bold uppercase md:text-2xl'>
                         Change Group Type
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
-                        aria-label='Close Choose Group Type'
-                    >
-                        <svg
-                            className='h-4 w-4 text-gray-600'
-                            fill='none'
-                            stroke='currentColor'
-                            viewBox='0 0 24 24'
-                        >
-                            <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M6 18L18 6M6 6l12 12'
-                            />
-                        </svg>
-                    </button>
                 </div>
 
                 <div className='space-y-4'>
@@ -93,9 +104,9 @@ export default function FilterModal({
                     </button>
 
                     <button
-                        onClick={() => setSelectedFilter(null)}
-                        className={`w-full cursor-pointer border-2 px-3 py-2 text-left font-medium transition-all ${
-                            selectedFilter === null
+                        onClick={() => setSelectedFilter('both')}
+                        className={`w-full cursor-pointer rounded-md border-2 px-3 py-2 text-left font-medium transition-all ${
+                            selectedFilter === 'both'
                                 ? 'border-black bg-black text-white'
                                 : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'
                         }`}
@@ -104,10 +115,10 @@ export default function FilterModal({
                     </button>
                 </div>
 
-                <div className='mt-6 flex justify-center'>
+                <div className='mt-4 flex justify-center'>
                     <button
                         onClick={handleConfirm}
-                        className='w-[200px] cursor-pointer rounded-full bg-black px-4 py-1.5 text-white transition-all hover:bg-black/80'
+                        className='w-[200px] cursor-pointer rounded-full bg-[#6521c7] px-4 py-1.5 text-white transition-all hover:bg-[#6521c7]/80'
                     >
                         Start
                     </button>
