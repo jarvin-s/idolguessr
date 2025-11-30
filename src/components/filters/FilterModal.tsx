@@ -4,7 +4,7 @@ interface FilterModalProps {
     isOpen: boolean
     onClose: () => void
     onConfirm: (filter: 'boy-group' | 'girl-group' | 'both') => void
-    onPlayAgain?: () => void
+    onPlayAgain?: (filter: 'boy-group' | 'girl-group' | 'both') => void
 }
 
 export default function FilterModal({
@@ -46,7 +46,7 @@ export default function FilterModal({
         } catch {}
         onConfirm(selectedFilter)
         if (onPlayAgain) {
-            onPlayAgain()
+            onPlayAgain(selectedFilter)
         }
     }
 
@@ -76,7 +76,7 @@ export default function FilterModal({
 
                 <div className='mb-6 flex items-center justify-center'>
                     <h2 className='text-xl font-bold uppercase md:text-2xl'>
-                        Change Group Type
+                        Choose Group Type
                     </h2>
                 </div>
 
@@ -118,7 +118,7 @@ export default function FilterModal({
                 <div className='mt-4 flex justify-center'>
                     <button
                         onClick={handleConfirm}
-                        className='w-[200px] cursor-pointer rounded-full bg-[#6521c7] px-4 py-1.5 text-white transition-all hover:bg-[#6521c7]/80'
+                        className='md:w-[200px] cursor-pointer rounded-full w-full bg-[#6521c7] px-4 py-1.5 text-white transition-all hover:bg-[#6521c7]/80'
                     >
                         Start
                     </button>

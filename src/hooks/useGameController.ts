@@ -311,8 +311,8 @@ export function useGameController() {
                     if (allImagesValid) {
                         const filteredPrefetched = currentFilter !== null
                             ? savedGameState.prefetchedImages.filter(
-                                  (img) => img.group_category === currentFilter
-                              )
+                                (img) => img.group_category === currentFilter
+                            )
                             : savedGameState.prefetchedImages
 
                         if (filteredPrefetched.length > 0) {
@@ -532,8 +532,10 @@ export function useGameController() {
         (
             overrideSkipsRemaining?: number,
             overrideHintUsed?: boolean,
-            overrideHintUsedOnIdol?: string | null
+            overrideHintUsedOnIdol?: string | null,
+            overrideGroupFilter?: 'boy-group' | 'girl-group' | 'both'
         ) => {
+            const effectiveFilter = overrideGroupFilter ?? groupFilter
             if (!gameWon && !gameLost) {
                 const hasGuesses = guesses.some(
                     (g) => g === 'incorrect' || g === 'correct'
@@ -627,7 +629,7 @@ export function useGameController() {
                 currentImageIndex: nextImageIndex,
             })
 
-            if (prefetchedImages.length > currentImageIndex) {
+            if (prefetchedImages.length > currentImageIndex && !overrideGroupFilter) {
                 const row = prefetchedImages[currentImageIndex]
                 const nextImageIndex = currentImageIndex + 1
                 setDailyImage(row)
@@ -664,7 +666,7 @@ export function useGameController() {
                 }
 
                 if (nextImageIndex >= prefetchedImages.length - 2) {
-                    const apiFilter = groupFilter === 'both' ? null : groupFilter
+                    const apiFilter = effectiveFilter === 'both' ? null : effectiveFilter
                     getMultipleRandomUnlimitedImages(5, apiFilter).then(
                         (newImages) => {
                             setPrefetchedImages((prev) => [
@@ -678,17 +680,18 @@ export function useGameController() {
                     )
                 }
             } else {
-                const apiFilter = groupFilter === 'both' ? null : groupFilter
+                const apiFilter = effectiveFilter === 'both' ? null : effectiveFilter
                 getMultipleRandomUnlimitedImages(5, apiFilter).then(
                     (newImages) => {
                         if (newImages.length > 0) {
+                            const basePrefetched = overrideGroupFilter ? [] : prefetchedImages
                             const updatedPrefetched = [
-                                ...prefetchedImages,
+                                ...basePrefetched,
                                 ...newImages,
                             ]
                             setPrefetchedImages(updatedPrefetched)
                             const row = newImages[0]
-                            const nextImageIndex = prefetchedImages.length
+                            const nextImageIndex = basePrefetched.length
                             setDailyImage(row)
                             if (row.name)
                                 setCorrectAnswer(row.name.toUpperCase())
@@ -728,10 +731,20 @@ export function useGameController() {
         ]
     )
 
-    const handlePlayAgain = useCallback(() => {
+    const handlePlayAgain = useCallback((overrideGroupFilter?: 'boy-group' | 'girl-group' | 'both') => {
         setShowGameOver(false)
-        loadNextUnlimited(3, false, null)
-    }, [loadNextUnlimited])
+        unlimitedStats.clearGameState()
+        clearSeenIdols()
+
+        if (overrideGroupFilter) {
+            setGroupFilter(overrideGroupFilter)
+            localStorage.setItem('idol-guessr-group-filter', overrideGroupFilter)
+        }
+
+        setPrefetchedImages([])
+        setCurrentImageIndex(0)
+        loadNextUnlimited(3, false, null, overrideGroupFilter)
+    }, [loadNextUnlimited, unlimitedStats])
 
     const handleSkip = useCallback(() => {
         if (skipsRemaining > 0) {
