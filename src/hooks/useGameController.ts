@@ -293,11 +293,11 @@ export function useGameController() {
                 justLoadedGuessesRef.current = true
                 guessesRef.current = savedGuesses
                 currentImageBucketRef.current = savedImage.img_bucket
-                
+
                 setGameWon(hasWon)
                 setGameLost(hasLost)
                 setGuesses(savedGuesses)
-                
+
                 Promise.resolve().then(() => {
                     setDailyImage(savedImage)
                     setCorrectAnswer(decodedName.toUpperCase())
@@ -551,8 +551,10 @@ export function useGameController() {
         (
             overrideSkipsRemaining?: number,
             overrideHintUsed?: boolean,
-            overrideHintUsedOnIdol?: string | null
+            overrideHintUsedOnIdol?: string | null,
+            overrideGroupFilter?: 'boy-group' | 'girl-group' | 'both'
         ) => {
+            const effectiveFilter = overrideGroupFilter ?? groupFilter
             if (!gameWon && !gameLost) {
                 const hasGuesses = guesses.some(
                     (g) => g === 'incorrect' || g === 'correct'
@@ -646,7 +648,7 @@ export function useGameController() {
                 currentImageIndex: nextImageIndex,
             })
 
-            if (prefetchedImages.length > currentImageIndex) {
+            if (prefetchedImages.length > currentImageIndex && !overrideGroupFilter) {
                 const row = prefetchedImages[currentImageIndex]
                 const nextImageIndex = currentImageIndex + 1
                 guessesLoadedRef.current = true
@@ -688,7 +690,7 @@ export function useGameController() {
                 }
 
                 if (nextImageIndex >= prefetchedImages.length - 2) {
-                    const apiFilter = groupFilter === 'both' ? null : groupFilter
+                    const apiFilter = effectiveFilter === 'both' ? null : effectiveFilter
                     getMultipleRandomUnlimitedImages(5, apiFilter).then(
                         (newImages) => {
                             setPrefetchedImages((prev) => [
@@ -702,17 +704,18 @@ export function useGameController() {
                     )
                 }
             } else {
-                const apiFilter = groupFilter === 'both' ? null : groupFilter
+                const apiFilter = effectiveFilter === 'both' ? null : effectiveFilter
                 getMultipleRandomUnlimitedImages(5, apiFilter).then(
                     (newImages) => {
                         if (newImages.length > 0) {
+                            const basePrefetched = overrideGroupFilter ? [] : prefetchedImages
                             const updatedPrefetched = [
-                                ...prefetchedImages,
+                                ...basePrefetched,
                                 ...newImages,
                             ]
                             setPrefetchedImages(updatedPrefetched)
                             const row = newImages[0]
-                            const nextImageIndex = prefetchedImages.length
+                            const nextImageIndex = basePrefetched.length
                             guessesLoadedRef.current = true
                             justLoadedGuessesRef.current = true
                             setDailyImage(row)
@@ -757,10 +760,20 @@ export function useGameController() {
         ]
     )
 
-    const handlePlayAgain = useCallback(() => {
+    const handlePlayAgain = useCallback((overrideGroupFilter?: 'boy-group' | 'girl-group' | 'both') => {
         setShowGameOver(false)
-        loadNextUnlimited(3, false, null)
-    }, [loadNextUnlimited])
+        unlimitedStats.clearGameState()
+        clearSeenIdols()
+
+        if (overrideGroupFilter) {
+            setGroupFilter(overrideGroupFilter)
+            localStorage.setItem('idol-guessr-group-filter', overrideGroupFilter)
+        }
+
+        setPrefetchedImages([])
+        setCurrentImageIndex(0)
+        loadNextUnlimited(3, false, null, overrideGroupFilter)
+    }, [loadNextUnlimited, unlimitedStats])
 
     const handleSkip = useCallback(() => {
         if (skipsRemaining > 0) {
@@ -1154,16 +1167,16 @@ export function useGameController() {
                     justLoadedGuessesRef.current = true
                     guessesRef.current = savedGuesses
                     currentImageBucketRef.current = savedImage.img_bucket
-                    
+
                     setGameWon(hasWon)
                     setGameLost(hasLost)
                     setGuesses(savedGuesses)
-                    
+
                     Promise.resolve().then(() => {
                         setDailyImage(savedImage)
                         setCorrectAnswer(decodedName.toUpperCase())
                     })
-                    
+
                     setTimeout(() => {
                         justLoadedGuessesRef.current = false
                     }, 500)

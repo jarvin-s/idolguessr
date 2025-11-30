@@ -140,8 +140,7 @@ export default function InfinitePage() {
                             }
                             showGameOver={showGameOver}
                             highestStreak={unlimitedMaxStreak}
-                            onPlayAgain={handlePlayAgain}
-                            onChangeFilters={() => setShowFilterModal(true)}
+                            onPlayAgain={() => setShowFilterModal(true)}
                             guesses={guesses}
                         />
                     </div>
@@ -252,9 +251,8 @@ export default function InfinitePage() {
             <FilterModal
                 isOpen={showFilterModal}
                 onClose={() => setShowFilterModal(false)}
-                onConfirm={(filter) => {
+                onConfirm={() => {
                     setShowFilterModal(false)
-                    handleGameModeChange('unlimited', filter)
                 }}
                 onPlayAgain={handlePlayAgain}
             />

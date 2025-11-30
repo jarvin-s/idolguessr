@@ -6,14 +6,12 @@ interface GameOverModalProps {
     isOpen: boolean
     highestStreak: number
     onPlayAgain: () => void
-    onChangeFilters?: () => void
 }
 
 export default function GameOverModal({
     isOpen,
     highestStreak,
     onPlayAgain,
-    onChangeFilters,
 }: GameOverModalProps) {
     const [isVisible, setIsVisible] = useState(false)
 
@@ -52,14 +50,6 @@ export default function GameOverModal({
                     >
                         PLAY AGAIN
                     </button>
-                    {onChangeFilters && (
-                        <button
-                            onClick={onChangeFilters}
-                            className='pointer-events-auto cursor-pointer rounded-full border-2 border-white px-4 py-2 text-lg font-bold text-white transition-all hover:bg-white hover:text-black'
-                        >
-                            CHANGE FILTERS
-                        </button>
-                    )}
                 </div>
             </div>
         </div>

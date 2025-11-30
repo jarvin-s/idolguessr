@@ -17,7 +17,6 @@ export default function IndexModal({
     const [dailyCount, setDailyCount] = useState<number | null>(null)
 
     useEffect(() => {
-        console.log('IndexModal isOpen changed to:', isOpen)
         if (isOpen) {
             setIsClosing(false)
             getDailyCount()
@@ -27,7 +26,6 @@ export default function IndexModal({
     }, [isOpen])
 
     if (!isOpen) {
-        console.log('IndexModal not rendering - isOpen is false')
         return null
     }
 

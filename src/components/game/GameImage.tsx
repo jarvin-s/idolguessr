@@ -29,7 +29,6 @@ interface GameImageProps {
     showGameOver?: boolean
     highestStreak?: number
     onPlayAgain?: () => void
-    onChangeFilters?: () => void
     guesses?: Array<'empty' | 'correct' | 'incorrect'>
 }
 
@@ -51,7 +50,6 @@ export default function GameImage({
     showGameOver = false,
     highestStreak = 0,
     onPlayAgain,
-    onChangeFilters,
     guesses = [],
 }: GameImageProps) {
     const [isEntering, setIsEntering] = useState(false)
@@ -324,7 +322,6 @@ export default function GameImage({
                         isOpen={showGameOver}
                         highestStreak={highestStreak}
                         onPlayAgain={onPlayAgain}
-                        onChangeFilters={onChangeFilters}
                     />
                 )}
             </div>
