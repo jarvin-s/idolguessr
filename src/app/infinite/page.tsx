@@ -245,11 +245,7 @@ export default function InfinitePage() {
             />
 
             {startOpen && (
-                <InfiniteStartModal
-                    isOpen={startOpen}
-                    onStart={handleStart}
-                    onClose={() => setStartOpen(false)}
-                />
+                <InfiniteStartModal isOpen={startOpen} onStart={handleStart} />
             )}
 
             <FilterModal

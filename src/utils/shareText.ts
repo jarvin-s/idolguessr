@@ -22,6 +22,6 @@ export function generateShareText({ guessCount, isWin }: GenerateShareTextProps)
         ? `I guessed today's idol in ${guessCount}/6 turns!`
         : `I failed to guess today's idol!`
 
-    return `idolguessr ${dateStr}\n\n${blocks}\n\n${message}\n\nPlay at https://idolguessr.fun`
+    return `IdolGuessr ${dateStr}\n\n${blocks}\n\n${message}\n\nPlay at https://idolguessr.fun`
 }
 

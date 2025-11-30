@@ -9,7 +9,7 @@ const proximaNovaRegular = localFont({
 
 export const metadata: Metadata = {
     metadataBase: new URL('https://idolguessr.fun'),
-    title: 'IdolGuessr - Daily K-pop Idol Guessing Game',
+    title: 'IdolGuessr - K-pop Idol Guessing Game',
     description:
         'Guess The K-pop Idol - A fun web game where K-pop fans test their knowledge by guessing idols from pixelated photos.',
     keywords: [

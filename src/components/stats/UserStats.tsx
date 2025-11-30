@@ -184,6 +184,7 @@ export function useUserStats() {
     }, [stats.dailyCompletions])
 
     const saveDailyProgress = useCallback((imageId: number, guesses: Array<'correct' | 'incorrect' | 'empty'>) => {
+        if (typeof window === 'undefined') return
         try {
             const today = new Date().toDateString()
             const progress: DailyProgress = { date: today, imageId, guesses }
@@ -194,6 +195,7 @@ export function useUserStats() {
     }, [])
 
     const loadDailyProgress = useCallback((): DailyProgress | null => {
+        if (typeof window === 'undefined') return null
         try {
             const today = new Date().toDateString()
             const savedProgress = localStorage.getItem('idol-guessr-daily-progress')
@@ -210,6 +212,7 @@ export function useUserStats() {
     }, [])
 
     const clearDailyProgress = useCallback(() => {
+        if (typeof window === 'undefined') return
         try {
             localStorage.removeItem('idol-guessr-daily-progress')
         } catch (error) {
@@ -218,6 +221,7 @@ export function useUserStats() {
     }, [])
 
     const saveGuessAttempt = useCallback((guess: string) => {
+        if (typeof window === 'undefined') return
         try {
             const today = new Date().toDateString()
             const key = `idol-guessr-guess-attempts-${today}`
@@ -231,6 +235,7 @@ export function useUserStats() {
     }, [])
 
     const loadGuessAttempts = useCallback((): string[] => {
+        if (typeof window === 'undefined') return []
         try {
             const today = new Date().toDateString()
             const key = `idol-guessr-guess-attempts-${today}`
@@ -309,6 +314,7 @@ export function useUnlimitedStats() {
     }
 
     const saveGameState = useCallback((gameState: UnlimitedGameState) => {
+        if (typeof window === 'undefined') return
         try {
             localStorage.setItem('idol-guessr-unlimited-game-state', JSON.stringify(gameState))
         } catch (error) {
@@ -317,6 +323,7 @@ export function useUnlimitedStats() {
     }, [])
 
     const loadGameState = useCallback((): UnlimitedGameState | null => {
+        if (typeof window === 'undefined') return null
         try {
             const savedState = localStorage.getItem('idol-guessr-unlimited-game-state')
             if (savedState) {
@@ -329,6 +336,7 @@ export function useUnlimitedStats() {
     }, [])
 
     const clearGameState = useCallback(() => {
+        if (typeof window === 'undefined') return
         try {
             localStorage.removeItem('idol-guessr-unlimited-game-state')
         } catch (error) {

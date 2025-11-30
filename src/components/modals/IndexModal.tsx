@@ -17,7 +17,6 @@ export default function IndexModal({
     const [dailyCount, setDailyCount] = useState<number | null>(null)
 
     useEffect(() => {
-        console.log('IndexModal isOpen changed to:', isOpen)
         if (isOpen) {
             setIsClosing(false)
             getDailyCount()
@@ -27,11 +26,8 @@ export default function IndexModal({
     }, [isOpen])
 
     if (!isOpen) {
-        console.log('IndexModal not rendering - isOpen is false')
         return null
     }
-
-    console.log('IndexModal rendering, isClosing:', isClosing)
 
     const meshGradient =
         'linear-gradient(115deg, #fc67fa 0%, #f4c4f3 43%,#7fd6fb 67%, #7f53ac 100%)'

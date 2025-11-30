@@ -106,10 +106,6 @@ export default function Home() {
                             : undefined
                     }
                     onLogoClick={() => {
-                        console.log(
-                            'Opening IndexModal, current state:',
-                            showIndexModal
-                        )
                         setShowIndexModal(true)
                     }}
                 />
