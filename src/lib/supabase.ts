@@ -105,7 +105,7 @@ export async function getMultipleRandomUnlimitedImages(
 
   // Try to fetch with exclusions first (3x count to ensure we get enough after deduplication)
   const fetchCount = count * 3;
-  const { data, error } = await supabase.rpc('get_multiple_random_unlimited_test', {
+  const { data, error } = await supabase.rpc('get_multiple_random_unlimited', {
     excluded_buckets: seenIdols,
     row_count: fetchCount
   });
@@ -124,7 +124,7 @@ export async function getMultipleRandomUnlimitedImages(
     // console.log('[Prefetch] No unseen idols available, clearing seen history...');
     clearSeenIdols();
 
-    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited_test', {
+    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
       excluded_buckets: [],
       row_count: count
     });
@@ -185,7 +185,7 @@ export async function getMultipleRandomUnlimitedImages(
     // console.log('[Prefetch] Insufficient unique images, clearing seen history...');
     clearSeenIdols();
 
-    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited_test', {
+    const { data: retryData, error: retryError } = await supabase.rpc('get_multiple_random_unlimited', {
       excluded_buckets: [],
       row_count: count
     });
