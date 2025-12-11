@@ -46,7 +46,7 @@ export default function GameOverModal({
                 <div className='flex flex-col gap-3'>
                     <button
                         onClick={onPlayAgain}
-                        className='pointer-events-auto cursor-pointer rounded-full bg-black px-6 py-2 text-lg font-bold text-white transition-all hover:bg-black/50'
+                        className='pointer-events-auto cursor-pointer rounded-full bg-black px-6 py-2 text-lg font-bold text-white transition-all hover:bg-[#141414]'
                     >
                         PLAY AGAIN
                     </button>
