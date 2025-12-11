@@ -1,26 +1,28 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Confetti from 'react-confetti'
-import OnScreenKeyboard from '@/components/input/OnScreenKeyboard'
 import GameHeader from '@/components/game/GameHeader'
 import GameImage from '@/components/game/GameImage'
 import GuessInput from '@/components/game/GuessInput'
+import OnScreenKeyboard from '@/components/input/OnScreenKeyboard'
 import StatsModal from '@/components/modals/StatsModal'
 import HelpModal from '@/components/modals/HelpModal'
 import FeedbackModal from '@/components/modals/FeedbackModal'
 import WinModal from '@/components/modals/WinModal'
-import { getImageUrl } from '@/lib/supabase'
+import InfiniteStartModal from '@/components/modals/InfiniteStartModal'
+import FilterModal from '@/components/filters/FilterModal'
 import { useGameController } from '@/hooks/useGameController'
-import IndexModal from '@/components/modals/IndexModal'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef } from 'react'
+import { getImageUrl } from '@/lib/supabase'
 
-export default function Home() {
+type GroupFilter = 'boy-group' | 'girl-group' | 'both'
+
+export default function InfinitePage() {
     const router = useRouter()
-    const [showIndexModal, setShowIndexModal] = useState(true)
-    const hasShownWinModalRef = useRef(false)
+    const [startOpen, setStartOpen] = useState(false)
+    const [showFilterModal, setShowFilterModal] = useState(false)
     const {
-        gameMode,
         handleGameModeChange,
         timer,
         isLoading,
@@ -28,13 +30,11 @@ export default function Home() {
         remainingGuesses,
         gameWon,
         gameLost,
-        guesses,
         currentGuess,
         correctAnswer,
         lastIncorrectGuess,
         isAnimating,
         handleKeyPress,
-        disabledLetters,
         showConfetti,
         windowDimensions,
         showStats,
@@ -63,33 +63,29 @@ export default function Home() {
         loadNextUnlimited,
         unlimitedCurrentStreak,
         unlimitedMaxStreak,
+        guesses,
     } = useGameController()
+
+    const handleStart = (filter: GroupFilter) => {
+        // Start unlimited with selected filter, then lock UI by closing modal
+        handleGameModeChange('unlimited', filter)
+        setStartOpen(false)
+    }
 
     useEffect(() => {
         try {
-            localStorage.setItem('idol-guessr-game-mode', 'daily')
-        } catch {}
-        if (gameMode !== 'daily') {
-            handleGameModeChange('daily')
+            const savedFilter = localStorage.getItem('idol-guessr-group-filter')
+            if (savedFilter === 'boy-group' || savedFilter === 'girl-group' || savedFilter === 'both') {
+                handleGameModeChange('unlimited', savedFilter as GroupFilter)
+                setStartOpen(false)
+            } else {
+                setStartOpen(true)
+            }
+        } catch {
+            setStartOpen(true)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [gameMode])
-
-    // Auto-show win modal when daily game is already completed (only once on page load)
-    useEffect(() => {
-        if (
-            gameMode === 'daily' &&
-            todayCompletionData &&
-            !showWinModal &&
-            !hasShownWinModalRef.current
-        ) {
-            hasShownWinModalRef.current = true
-            const timer = setTimeout(() => {
-                setShowWinModal(true)
-            }, 1000)
-            return () => clearTimeout(timer)
-        }
-    }, [gameMode, todayCompletionData, showWinModal, setShowWinModal])
+    }, [])
 
     return (
         <div className='fixed inset-0 flex flex-col justify-center overflow-hidden bg-white'>
@@ -97,17 +93,13 @@ export default function Home() {
                 <GameHeader
                     timer={timer}
                     onShowStats={() => setShowStats(true)}
-                    gameMode={gameMode}
-                    onGameModeChange={handleGameModeChange}
-                    showModeToggle={false}
-                    currentStreak={
-                        gameMode === 'unlimited'
-                            ? unlimitedCurrentStreak
-                            : undefined
-                    }
-                    onLogoClick={() => {
-                        setShowIndexModal(true)
+                    gameMode={'unlimited'}
+                    onGameModeChange={() => {
+                        /* disabled in infinite */
                     }}
+                    showModeToggle={false}
+                    currentStreak={unlimitedCurrentStreak}
+                    onLogoClick={() => router.push('/', { scroll: false })}
                 />
 
                 <div className='flex min-h-0 w-full flex-1 flex-col px-4'>
@@ -127,12 +119,9 @@ export default function Home() {
                             remainingGuesses={remainingGuesses}
                             gameWon={gameWon}
                             gameLost={gameLost}
-                            gameMode={gameMode}
+                            gameMode={'unlimited'}
                             onPass={
-                                gameMode === 'unlimited' &&
-                                !gameWon &&
-                                !gameLost &&
-                                skipsRemaining > 0
+                                !gameWon && !gameLost && skipsRemaining > 0
                                     ? handleSkip
                                     : undefined
                             }
@@ -151,7 +140,7 @@ export default function Home() {
                             }
                             showGameOver={showGameOver}
                             highestStreak={unlimitedMaxStreak}
-                            onPlayAgain={handlePlayAgain}
+                            onPlayAgain={() => setShowFilterModal(true)}
                             guesses={guesses}
                         />
                     </div>
@@ -167,7 +156,6 @@ export default function Home() {
 
                     <OnScreenKeyboard
                         onKeyPress={handleKeyPress}
-                        disabledLetters={disabledLetters}
                         className='flex-shrink-0 pb-4'
                     />
                 </div>
@@ -182,7 +170,7 @@ export default function Home() {
                 }}
                 stats={stats}
                 statsLoaded={statsLoaded}
-                gameMode={'daily'}
+                gameMode={'unlimited'}
             />
 
             <HelpModal
@@ -203,77 +191,71 @@ export default function Home() {
                 }}
             />
 
-            <IndexModal
-                isOpen={showIndexModal}
-                onDaily={() => setShowIndexModal(false)}
-                onInfinite={() => {
-                    router.push('/infinite', { scroll: false })
+            <WinModal
+                isOpen={showWinModal}
+                onClose={() => setShowWinModal(false)}
+                idolName={correctAnswer}
+                imageUrl={
+                    dailyImage &&
+                    dailyImage.group_category &&
+                    dailyImage.base64_group
+                        ? getImageUrl(
+                              dailyImage.group_type || '',
+                              dailyImage.img_bucket,
+                              'clear',
+                              'unlimited',
+                              dailyImage.group_category,
+                              dailyImage.base64_group
+                          )
+                        : ''
+                }
+                pixelatedImageUrl={
+                    dailyImage &&
+                    dailyImage.group_category &&
+                    dailyImage.base64_group
+                        ? getImageUrl(
+                              dailyImage.group_type || '',
+                              dailyImage.img_bucket,
+                              1,
+                              'unlimited',
+                              dailyImage.group_category,
+                              dailyImage.base64_group
+                          )
+                        : ''
+                }
+                guessCount={6 - guesses.filter((g) => g === 'empty').length}
+                isWin={gameWon}
+                guessAttempts={
+                    todayCompletionData?.guessAttempts || loadGuessAttempts()
+                }
+                stats={{
+                    gamesPlayed: stats.totalGames,
+                    winPercentage:
+                        stats.totalGames > 0
+                            ? Math.round(
+                                  (stats.totalWins / stats.totalGames) * 100
+                              )
+                            : 0,
+                    currentStreak: stats.currentStreak,
+                    maxStreak: stats.maxStreak,
                 }}
+                guessDistribution={[0, 0, 0, 0, 0, 0]}
+                gameMode={'unlimited'}
+                onNextUnlimited={loadNextUnlimited}
             />
 
-            {gameMode === 'daily' && (
-                <WinModal
-                    isOpen={showWinModal}
-                    onClose={() => setShowWinModal(false)}
-                    idolName={correctAnswer}
-                    imageUrl={
-                        dailyImage
-                            ? getImageUrl(
-                                  dailyImage.group_type || '',
-                                  dailyImage.img_bucket,
-                                  'clear',
-                                  gameMode,
-                                  dailyImage.group_category,
-                                  dailyImage.base64_group
-                              )
-                            : ''
-                    }
-                    pixelatedImageUrl={
-                        dailyImage
-                            ? getImageUrl(
-                                  dailyImage.group_type || '',
-                                  dailyImage.img_bucket,
-                                  1,
-                                  gameMode,
-                                  dailyImage.group_category,
-                                  dailyImage.base64_group
-                              )
-                            : ''
-                    }
-                    guessCount={
-                        todayCompletionData?.guessCount ||
-                        6 - guesses.filter((g) => g === 'empty').length
-                    }
-                    isWin={
-                        todayCompletionData ? todayCompletionData.won : gameWon
-                    }
-                    guessAttempts={
-                        todayCompletionData?.guessAttempts ||
-                        loadGuessAttempts()
-                    }
-                    stats={{
-                        gamesPlayed: stats.totalGames,
-                        winPercentage:
-                            stats.totalGames > 0
-                                ? Math.round(
-                                      (stats.totalWins / stats.totalGames) * 100
-                                  )
-                                : 0,
-                        currentStreak: stats.currentStreak,
-                        maxStreak: stats.maxStreak,
-                    }}
-                    guessDistribution={[
-                        stats.guessDistribution[1] || 0,
-                        stats.guessDistribution[2] || 0,
-                        stats.guessDistribution[3] || 0,
-                        stats.guessDistribution[4] || 0,
-                        stats.guessDistribution[5] || 0,
-                        stats.guessDistribution[6] || 0,
-                    ]}
-                    gameMode={gameMode}
-                    onNextUnlimited={loadNextUnlimited}
-                />
+            {startOpen && (
+                <InfiniteStartModal isOpen={startOpen} onStart={handleStart} />
             )}
+
+            <FilterModal
+                isOpen={showFilterModal}
+                onClose={() => setShowFilterModal(false)}
+                onConfirm={() => {
+                    setShowFilterModal(false)
+                }}
+                onPlayAgain={handlePlayAgain}
+            />
 
             {showConfetti && windowDimensions.width > 0 && (
                 <div className='pointer-events-none fixed inset-0 z-[9999]'>

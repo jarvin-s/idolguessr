@@ -6,7 +6,7 @@ import localFont from 'next/font/local'
 import ShareButton from '@/components/ShareButton'
 
 const proximaNovaBold = localFont({
-    src: '../../public/fonts/proximanova_bold.otf',
+    src: '../../../public/fonts/proximanova_bold.otf',
 })
 
 interface WinModalProps {
@@ -49,7 +49,6 @@ export default function WinModal({
         } else {
             document.body.style.overflow = 'unset'
         }
-
         return () => {
             document.body.style.overflow = 'unset'
         }
@@ -61,13 +60,9 @@ export default function WinModal({
 
     return (
         <div className='fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/50'>
-            {/* Modal Content */}
             <div
-                className={`win-modal-slide relative w-full max-w-md bg-white shadow-xl sm:my-8 sm:rounded-2xl ${
-                    isOpen ? 'win-modal-slide-in' : ''
-                }`}
+                className={`win-modal-slide relative w-full max-w-md bg-white shadow-xl sm:my-8 sm:rounded-2xl ${isOpen ? 'win-modal-slide-in' : ''}`}
             >
-                {/* Close Button */}
                 <button
                     onClick={onClose}
                     className='absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
@@ -88,9 +83,7 @@ export default function WinModal({
                     </svg>
                 </button>
 
-                {/* Content Container */}
                 <div className='flex flex-col items-center p-6'>
-                    {/* Message */}
                     <h1
                         className={`${proximaNovaBold.className} mt-8 mb-1 text-3xl font-extrabold text-black`}
                     >
@@ -116,7 +109,6 @@ export default function WinModal({
                         )}
                     </p>
 
-                    {/* Idol Image */}
                     <div className='mb-4 w-full overflow-hidden rounded-2xl'>
                         <div className='relative aspect-square w-full'>
                             <Image
@@ -159,22 +151,14 @@ export default function WinModal({
                                     return (
                                         <div
                                             key={index}
-                                            className={`flex items-center justify-between rounded-lg px-4 py-3 ${
-                                                isCorrectGuess
-                                                    ? 'border border-green-200 bg-green-50'
-                                                    : 'border border-red-200 bg-red-50'
-                                            }`}
+                                            className={`flex items-center justify-between rounded-lg px-4 py-3 ${isCorrectGuess ? 'border border-green-200 bg-green-50' : 'border border-red-200 bg-red-50'}`}
                                         >
                                             <div className='flex items-center gap-3'>
                                                 <span className='text-sm font-bold text-gray-500'>
                                                     {index + 1}
                                                 </span>
                                                 <span
-                                                    className={`${proximaNovaBold.className} font-bold ${
-                                                        isCorrectGuess
-                                                            ? 'text-green-600'
-                                                            : 'text-red-400'
-                                                    }`}
+                                                    className={`${proximaNovaBold.className} font-bold ${isCorrectGuess ? 'text-green-600' : 'text-red-400'}`}
                                                 >
                                                     {attempt}
                                                 </span>
@@ -198,14 +182,12 @@ export default function WinModal({
                     {gameMode === 'daily' && (
                         <>
                             <div className='mb-8 w-full border-t border-gray-200' />
-
                             <div className='mb-8 w-full'>
                                 <h2
                                     className={`${proximaNovaBold.className} mb-4 text-center text-2xl font-bold text-black`}
                                 >
                                     STATISTICS
                                 </h2>
-
                                 <div className='mb-3 grid grid-cols-4 gap-4 text-center'>
                                     <div>
                                         <div className='mb-2.5 text-3xl font-bold text-black'>
@@ -248,14 +230,12 @@ export default function WinModal({
                                 >
                                     GUESS DISTRIBUTION
                                 </h2>
-
                                 <div className='space-y-2'>
                                     {guessDistribution.map((count, index) => {
                                         const percentage =
                                             maxGuessCount > 0
                                                 ? (count / maxGuessCount) * 100
                                                 : 0
-
                                         return (
                                             <div
                                                 key={index}

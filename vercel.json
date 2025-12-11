@@ -1,7 +1,8 @@
 {
     "git": {
         "deploymentEnabled": {
-            "feat/*": false
+            "feature/*": false,
+            "refactor-codebase": false
         }
     }
 }

@@ -3,7 +3,7 @@ import localFont from 'next/font/local'
 import { insertNewFeedback } from '@/lib/supabase'
 
 const proximaNovaBold = localFont({
-    src: '../../public/fonts/proximanova_bold.otf',
+    src: '../../../public/fonts/proximanova_bold.otf',
 })
 
 interface FeedbackModalProps {
@@ -29,7 +29,6 @@ export default function FeedbackModal({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!feedbackForm.message.trim()) return
-
         setIsSubmitting(true)
         try {
             await insertNewFeedback({
@@ -52,7 +51,7 @@ export default function FeedbackModal({
 
     return (
         <div className='bg-opacity-50 fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4'>
-            <div className='relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6'>
+            <div className='relative maxh-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6'>
                 <div className='mb-6 flex items-center justify-between'>
                     <button
                         onClick={onBack}
@@ -67,54 +66,31 @@ export default function FeedbackModal({
                         className='flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200'
                         aria-label='Close Feedback'
                     >
-                        <svg
-                            className='h-4 w-4 text-gray-600'
-                            fill='none'
-                            stroke='currentColor'
-                            viewBox='0 0 24 24'
-                        >
-                            <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M6 18L18 6M6 6l12 12'
-                            />
+                        <svg className='h-4 w-4 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
                         </svg>
                     </button>
                 </div>
 
                 {submitted ? (
                     <div className='text-center'>
-                        <h1
-                            className={`${proximaNovaBold.className} text-2xl text-green-600 uppercase`}
-                        >
+                        <h1 className={`${proximaNovaBold.className} text-2xl text-green-600 uppercase`}>
                             Thank you!
                         </h1>
-                        <p className='mt-2 text-black'>
-                            Your feedback has been submitted successfully.
-                        </p>
+                        <p className='mt-2 text-black'>Your feedback has been submitted successfully.</p>
                     </div>
                 ) : (
                     <>
-                        <h1
-                            className={`${proximaNovaBold.className} text-2xl uppercase`}
-                        >
+                        <h1 className={`${proximaNovaBold.className} text-2xl uppercase`}>
                             Submit your feedback
                         </h1>
                         <p className='mt-2 text-gray-600'>
-                            We&apos;re always looking for ways to improve the
-                            game. Please share your thoughts with us.
+                            We&apos;re always looking for ways to improve the game. Please share your thoughts with us.
                         </p>
 
-                        <form
-                            onSubmit={handleSubmit}
-                            className='mt-6 space-y-4'
-                        >
+                        <form onSubmit={handleSubmit} className='mt-6 space-y-4'>
                             <div>
-                                <label
-                                    htmlFor='feedback-category'
-                                    className={`${proximaNovaBold.className} mb-1 block uppercase`}
-                                >
+                                <label htmlFor='feedback-category' className={`${proximaNovaBold.className} mb-1 block uppercase`}>
                                     Category
                                 </label>
                                 <select
@@ -130,20 +106,13 @@ export default function FeedbackModal({
                                 >
                                     <option value='general'>General</option>
                                     <option value='bug'>Bug Report</option>
-                                    <option value='feature'>
-                                        Feature Request
-                                    </option>
-                                    <option value='improvement'>
-                                        Improvement
-                                    </option>
+                                    <option value='feature'>Feature Request</option>
+                                    <option value='improvement'>Improvement</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label
-                                    htmlFor='feedback-message'
-                                    className={`${proximaNovaBold.className} mb-1 block uppercase`}
-                                >
+                                <label htmlFor='feedback-message' className={`${proximaNovaBold.className} mb-1 block uppercase`}>
                                     Message
                                 </label>
                                 <textarea
@@ -164,14 +133,10 @@ export default function FeedbackModal({
 
                             <button
                                 type='submit'
-                                disabled={
-                                    isSubmitting || !feedbackForm.message.trim()
-                                }
+                                disabled={isSubmitting || !feedbackForm.message.trim()}
                                 className='w-full cursor-pointer rounded-md bg-black px-4 py-2 font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400'
                             >
-                                {isSubmitting
-                                    ? 'Submitting...'
-                                    : 'Submit feedback'}
+                                {isSubmitting ? 'Submitting...' : 'Submit feedback'}
                             </button>
                         </form>
                     </>
@@ -183,18 +148,10 @@ export default function FeedbackModal({
 
 function ArrowLeftIcon() {
     return (
-        <svg
-            className='h-4 w-4 text-gray-600'
-            fill='none'
-            stroke='currentColor'
-            viewBox='0 0 24 24'
-        >
-            <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M10 19l-7-7m0 0l7-7m-7 7h18'
-            />
+        <svg className='h-4 w-4 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M10 19l-7-7m0 0l7-7m-7 7h18' />
         </svg>
     )
 }
+
+

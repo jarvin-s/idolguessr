@@ -1,4 +1,4 @@
-import UserStats from './UserStats'
+import UserStats from '../stats/UserStats'
 
 interface StatsModalProps {
     isOpen: boolean

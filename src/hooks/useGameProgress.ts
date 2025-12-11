@@ -5,7 +5,7 @@ import { DailyImage } from '@/lib/supabase'
 import {
     useUserStats,
     DailyCompletion,
-} from '@/components/UserStats'
+} from '@/components/stats/UserStats'
 
 interface GameProgressHook {
     guesses: Array<'correct' | 'incorrect' | 'empty'>
@@ -29,7 +29,8 @@ interface GameProgressHook {
 
 export function useGameProgress(
     dailyImage: DailyImage | null,
-    correctAnswer: string
+    correctAnswer: string,
+    gameMode: 'daily' | 'unlimited' = 'daily'
 ): GameProgressHook {
     const [guesses, setGuesses] = useState<
         Array<'correct' | 'incorrect' | 'empty'>
@@ -54,19 +55,31 @@ export function useGameProgress(
     } = useUserStats()
 
     useEffect(() => {
-        if (statsLoaded && dailyImage) {
-            const completed = isTodayCompleted()
-            const completionData = getTodayCompletion()
+        if (gameMode !== 'daily') {
+            return
+        }
 
-            if (completed && completionData && completionData.imageId === dailyImage.id) {
-                setTodayCompleted(true)
-                setTodayCompletionData(completionData)
+        if (!statsLoaded || !dailyImage) {
+            return
+        }
 
-                if (completionData.won) {
-                    setGameWon(true)
-                    const newGuesses: Array<
-                        'correct' | 'incorrect' | 'empty'
-                    > = [
+        setGameWon(false)
+        setGameLost(false)
+        setTodayCompleted(false)
+        setTodayCompletionData(null)
+
+        const completed = isTodayCompleted()
+        const completionData = getTodayCompletion()
+
+        if (completed && completionData && completionData.imageId === dailyImage.id) {
+            setTodayCompleted(true)
+            setTodayCompletionData(completionData)
+
+            if (completionData.won) {
+                setGameWon(true)
+                const newGuesses: Array<
+                    'correct' | 'incorrect' | 'empty'
+                > = [
                         'empty',
                         'empty',
                         'empty',
@@ -74,38 +87,36 @@ export function useGameProgress(
                         'empty',
                         'empty',
                     ]
-                    for (
-                        let i = 0;
-                        i < completionData.guessCount - 1;
-                        i++
-                    ) {
-                        newGuesses[i] = 'incorrect'
-                    }
-                    newGuesses[completionData.guessCount - 1] = 'correct'
-                    setGuesses(newGuesses)
-                } else {
-                    setGameLost(true)
-                    setGuesses([
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                        'incorrect',
-                    ])
+                for (
+                    let i = 0;
+                    i < completionData.guessCount - 1;
+                    i++
+                ) {
+                    newGuesses[i] = 'incorrect'
                 }
+                newGuesses[completionData.guessCount - 1] = 'correct'
+                setGuesses(newGuesses)
             } else {
-                // Game not completed, try to load progress
-                const progress = loadDailyProgress()
-                if (progress && progress.imageId === dailyImage.id) {
-                    setGuesses(progress.guesses)
-                } else {
-                    setTodayCompleted(false)
-                    setTodayCompletionData(null)
-                }
+                setGameLost(true)
+                setGuesses([
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                    'incorrect',
+                ])
+            }
+        } else {
+            const progress = loadDailyProgress()
+            if (progress && progress.imageId === dailyImage.id) {
+                setGuesses(progress.guesses)
+            } else {
+                setGuesses(['empty', 'empty', 'empty', 'empty', 'empty', 'empty'])
             }
         }
     }, [
+        gameMode,
         statsLoaded,
         dailyImage,
         isTodayCompleted,
