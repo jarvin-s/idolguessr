@@ -59,7 +59,7 @@ export default function WinModal({
     const maxGuessCount = Math.max(...guessDistribution, 1)
 
     return (
-        <div className='fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/50'>
+        <div className='hide-scrollbar fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/50'>
             <div
                 className={`win-modal-slide relative w-full max-w-md bg-white shadow-xl sm:my-8 sm:rounded-2xl ${isOpen ? 'win-modal-slide-in' : ''}`}
             >
@@ -109,7 +109,7 @@ export default function WinModal({
                         )}
                     </p>
 
-                    <div className='mb-4 w-full overflow-hidden rounded-2xl'>
+                    <div className='mb-4 w-full overflow-hidden'>
                         <div className='relative aspect-square w-full'>
                             <Image
                                 src={imageUrl}

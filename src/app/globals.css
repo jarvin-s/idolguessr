@@ -9,6 +9,15 @@ body {
     padding: 0;
 }
 
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
 #__next {
     height: 100vh;
     overflow: hidden;

@@ -46,15 +46,6 @@ export async function getDailyImage(): Promise<CurrentDaily | null> {
   return data[0] as CurrentDaily;
 }
 
-export async function getRandomUnlimitedImage(): Promise<DailyImage | null> {
-  const { data, error } = await supabase.rpc('get_random_unlimited');
-  if (error || !data?.length) {
-    console.error('get_random_unlimited error:', error);
-    return null;
-  }
-  return data[0] as DailyImage;
-}
-
 export function getSeenIdols(): string[] {
   if (typeof window === 'undefined') return []
   try {
@@ -239,6 +230,9 @@ export function getImageUrl(
   base64Group?: string,
 ): string {
   const fileName = guessNumber === 'clear' ? 'clear.png' : `00${guessNumber}.png`
+  
+  // Normalize supabaseUrl by removing trailing slash
+  const normalizedUrl = supabaseUrl.replace(/\/+$/, '')
 
   if (mode === 'unlimited') {
     if (!groupCategory || !base64Group || !imgBucket) {
@@ -252,10 +246,10 @@ export function getImageUrl(
       }
       return ''
     }
-    return `${supabaseUrl}/storage/v1/object/public/images/unlimited/${groupCategory}/${base64Group}/${imgBucket}/${fileName}`
+    return `${normalizedUrl}/storage/v1/object/public/images/unlimited/${groupCategory}/${base64Group}/${imgBucket}/${fileName}`
   }
 
-  return `${supabaseUrl}/storage/v1/object/public/images/${mode}/${groupType}/${imgBucket}/${fileName}`
+  return `${normalizedUrl}/storage/v1/object/public/images/${mode}/${groupType}/${imgBucket}/${fileName}`
 }
 
 export interface GuessTrackingData {
