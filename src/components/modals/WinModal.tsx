@@ -25,7 +25,7 @@ interface WinModalProps {
         maxStreak: number
     }
     guessDistribution: number[]
-    gameMode?: 'daily' | 'unlimited'
+    gameMode?: 'daily' | 'unlimited' | 'hangul'
     onNextUnlimited?: () => void
 }
 

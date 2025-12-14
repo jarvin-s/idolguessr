@@ -209,6 +209,9 @@ export default function Home() {
                 onInfinite={() => {
                     router.push('/infinite', { scroll: false })
                 }}
+                onHangul={() => {
+                    router.push('/hangul', { scroll: false })
+                }}
             />
 
             {gameMode === 'daily' && (

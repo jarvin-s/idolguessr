@@ -6,12 +6,14 @@ interface IndexModalProps {
     isOpen: boolean
     onDaily: () => void
     onInfinite: () => void
+    onHangul: () => void
 }
 
 export default function IndexModal({
     isOpen,
     onDaily,
     onInfinite,
+    onHangul,
 }: IndexModalProps) {
     const [isClosing, setIsClosing] = useState(false)
     const [dailyCount, setDailyCount] = useState<number | null>(null)
@@ -41,6 +43,10 @@ export default function IndexModal({
 
     const handleInfinite = () => {
         onInfinite()
+    }
+
+    const handleHangul = () => {
+        onHangul()
     }
 
     return (
@@ -77,6 +83,12 @@ export default function IndexModal({
                         style={{ background: meshGradient }}
                     >
                         Infinite
+                    </button>
+                    <button
+                        onClick={handleHangul}
+                        className='w-full max-w-[180px] cursor-pointer rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 font-semibold text-white'
+                    >
+                        Hangul
                     </button>
                 </div>
 

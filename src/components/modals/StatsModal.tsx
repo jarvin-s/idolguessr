@@ -7,7 +7,7 @@ interface StatsModalProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     stats: any
     statsLoaded: boolean
-    gameMode?: 'daily' | 'unlimited'
+    gameMode?: 'daily' | 'unlimited' | 'hangul'
 }
 
 export default function StatsModal({

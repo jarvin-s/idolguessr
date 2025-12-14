@@ -5,7 +5,7 @@ import FilterModal from '../filters/FilterModal'
 interface GameHeaderProps {
     timer: string
     onShowStats: () => void
-    gameMode: 'daily' | 'unlimited'
+    gameMode: 'daily' | 'unlimited' | 'hangul'
     onGameModeChange: (
         mode: 'daily' | 'unlimited',
         filter?: 'boy-group' | 'girl-group' | 'both'
@@ -66,6 +66,16 @@ export default function GameHeader({
                         </div>
                     )}
 
+                    {gameMode === 'hangul' && (
+                        <div className='flex items-center justify-end'>
+                            <div className='rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-3.5 py-1.5'>
+                                <h1 className='text-sm font-bold tracking-widest text-white uppercase'>
+                                    Hangul
+                                </h1>
+                            </div>
+                        </div>
+                    )}
+
                     <div className='flex items-center gap-2'>
                         {gameMode === 'daily' && (
                             <div className='flex flex-col items-end text-right'>
@@ -78,7 +88,7 @@ export default function GameHeader({
                             </div>
                         )}
 
-                        {gameMode === 'unlimited' &&
+                        {(gameMode === 'unlimited' || gameMode === 'hangul') &&
                             currentStreak !== undefined &&
                             currentStreak >= 5 && (
                                 <div className='flex items-center gap-1'>
@@ -162,8 +172,8 @@ function StatsIcon() {
     )
 }
 
-function GameModeIcon({ gameMode }: { gameMode: 'daily' | 'unlimited' }) {
-    if (gameMode === 'unlimited') {
+function GameModeIcon({ gameMode }: { gameMode: 'daily' | 'unlimited' | 'hangul' }) {
+    if (gameMode === 'unlimited' || gameMode === 'hangul') {
         return (
             <svg
                 xmlns='http://www.w3.org/2000/svg'
