@@ -60,8 +60,8 @@ export default function IndexModal({
                     <Image
                         src='/images/idolguessr-logo.png'
                         alt='IdolGuessr Logo'
-                        width={200}
-                        height={200}
+                        width={350}
+                        height={350}
                         className='h-auto w-auto'
                     />
                 </div>
