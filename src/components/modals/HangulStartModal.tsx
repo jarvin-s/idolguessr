@@ -39,9 +39,9 @@ export default function HangulStartModal({
                 </div>
 
                 <div className='mb-4'>
-                    <h3 className='mb-3 text-center text-sm font-semibold uppercase text-gray-500'>
+                    <h2 className='text-center text-xl font-bold uppercase md:text-2xl'>
                         Choose Group Type
-                    </h3>
+                    </h2>
                 </div>
 
                 <div className='space-y-4'>
@@ -69,7 +69,7 @@ export default function HangulStartModal({
 
                     <button
                         onClick={() => setSelectedFilter('both')}
-                        className={`w-full cursor-pointer rounded-md border-2 px-3 py-2 text-left font-medium transition-all ${
+                        className={`w-full cursor-pointer border-2 px-3 py-2 text-left font-medium transition-all ${
                             selectedFilter === 'both'
                                 ? 'border-black bg-black text-white'
                                 : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50'

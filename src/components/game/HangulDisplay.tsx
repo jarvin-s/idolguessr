@@ -1,7 +1,5 @@
-import { getHangulImageUrl } from '@/lib/supabase'
 import StreakPopup from './StreakPopup'
 import GameOverModal from './GameOverModal'
-import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
 
 interface HangulDisplayProps {
@@ -64,21 +62,7 @@ export default function HangulDisplay({
         }
     }, [hangulImage?.img_bucket])
 
-    // Check if image data is available (optional - game works without images)
-    const hasImageData = hangulImage?.group_category && hangulImage?.base64_group && hangulImage?.img_bucket
-
-    const clearImageUrl =
-        hangulImage && hasImageData
-            ? getHangulImageUrl(
-                  hangulImage.group_category || '',
-                  hangulImage.base64_group || '',
-                  hangulImage.img_bucket,
-                  'clear'
-              )
-            : ''
-
-    // Determine if image should show (revealed by hint, game won, or game lost) AND image data exists
-    const shouldShowImage = (imageRevealed || gameWon || gameLost) && hasImageData
+    const hasGroupHint = !!hangulImage?.group_name
 
     return (
         <div className='relative mb-3 min-h-0 w-full flex-1 sm:mx-auto sm:max-w-md'>
@@ -99,38 +83,25 @@ export default function HangulDisplay({
                         key={hangulImage.img_bucket}
                     >
                         {/* Hangul Name Display */}
-                        {!shouldShowImage && (
-                            <div className='flex flex-col items-center justify-center px-4'>
-                                <h1
-                                    className='text-center font-bold text-[#f3f3f3] select-none'
-                                    style={{
-                                        fontSize: 'clamp(3rem, 12vw, 7rem)',
-                                        wordBreak: 'keep-all',
-                                    }}
-                                >
-                                    {hangulName}
-                                </h1>
-                            </div>
-                        )}
-
-                        {/* Image Display (when revealed) */}
-                        {shouldShowImage && clearImageUrl && (
-                            <div className='absolute inset-0 overflow-hidden rounded-lg'>
-                                <Image
-                                    src={clearImageUrl}
-                                    alt='Idol'
-                                    width={600}
-                                    height={600}
-                                    className='pointer-events-none rounded-lg object-cover'
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                    }}
-                                    unoptimized
-                                    priority
-                                />
-                            </div>
-                        )}
+                        <div className='flex flex-col items-center justify-center px-4'>
+                            <h1
+                                className='text-center font-bold text-[#f3f3f3] select-none'
+                                style={{
+                                    fontSize: 'clamp(3rem, 12vw, 7rem)',
+                                    wordBreak: 'keep-all',
+                                }}
+                            >
+                                {hangulName}
+                            </h1>
+                            {/* Group Name Hint */}
+                            {imageRevealed && hangulImage?.group_name && (
+                                <div className='mt-2 rounded-lg bg-black/40 px-4 py-2'>
+                                    <span className='text-lg font-semibold text-white/90 md:text-xl'>
+                                        {hangulImage.group_name}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 ) : (
                     <div className='flex h-full w-full items-center justify-center'>
@@ -144,32 +115,34 @@ export default function HangulDisplay({
                         <div className='absolute top-3 left-3 z-10 flex items-center gap-2'>
                             <button
                                 onClick={() => {
-                                    if (!imageRevealed && hasImageData) {
+                                    if (!imageRevealed && hasGroupHint) {
                                         onRevealImage()
                                     }
                                 }}
                                 className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all md:text-sm ${
-                                    imageRevealed || !hasImageData
+                                    imageRevealed || !hasGroupHint
                                         ? 'cursor-not-allowed bg-gray-200 text-gray-500'
                                         : 'text-black hover:scale-105 active:scale-95'
                                 }`}
                                 style={{
-                                    backgroundColor: imageRevealed || !hasImageData
-                                        ? 'rgb(229, 229, 229)'
-                                        : 'rgb(255, 249, 127)',
+                                    backgroundColor:
+                                        imageRevealed || !hasGroupHint
+                                            ? 'rgb(229, 229, 229)'
+                                            : 'rgb(255, 249, 127)',
                                     border: '1px solid #00000012',
-                                    cursor: imageRevealed || !hasImageData
-                                        ? 'not-allowed'
-                                        : 'pointer',
+                                    cursor:
+                                        imageRevealed || !hasGroupHint
+                                            ? 'not-allowed'
+                                            : 'pointer',
                                 }}
-                                disabled={imageRevealed || !hasImageData}
+                                disabled={imageRevealed || !hasGroupHint}
                             >
-                                <ImageIcon />
-                                {!hasImageData
-                                    ? 'NO IMAGE'
+                                <HintButton />
+                                {!hasGroupHint
+                                    ? 'HINT'
                                     : imageRevealed
-                                        ? 'IMAGE REVEALED'
-                                        : 'REVEAL IMAGE'}
+                                      ? 'GROUP REVEALED'
+                                      : 'HINT'}
                             </button>
                         </div>
                         <div className='absolute top-3 right-3 z-10'>
@@ -221,10 +194,11 @@ export default function HangulDisplay({
                     )}
 
                 {/* Guess Progress Bar */}
-                <div className='pointer-events-none absolute inset-0 z-[200] mb-4 flex items-end justify-center px-4 md:px-10'>
+                <div className='pointer-events-none absolute inset-0 z-[200] mb-4 flex items-end justify-center px-18'>
                     <div className='flex h-12 w-full items-center justify-evenly rounded-lg bg-black'>
                         <h1 className='text-xl font-bold text-white uppercase'>
-                            Guess {guesses.length - remainingGuesses}/{guesses.length}
+                            Guess {guesses.length - remainingGuesses}/
+                            {guesses.length}
                         </h1>
                         <div className='flex gap-2.5'>
                             {guesses.map((guess, index) => (
@@ -256,22 +230,29 @@ export default function HangulDisplay({
     )
 }
 
-function ImageIcon() {
+function HintButton() {
     return (
         <svg
             xmlns='http://www.w3.org/2000/svg'
             width='16'
             height='16'
             viewBox='0 0 24 24'
-            fill='none'
-            stroke='currentColor'
-            strokeWidth='2'
-            strokeLinecap='round'
-            strokeLinejoin='round'
         >
-            <rect x='3' y='3' width='18' height='18' rx='2' ry='2' />
-            <circle cx='8.5' cy='8.5' r='1.5' />
-            <polyline points='21 15 16 10 5 21' />
+            <g fill='none'>
+                <path
+                    stroke='currentColor'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth='2'
+                    d='m3 3l18 18'
+                />
+                <path
+                    fill='currentColor'
+                    fillRule='evenodd'
+                    d='M5.4 6.23c-.44.33-.843.678-1.21 1.032a15.1 15.1 0 0 0-3.001 4.11a1.44 1.44 0 0 0 0 1.255a15.1 15.1 0 0 0 3 4.111C5.94 18.423 8.518 20 12 20c2.236 0 4.1-.65 5.61-1.562l-3.944-3.943a3 3 0 0 1-4.161-4.161L5.401 6.229zm15.266 9.608a15 15 0 0 0 2.145-3.21a1.44 1.44 0 0 0 0-1.255a15.1 15.1 0 0 0-3-4.111C18.06 5.577 15.483 4 12 4a10.8 10.8 0 0 0-2.808.363z'
+                    clipRule='evenodd'
+                />
+            </g>
         </svg>
     )
 }
