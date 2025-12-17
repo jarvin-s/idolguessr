@@ -12,7 +12,7 @@ import HelpModal from '@/components/modals/HelpModal'
 import FeedbackModal from '@/components/modals/FeedbackModal'
 import WinModal from '@/components/modals/WinModal'
 import HangulStartModal from '@/components/modals/HangulStartModal'
-import FilterModal from '@/components/filters/FilterModal'
+import HangulFilterModal from '@/components/filters/HangulFilterModal'
 import { useHangulGameController } from '@/hooks/useHangulGameController'
 import { getImageUrl } from '@/lib/supabase'
 
@@ -55,8 +55,8 @@ export default function HangulPage() {
         handleSkip,
         loadNextHangul,
         skipsRemaining,
+        finalStreak,
         hangulCurrentStreak,
-        hangulMaxStreak,
         hangulStatsData,
         hangulStatsLoaded,
         handleStart,
@@ -125,7 +125,7 @@ export default function HangulPage() {
                             streakMilestone={streakMilestone}
                             onStreakPopupComplete={() => setShowStreakPopup(false)}
                             showGameOver={showGameOver}
-                            highestStreak={hangulMaxStreak}
+                            currentStreak={finalStreak}
                             onPlayAgain={() => setShowFilterModal(true)}
                             guesses={guesses}
                         />
@@ -230,13 +230,13 @@ export default function HangulPage() {
 
             {startOpen && <HangulStartModal isOpen={startOpen} onStart={onStartGame} />}
 
-            <FilterModal
+            <HangulFilterModal
                 isOpen={showFilterModal}
                 onClose={() => setShowFilterModal(false)}
-                onConfirm={() => {
+                onConfirm={(filter) => {
                     setShowFilterModal(false)
+                    handlePlayAgain(filter)
                 }}
-                onPlayAgain={handlePlayAgain}
             />
 
             {showConfetti && windowDimensions.width > 0 && (

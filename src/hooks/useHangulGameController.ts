@@ -45,6 +45,7 @@ export function useHangulGameController() {
     const [gameWon, setGameWon] = useState(false)
     const [gameLost, setGameLost] = useState(false)
     const [groupFilter, setGroupFilter] = useState<GroupFilter>('both')
+    const [finalStreak, setFinalStreak] = useState(0)
 
     const hangulStats = useHangulStats()
 
@@ -56,6 +57,7 @@ export function useHangulGameController() {
     const guessesRef = useRef(guesses)
     const loadHangulRef = useRef(false)
     const loadHangulRefFunc = useRef<((filterOverride?: GroupFilter) => Promise<void>) | null>(null)
+    const lossRecordedRef = useRef(false)
 
     useEffect(() => {
         guessesRef.current = guesses
@@ -410,6 +412,7 @@ export function useHangulGameController() {
     const handlePlayAgain = useCallback(
         (overrideGroupFilter?: GroupFilter) => {
             setShowGameOver(false)
+            lossRecordedRef.current = false
             hangulStats.clearGameState()
             clearSeenHangulIdols()
 
@@ -469,8 +472,14 @@ export function useHangulGameController() {
                                 const remainingAfterThis = newGuesses.filter((g) => g === 'empty').length
                                 if (remainingAfterThis === 0) {
                                     setTimeout(() => {
+                                        // Capture the current streak before resetting
+                                        setFinalStreak(hangulStats.stats.currentStreak)
                                         setGameLost(true)
-                                        hangulStats.updateStats(false, true)
+                                        // Only record the loss once
+                                        if (!lossRecordedRef.current) {
+                                            lossRecordedRef.current = true
+                                            hangulStats.updateStats(false, true)
+                                        }
                                         hangulStats.clearGameState()
                                         lastStreakMilestoneRef.current = 0
                                         clearSeenHangulIdols()
@@ -717,6 +726,7 @@ export function useHangulGameController() {
         handleSkip,
         loadNextHangul,
         skipsRemaining,
+        finalStreak,
         // Stats
         hangulCurrentStreak: hangulStats.stats.currentStreak,
         hangulMaxStreak: hangulStats.stats.maxStreak,

@@ -1,5 +1,5 @@
 import StreakPopup from './StreakPopup'
-import GameOverModal from './GameOverModal'
+import HangulGameOverModal from './HangulGameOverModal'
 import { useEffect, useState, useRef } from 'react'
 
 interface HangulDisplayProps {
@@ -24,7 +24,7 @@ interface HangulDisplayProps {
     streakMilestone?: number
     onStreakPopupComplete?: () => void
     showGameOver?: boolean
-    highestStreak?: number
+    currentStreak?: number
     onPlayAgain?: () => void
     guesses?: Array<'empty' | 'correct' | 'incorrect'>
 }
@@ -44,7 +44,7 @@ export default function HangulDisplay({
     streakMilestone,
     onStreakPopupComplete,
     showGameOver = false,
-    highestStreak = 0,
+    currentStreak = 0,
     onPlayAgain,
     guesses = [],
 }: HangulDisplayProps) {
@@ -219,9 +219,9 @@ export default function HangulDisplay({
 
                 {/* Game Over Modal */}
                 {showGameOver && onPlayAgain && (
-                    <GameOverModal
+                    <HangulGameOverModal
                         isOpen={showGameOver}
-                        highestStreak={highestStreak}
+                        currentStreak={currentStreak}
                         onPlayAgain={onPlayAgain}
                     />
                 )}
